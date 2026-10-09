@@ -65,6 +65,7 @@ class NeuronalesNetz {
     this.trainingsBeispiele = 0;
     this.trainierteEpochen = 0;
     this.trainingsPaare = [];
+    this.letzteAntworten = [];
     this.letzterFehler = null;
   }
 
@@ -1040,7 +1041,7 @@ class NeuronalesNetz {
   // ANTWORT PLANEN UND ERZEUGEN
   // -----------------------------------------------
 
-  antwortGenerieren(prompt, optionen = {}) {
+  antwortGenerierenAlt(prompt, optionen = {}) {
     if (!this.bereit) {
       return (
         "Mein neuronales Sprachmodell ist noch nicht trainiert. " +
@@ -1059,7 +1060,7 @@ class NeuronalesNetz {
     const plan = this.planeAntwort(prompt);
 
     // 2. Bei einer exakt bekannten Frage die zugehörige
-    //    vollständige Trainingsantwort verwenden.
+    // vollständige Trainingsantwort verwenden.
     if (
       plan.beispielAntwort &&
       plan.relevanz >= 0.999
@@ -1082,8 +1083,8 @@ class NeuronalesNetz {
     const beste = kandidaten[0];
 
     // 5. Bei einer sehr ähnlichen Trainingsfrage eine
-    //    bekannte Antwort nutzen, falls die Generierung
-    //    nur schlechte Ergebnisse liefert.
+    // bekannte Antwort nutzen, falls die Generierung
+    // nur schlechte Ergebnisse liefert.
     if (
       plan.beispielAntwort &&
       plan.relevanz >= 0.55 &&
@@ -1095,6 +1096,185 @@ class NeuronalesNetz {
     return beste && beste.text
       ? beste.text
       : "Ich konnte noch keine zusammenhängende Antwort erzeugen.";
+  }
+
+  // -----------------------------------------------
+  // NEUE, VARIIERTE ANTWORTGENERIERUNG
+  // -----------------------------------------------
+
+  antwortGenerieren(prompt, optionen = {}) {
+    if (!this.bereit) {
+      return (
+        "Mein neuronales Sprachmodell ist noch nicht trainiert. " +
+        "Bitte überprüfe deine Trainingsdaten."
+      );
+    }
+
+    if (typeof prompt !== "string" || !prompt.trim()) {
+      return "Bitte gib eine Nachricht ein.";
+    }
+
+    if (!Array.isArray(this.letzteAntworten)) {
+      this.letzteAntworten = [];
+    }
+
+    // Thema und passende Trainingsbeispiele bestimmen.
+    // Die Musterantwort wird nicht direkt zurückgegeben.
+    const plan = this.planeAntwort(prompt);
+
+    const generationOptionen = {
+      ...optionen,
+      anzahlKandidaten: optionen.anzahlKandidaten ?? 6,
+      temperatur: optionen.temperatur ?? 0.95,
+      topK: optionen.topK ?? 8,
+      maxTokens: optionen.maxTokens ?? 35
+    };
+
+    let kandidaten = [];
+
+    // Mehrere Versuche helfen, wenn Antworten leer sind
+    // oder kürzlich verwendeten Antworten entsprechen.
+    for (let runde = 0; runde < 4; runde++) {
+      kandidaten = this.generiereKandidaten(
+        prompt,
+        plan,
+        generationOptionen
+      );
+
+      const hatNeueAntwort = kandidaten.some(kandidat => {
+        const text = this.normalisiereText(kandidat.text || "");
+
+        return (
+          text.length > 0 &&
+          !this.letzteAntworten.includes(text)
+        );
+      });
+
+      if (hatNeueAntwort) {
+        break;
+      }
+    }
+
+    // Alte Antworten und ähnliche Formulierungen abwerten.
+    for (const kandidat of kandidaten) {
+      const text = this.normalisiereText(kandidat.text || "");
+
+      if (!text) {
+        kandidat.bewertung = -1000;
+        continue;
+      }
+
+      if (this.letzteAntworten.includes(text)) {
+        kandidat.bewertung -= 1000;
+      }
+
+      let aehnlichkeitsStrafe = 0;
+
+      for (const alteAntwort of this.letzteAntworten) {
+        aehnlichkeitsStrafe = Math.max(
+          aehnlichkeitsStrafe,
+          this.aehnlichkeit(text, alteAntwort)
+        );
+      }
+
+      kandidat.bewertung -= aehnlichkeitsStrafe * 2.5;
+
+      // Kleine Zufallskomponente, um Kandidaten mit
+      // ähnlicher Bewertung unterschiedlich auszuwählen.
+      kandidat.bewertung += Math.random() * 0.8;
+    }
+
+    const nichtLeereKandidaten = kandidaten.filter(kandidat =>
+      typeof kandidat.text === "string" &&
+      kandidat.text.trim().length > 0
+    );
+
+    if (nichtLeereKandidaten.length === 0) {
+      return "Ich konnte diesmal keine zusammenhängende Antwort erzeugen.";
+    }
+
+    // Wenn möglich, kürzlich verwendete Antworten ausschließen.
+    const neueKandidaten = nichtLeereKandidaten.filter(kandidat =>
+      !this.letzteAntworten.includes(
+        this.normalisiereText(kandidat.text)
+      )
+    );
+
+    const auswahlPool = neueKandidaten.length > 0
+      ? neueKandidaten
+      : nichtLeereKandidaten;
+
+    auswahlPool.sort((a, b) => b.bewertung - a.bewertung);
+
+    // Aus den drei besten Kandidaten zufällig wählen.
+    const topKandidaten = auswahlPool.slice(
+      0,
+      Math.min(3, auswahlPool.length)
+    );
+
+    const zufallsGewichte = topKandidaten.map((kandidat, index) => {
+      const qualitaet = Math.max(0.1, 1 / (index + 1));
+
+      const bewertungsFaktor = Math.exp(
+        Math.max(
+          -4,
+          Math.min(
+            4,
+            (kandidat.bewertung - topKandidaten[0].bewertung) * 0.25
+          )
+        )
+      );
+
+      return qualitaet * bewertungsFaktor;
+    });
+
+    const gewichtSumme = zufallsGewichte.reduce(
+      (summe, gewicht) => summe + gewicht,
+      0
+    );
+
+    let zufall = Math.random() * gewichtSumme;
+    let gewaehlt = topKandidaten[0];
+
+    for (let i = 0; i < topKandidaten.length; i++) {
+      zufall -= zufallsGewichte[i];
+
+      if (zufall <= 0) {
+        gewaehlt = topKandidaten[i];
+        break;
+      }
+    }
+
+    let antwort = gewaehlt.text.trim();
+    let normalisierteAntwort = this.normalisiereText(antwort);
+
+    // Falls eine kürzlich verwendete Antwort erneut entsteht,
+    // wird eine alternative Einleitung versucht.
+    if (this.letzteAntworten.includes(normalisierteAntwort)) {
+      const einleitungen = [
+        "Anders gesagt: ",
+        "Ein weiterer Gedanke dazu: ",
+        "Man kann es auch so ausdrücken: ",
+        "Noch eine Formulierung: "
+      ];
+
+      const freieEinleitung = einleitungen.find(einleitung =>
+        !this.letzteAntworten.includes(
+          this.normalisiereText(einleitung + antwort)
+        )
+      );
+
+      if (freieEinleitung) {
+        antwort = freieEinleitung + antwort;
+        normalisierteAntwort = this.normalisiereText(antwort);
+      }
+    }
+
+    // Die letzten zwölf Antworten im Arbeitsspeicher merken.
+    this.letzteAntworten.unshift(normalisierteAntwort);
+    this.letzteAntworten = this.letzteAntworten.slice(0, 12);
+
+    return antwort;
   }
 
   generiere(prompt, optionen = {}) {

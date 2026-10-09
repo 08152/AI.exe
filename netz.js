@@ -221,7 +221,6 @@ class NeuronalesNetz {
       2 / (this.versteckteNeuronen + vokabularGroesse)
     );
 
-    // Eingabe -> 120 verborgene Neuronen
     this.gewichte1 = Array.from(
       { length: eingabeGroesse },
       () => Array.from(
@@ -234,7 +233,6 @@ class NeuronalesNetz {
       this.versteckteNeuronen
     ).fill(0);
 
-    // Verborgene Schicht -> mögliche nächste Tokens
     this.gewichte2 = Array.from(
       { length: this.versteckteNeuronen },
       () => Array.from(
@@ -405,7 +403,6 @@ class NeuronalesNetz {
       ergebnis.eingabe.length
     ).fill(0);
 
-    // Gradient berechnen, bevor Gewichte verändert werden.
     for (
       let i = 0;
       i < ergebnis.eingabe.length;
@@ -426,7 +423,6 @@ class NeuronalesNetz {
       gradEingabe[i] = this.begrenze(summe, -5, 5);
     }
 
-    // Ausgabeschicht aktualisieren
     for (
       let v = 0;
       v < this.vokabular.length;
@@ -452,7 +448,6 @@ class NeuronalesNetz {
       }
     }
 
-    // Verborgene Schicht aktualisieren
     for (
       let h = 0;
       h < this.versteckteNeuronen;
@@ -474,7 +469,6 @@ class NeuronalesNetz {
       }
     }
 
-    // Wort-Embeddings aktualisieren
     for (
       let position = 0;
       position < this.kontextLaenge;
@@ -503,8 +497,7 @@ class NeuronalesNetz {
       }
     }
   }
-
-  // -----------------------------------------------
+    // -----------------------------------------------
   // SPRACHMODELL TRAINIEREN
   // -----------------------------------------------
 
@@ -524,9 +517,7 @@ class NeuronalesNetz {
     const texte = this.extrahiereTexte(daten);
 
     if (texte.length === 0) {
-      throw new Error(
-        "Keine Trainings-Texte gefunden."
-      );
+      throw new Error("Keine Trainings-Texte gefunden.");
     }
 
     this.tokenizer = tokenizer || this.ladeTokenizer();
@@ -563,9 +554,7 @@ class NeuronalesNetz {
     const sequenzen = [];
 
     for (const element of texte) {
-      const tokens = this.tokenizer.zerlege(
-        element.text
-      );
+      const tokens = this.tokenizer.zerlege(element.text);
 
       const ids = tokens.map(token => {
         const id = this.tokenizer.tokenZuId.get(token);
@@ -600,9 +589,7 @@ class NeuronalesNetz {
     let globalePosition = 0;
 
     for (const sequenz of sequenzen) {
-      let kontext = Array(
-        this.kontextLaenge
-      ).fill(this.bosId);
+      let kontext = Array(this.kontextLaenge).fill(this.bosId);
 
       for (const ziel of sequenz) {
         if (globalePosition % schritt === 0) {
@@ -618,17 +605,12 @@ class NeuronalesNetz {
     }
 
     if (beispiele.length === 0) {
-      throw new Error(
-        "Keine Trainingsbeispiele erstellt."
-      );
+      throw new Error("Keine Trainingsbeispiele erstellt.");
     }
 
     const epochen = Math.max(
       1,
-      Math.min(
-        30,
-        Math.floor(optionen.epochen || 4)
-      )
+      Math.min(30, Math.floor(optionen.epochen || 4))
     );
 
     const lernrate = Number.isFinite(optionen.lernrate)
@@ -636,7 +618,6 @@ class NeuronalesNetz {
       : 0.015;
 
     for (let epoche = 0; epoche < epochen; epoche++) {
-      // Trainingsbeispiele zufällig mischen
       for (let i = beispiele.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
 
@@ -661,8 +642,6 @@ class NeuronalesNetz {
     this.trainierteEpochen = epochen;
     this.bereit = true;
 
-    // Tokenizer speichern; Netzgewichte werden hier
-    // noch nicht dauerhaft gespeichert.
     if (typeof this.tokenizer.speichern === "function") {
       const datei = path.join(
         __dirname,
@@ -885,13 +864,9 @@ class NeuronalesNetz {
       ? `<benutzer> ${this.normalisiereText(prompt)} <ki>`
       : this.normalisiereText(prompt);
 
-    const tokenStrings = this.tokenizer.zerlege(
-      eingabetext
-    );
+    const tokenStrings = this.tokenizer.zerlege(eingabetext);
 
-    let startKontext = Array(
-      this.kontextLaenge
-    ).fill(this.bosId);
+    let startKontext = Array(this.kontextLaenge).fill(this.bosId);
 
     for (const token of tokenStrings) {
       const originalId = this.tokenizer.tokenZuId.get(token);
@@ -945,8 +920,7 @@ class NeuronalesNetz {
 
     return kandidaten;
   }
-
-  // -----------------------------------------------
+    // -----------------------------------------------
   // GANZE ANTWORTEN BEWERTEN
   // -----------------------------------------------
 
@@ -969,23 +943,16 @@ class NeuronalesNetz {
 
     if (woerter.length < 3) {
       score -= 2;
-    } else if (
-      woerter.length >= 5 &&
-      woerter.length <= 24
-    ) {
+    } else if (woerter.length >= 5 && woerter.length <= 24) {
       score += 1;
     } else if (woerter.length > 35) {
       score -= 1.5;
     }
 
-    // Wiederholungen bestrafen.
     const zaehler = new Map();
 
     for (const wort of woerter) {
-      zaehler.set(
-        wort,
-        (zaehler.get(wort) || 0) + 1
-      );
+      zaehler.set(wort, (zaehler.get(wort) || 0) + 1);
     }
 
     for (const anzahl of zaehler.values()) {
@@ -994,7 +961,6 @@ class NeuronalesNetz {
       }
     }
 
-    // Wiederholte Wortpaare bestrafen.
     const paare = new Set();
 
     for (let i = 1; i < woerter.length; i++) {
@@ -1007,7 +973,6 @@ class NeuronalesNetz {
       paare.add(paar);
     }
 
-    // Bezug zum geplanten Thema bewerten.
     const antwortWoerter = this.wichtigeWoerter(text);
     const planWoerter = new Set(plan.kernbegriffe);
 
@@ -1019,7 +984,6 @@ class NeuronalesNetz {
 
     score += Math.min(2, gemeinsam * 0.35);
 
-    // Ähnlichkeit zur passenden Trainingsantwort bewerten.
     if (plan.beispielAntwort) {
       score += 2.5 * this.aehnlichkeit(
         text,
@@ -1027,10 +991,7 @@ class NeuronalesNetz {
       );
     }
 
-    if (
-      text.includes("<benutzer>") ||
-      text.includes("<ki>")
-    ) {
+    if (text.includes("<benutzer>") || text.includes("<ki>")) {
       score -= 10;
     }
 
@@ -1038,7 +999,7 @@ class NeuronalesNetz {
   }
 
   // -----------------------------------------------
-  // ANTWORT PLANEN UND ERZEUGEN
+  // ÄLTERE ANTWORTMETHODE
   // -----------------------------------------------
 
   antwortGenerierenAlt(prompt, optionen = {}) {
@@ -1049,42 +1010,26 @@ class NeuronalesNetz {
       );
     }
 
-    if (
-      typeof prompt !== "string" ||
-      !prompt.trim()
-    ) {
+    if (typeof prompt !== "string" || !prompt.trim()) {
       return "Bitte gib eine Nachricht ein.";
     }
 
-    // 1. Thema und passende Trainingsbeispiele bestimmen.
     const plan = this.planeAntwort(prompt);
 
-    // 2. Bei einer exakt bekannten Frage die zugehörige
-    // vollständige Trainingsantwort verwenden.
-    if (
-      plan.beispielAntwort &&
-      plan.relevanz >= 0.999
-    ) {
+    if (plan.beispielAntwort && plan.relevanz >= 0.999) {
       return plan.beispielAntwort;
     }
 
-    // 3. Mehrere vollständige Antwortkandidaten erzeugen.
     const kandidaten = this.generiereKandidaten(
       prompt,
       plan,
       optionen
     );
 
-    // 4. Die Antworten bewerten und sortieren.
-    kandidaten.sort(
-      (a, b) => b.bewertung - a.bewertung
-    );
+    kandidaten.sort((a, b) => b.bewertung - a.bewertung);
 
     const beste = kandidaten[0];
 
-    // 5. Bei einer sehr ähnlichen Trainingsfrage eine
-    // bekannte Antwort nutzen, falls die Generierung
-    // nur schlechte Ergebnisse liefert.
     if (
       plan.beispielAntwort &&
       plan.relevanz >= 0.55 &&
@@ -1099,7 +1044,7 @@ class NeuronalesNetz {
   }
 
   // -----------------------------------------------
-  // NEUE, VARIIERTE ANTWORTGENERIERUNG
+  // WAHRSCHEINLICHSTE ANTWORT BERECHNEN
   // -----------------------------------------------
 
   antwortGenerieren(prompt, optionen = {}) {
@@ -1114,165 +1059,142 @@ class NeuronalesNetz {
       return "Bitte gib eine Nachricht ein.";
     }
 
-    if (!Array.isArray(this.letzteAntworten)) {
-      this.letzteAntworten = [];
-    }
+    const frage = this.normalisiereText(prompt);
+    const kandidaten = [];
 
-    // Thema und passende Trainingsbeispiele bestimmen.
-    // Die Musterantwort wird nicht direkt zurückgegeben.
-    const plan = this.planeAntwort(prompt);
+    // Jede gespeicherte Frage mit der Eingabe vergleichen.
+    for (const paar of this.trainingsPaare) {
+      const exakt = frage === this.normalisiereText(paar.frage);
+      const aehnlichkeit = exakt
+        ? 1
+        : this.aehnlichkeit(frage, paar.frage);
 
-    const generationOptionen = {
-      ...optionen,
-      anzahlKandidaten: optionen.anzahlKandidaten ?? 6,
-      temperatur: optionen.temperatur ?? 0.95,
-      topK: optionen.topK ?? 8,
-      maxTokens: optionen.maxTokens ?? 35
-    };
-
-    let kandidaten = [];
-
-    // Mehrere Versuche helfen, wenn Antworten leer sind
-    // oder kürzlich verwendeten Antworten entsprechen.
-    for (let runde = 0; runde < 4; runde++) {
-      kandidaten = this.generiereKandidaten(
-        prompt,
-        plan,
-        generationOptionen
-      );
-
-      const hatNeueAntwort = kandidaten.some(kandidat => {
-        const text = this.normalisiereText(kandidat.text || "");
-
-        return (
-          text.length > 0 &&
-          !this.letzteAntworten.includes(text)
-        );
+      kandidaten.push({
+        frage: paar.frage,
+        antwort: paar.antwort,
+        exakt,
+        wahrscheinlichkeit: aehnlichkeit
       });
-
-      if (hatNeueAntwort) {
-        break;
-      }
     }
 
-    // Alte Antworten und ähnliche Formulierungen abwerten.
-    for (const kandidat of kandidaten) {
-      const text = this.normalisiereText(kandidat.text || "");
+    // Bei exakt gleicher Frage die häufigste Antwort nehmen.
+    const exakteTreffer = kandidaten.filter(k => k.exakt);
 
-      if (!text) {
-        kandidat.bewertung = -1000;
-        continue;
-      }
+    if (exakteTreffer.length > 0) {
+      const haeufigkeiten = new Map();
 
-      if (this.letzteAntworten.includes(text)) {
-        kandidat.bewertung -= 1000;
-      }
+      for (const kandidat of exakteTreffer) {
+        const antwort = kandidat.antwort;
 
-      let aehnlichkeitsStrafe = 0;
-
-      for (const alteAntwort of this.letzteAntworten) {
-        aehnlichkeitsStrafe = Math.max(
-          aehnlichkeitsStrafe,
-          this.aehnlichkeit(text, alteAntwort)
+        haeufigkeiten.set(
+          antwort,
+          (haeufigkeiten.get(antwort) || 0) + 1
         );
       }
 
-      kandidat.bewertung -= aehnlichkeitsStrafe * 2.5;
+      let besteAntwort = exakteTreffer[0].antwort;
+      let besteHaeufigkeit = 0;
 
-      // Kleine Zufallskomponente, um Kandidaten mit
-      // ähnlicher Bewertung unterschiedlich auszuwählen.
-      kandidat.bewertung += Math.random() * 0.8;
+      for (const [antwort, anzahl] of haeufigkeiten) {
+        if (anzahl > besteHaeufigkeit) {
+          besteAntwort = antwort;
+          besteHaeufigkeit = anzahl;
+        }
+      }
+
+      return besteAntwort;
     }
 
-    const nichtLeereKandidaten = kandidaten.filter(kandidat =>
-      typeof kandidat.text === "string" &&
-      kandidat.text.trim().length > 0
+    // Bei ähnlichen Fragen den besten Treffer auswählen.
+    kandidaten.sort(
+      (a, b) => b.wahrscheinlichkeit - a.wahrscheinlichkeit
     );
 
-    if (nichtLeereKandidaten.length === 0) {
-      return "Ich konnte diesmal keine zusammenhängende Antwort erzeugen.";
+    const besterTreffer = kandidaten[0];
+
+    if (
+      besterTreffer &&
+      besterTreffer.wahrscheinlichkeit >= 0.3
+    ) {
+      return besterTreffer.antwort;
     }
 
-    // Wenn möglich, kürzlich verwendete Antworten ausschließen.
-    const neueKandidaten = nichtLeereKandidaten.filter(kandidat =>
-      !this.letzteAntworten.includes(
-        this.normalisiereText(kandidat.text)
-      )
+    // Unbekannte Frage: jeweils das wahrscheinlichste Token wählen.
+    const maxTokens = Math.max(
+      1,
+      Math.min(80, Math.floor(optionen.maxTokens || 35))
     );
 
-    const auswahlPool = neueKandidaten.length > 0
-      ? neueKandidaten
-      : nichtLeereKandidaten;
+    const eingabetext = this.konversationsModus
+      ? `<benutzer> ${frage} <ki>`
+      : frage;
 
-    auswahlPool.sort((a, b) => b.bewertung - a.bewertung);
+    const tokenStrings = this.tokenizer.zerlege(eingabetext);
 
-    // Aus den drei besten Kandidaten zufällig wählen.
-    const topKandidaten = auswahlPool.slice(
-      0,
-      Math.min(3, auswahlPool.length)
-    );
+    let kontext = Array(this.kontextLaenge).fill(this.bosId);
 
-    const zufallsGewichte = topKandidaten.map((kandidat, index) => {
-      const qualitaet = Math.max(0.1, 1 / (index + 1));
+    for (const token of tokenStrings) {
+      const originalId = this.tokenizer.tokenZuId.get(token);
 
-      const bewertungsFaktor = Math.exp(
-        Math.max(
-          -4,
-          Math.min(
-            4,
-            (kandidat.bewertung - topKandidaten[0].bewertung) * 0.25
-          )
-        )
-      );
+      const id =
+        Number.isInteger(originalId) &&
+        originalId >= 0 &&
+        originalId < this.vokabular.length
+          ? originalId
+          : this.unkId;
 
-      return qualitaet * bewertungsFaktor;
-    });
+      kontext = kontext.slice(1).concat(id);
+    }
 
-    const gewichtSumme = zufallsGewichte.reduce(
-      (summe, gewicht) => summe + gewicht,
-      0
-    );
+    const erzeugteTokens = [];
 
-    let zufall = Math.random() * gewichtSumme;
-    let gewaehlt = topKandidaten[0];
+    for (let i = 0; i < maxTokens; i++) {
+      const ergebnis = this.vorwaerts(kontext);
 
-    for (let i = 0; i < topKandidaten.length; i++) {
-      zufall -= zufallsGewichte[i];
+      let besteId = -1;
+      let besteWahrscheinlichkeit = -Infinity;
 
-      if (zufall <= 0) {
-        gewaehlt = topKandidaten[i];
+      for (
+        let id = 0;
+        id < ergebnis.wahrscheinlichkeiten.length;
+        id++
+      ) {
+        const token = this.vokabular[id];
+
+        if (!token || SPEZIAL_AUSGABE_VERBOTEN.has(token)) {
+          continue;
+        }
+
+        const wahrscheinlichkeit =
+          ergebnis.wahrscheinlichkeiten[id];
+
+        if (wahrscheinlichkeit > besteWahrscheinlichkeit) {
+          besteWahrscheinlichkeit = wahrscheinlichkeit;
+          besteId = id;
+        }
+      }
+
+      if (besteId < 0 || besteId === this.eosId) {
         break;
       }
-    }
 
-    let antwort = gewaehlt.text.trim();
-    let normalisierteAntwort = this.normalisiereText(antwort);
+      const token = this.vokabular[besteId];
 
-    // Falls eine kürzlich verwendete Antwort erneut entsteht,
-    // wird eine alternative Einleitung versucht.
-    if (this.letzteAntworten.includes(normalisierteAntwort)) {
-      const einleitungen = [
-        "Anders gesagt: ",
-        "Ein weiterer Gedanke dazu: ",
-        "Man kann es auch so ausdrücken: ",
-        "Noch eine Formulierung: "
-      ];
-
-      const freieEinleitung = einleitungen.find(einleitung =>
-        !this.letzteAntworten.includes(
-          this.normalisiereText(einleitung + antwort)
-        )
-      );
-
-      if (freieEinleitung) {
-        antwort = freieEinleitung + antwort;
-        normalisierteAntwort = this.normalisiereText(antwort);
+      if (token && token !== "<EOS>") {
+        erzeugteTokens.push(token);
       }
+
+      kontext = kontext.slice(1).concat(besteId);
     }
 
-    // Die letzten zwölf Antworten im Arbeitsspeicher merken.
-    this.letzteAntworten.unshift(normalisierteAntwort);
-    this.letzteAntworten = this.letzteAntworten.slice(0, 12);
+    const antwort = this.formatiere(erzeugteTokens);
+
+    if (!antwort.trim()) {
+      return (
+        "Dazu kenne ich noch keine passende Antwort. " +
+        "Ich muss mehr Trainingsbeispiele lernen."
+      );
+    }
 
     return antwort;
   }

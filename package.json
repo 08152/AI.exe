@@ -1,0 +1,14 @@
+
+{
+  "name": "meine-eigene-ki",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Selbst entwickeltes neuronales Netz und Chatserver",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

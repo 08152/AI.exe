@@ -1,0 +1,641 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#212121">
+<title>Meine KI</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #212121;
+  --panel: #171717;
+  --hover: #2f2f2f;
+  --text: #ececec;
+  --muted: #a0a0a0;
+  --border: #383838;
+  --accent: #ffffff;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  height: 100dvh;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+button, textarea { font: inherit; }
+button { cursor: pointer; }
+.app {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  border-right: 1px solid var(--border);
+  transition: margin-left .2s;
+}
+.sidebar.closed {
+  display: none;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 19px;
+  padding: 7px 4px 22px;
+}
+.brand-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #666;
+  border-radius: 10px;
+  margin-right: 8px;
+}
+.new-chat, .side-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 12px;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  text-align: left;
+}
+.new-chat {
+  border-color: var(--border);
+  margin-bottom: 20px;
+}
+.new-chat:hover, .side-button:hover, .icon-button:hover {
+  background: var(--hover);
+}
+.section-label {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 10px 8px;
+}
+.history {
+  overflow: auto;
+  flex: 1;
+}
+.history-item {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  padding: 10px;
+  border-radius: 8px;
+}
+.history-item:hover { background: var(--hover); }
+.profile {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #444;
+  flex-shrink: 0;
+}
+.profile small { color: var(--muted); }
+.main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.topbar {
+  height: 58px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--border);
+}
+.top-left, .top-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.icon-button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  font-size: 20px;
+}
+.model-label {
+  font-size: 14px;
+  color: #d0d0d0;
+}
+.model-status {
+  font-size: 11px;
+  color: #9bdbac;
+  padding: 5px 8px;
+  background: #213429;
+  border-radius: 20px;
+}
+.chat {
+  flex: 1;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+.inner {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px 24px 28px;
+}
+.welcome {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 20px 0 70px;
+}
+.big-mark {
+  display: grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
+  border: 1px solid #505050;
+  border-radius: 22px;
+  font-size: 31px;
+  margin-bottom: 22px;
+  background: #292929;
+}
+.welcome h1 {
+  font-size: clamp(25px, 4vw, 34px);
+  font-weight: 600;
+  margin: 0 0 10px;
+  letter-spacing: -.7px;
+}
+.welcome p {
+  color: var(--muted);
+  margin: 0 0 28px;
+  line-height: 1.6;
+}
+.suggestions {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.suggestion {
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  line-height: 1.5;
+}
+.suggestion:hover { background: var(--hover); }
+.suggestion strong {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.suggestion span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding-top: 10px;
+}
+.message {
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.message .avatar { margin-top: 2px; }
+.message-content {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  padding-top: 4px;
+}
+.user-bubble {
+  max-width: 85%;
+  margin-left: auto;
+  background: #303030;
+  padding: 11px 16px;
+  border-radius: 20px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ai-name {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.typing {
+  color: var(--muted);
+  font-size: 14px;
+}
+.composer-area {
+  padding: 10px 20px 8px;
+  flex-shrink: 0;
+}
+.composer-wrap {
+  max-width: 800px;
+  margin: 0 auto;
+}
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 11px 12px 11px 18px;
+  border: 1px solid #484848;
+  background: #303030;
+  border-radius: 25px;
+  box-shadow: 0 4px 20px #0002;
+}
+textarea {
+  flex: 1;
+  min-width: 0;
+  max-height: 180px;
+  resize: none;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  padding: 8px 0;
+  line-height: 1.5;
+}
+textarea::placeholder { color: #aaa; }
+.send {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #f2f2f2;
+  color: #171717;
+  font-size: 21px;
+  display: grid;
+  place-items: center;
+}
+.send:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+.disclaimer {
+  text-align: center;
+  color: #999;
+  font-size: 11px;
+  margin: 10px auto 0;
+  max-width: 800px;
+  line-height: 1.5;
+}
+.toast {
+  color: #ffcbcb;
+  font-size: 13px;
+  text-align: center;
+  margin: 8px 0;
+}
+@media (max-width: 650px) {
+  .sidebar {
+    position: fixed;
+    z-index: 5;
+    inset: 0 auto 0 0;
+    width: min(285px, 85vw);
+    box-shadow: 15px 0 50px #0008;
+  }
+  .sidebar.closed { display: none; }
+  .topbar { padding: 0 10px; }
+  .inner { padding: 18px 14px 24px; }
+  .composer-area { padding: 8px 10px; }
+  .suggestions { grid-template-columns: 1fr; }
+  .welcome { padding-bottom: 35px; }
+  .user-bubble { max-width: 92%; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span><span class="brand-mark">✳</span>Meine KI</span>
+      <button class="icon-button" id="closeSidebar"
+        aria-label="Menü schließen">×</button>
+    </div>
+
+    <button class="new-chat" id="newChat">
+      <span>＋</span> Neuer Chat
+    </button>
+
+    <div class="section-label">Deine Gespräche</div>
+    <div class="history" id="history"></div>
+
+    <div class="profile">
+      <div class="avatar">✳</div>
+      <div>
+        <div>Meine KI</div>
+        <small>Eigenes neuronales Netz</small>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="top-left">
+        <button class="icon-button" id="menu"
+          aria-label="Menü öffnen">☰</button>
+        <span class="model-label">Meine KI <span>⌄</span></span>
+      </div>
+      <div class="top-right">
+        <span class="model-status">● Lokal</span>
+      </div>
+    </header>
+
+    <section class="chat" id="chat" aria-live="polite">
+      <div class="inner" id="chatInner">
+        <div class="welcome" id="welcome">
+          <div class="big-mark">✳</div>
+          <h1>Was möchtest du entdecken?</h1>
+          <p>Ein eigenes Projekt. Ein eigener Code.<br>
+          Ein neuronales Netz, das wir selbst entwickeln.</p>
+
+          <div class="suggestions">
+            <button class="suggestion" data-prompt="Erkläre mir, wie ein neuronales Netz funktioniert.">
+              <strong>🧠 Neuronale Netze</strong>
+              <span>Wie lernt eine KI?</span>
+            </button>
+            <button class="suggestion" data-prompt="Hilf mir, meine eigene KI weiterzuentwickeln.">
+              <strong>⚙️ Meine KI bauen</strong>
+              <span>Das Projekt erweitern</span>
+            </button>
+            <button class="suggestion" data-prompt="Erkläre mir JavaScript für mein KI-Projekt.">
+              <strong>💻 Programmieren</strong>
+              <span>JavaScript verstehen</span>
+            </button>
+            <button class="suggestion" data-prompt="Was muss meine KI lernen, um Text zu erzeugen?">
+              <strong>💬 Sprache lernen</strong>
+              <span>Der nächste Entwicklungsschritt</span>
+            </button>
+          </div>
+        </div>
+        <div class="messages" id="messages"></div>
+      </div>
+    </section>
+
+    <div class="composer-area">
+      <div class="composer-wrap">
+        <form class="composer" id="form">
+          <textarea id="input" rows="1"
+            placeholder="Schreibe eine Nachricht …"
+            aria-label="Nachricht" maxlength="4000"></textarea>
+          <button class="send" id="send" type="submit"
+            aria-label="Nachricht senden">↑</button>
+        </form>
+        <div id="toast" class="toast"></div>
+        <div class="disclaimer">
+          Diese KI wird von uns selbst entwickelt. Ihre
+          Sprachfähigkeiten hängen vom aktuellen Trainingsstand ab.
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+"use strict";
+
+const $ = id => document.getElementById(id);
+const messages = $("messages");
+const input = $("input");
+const sendButton = $("send");
+const welcome = $("welcome");
+const history = $("history");
+
+let chats = [];
+let activeChat = null;
+let busy = false;
+
+function createChat() {
+  const chat = {
+    id: Date.now() + Math.random(),
+    title: "Neuer Chat",
+    messages: []
+  };
+  chats.unshift(chat);
+  activeChat = chat;
+  renderHistory();
+  renderMessages();
+  input.focus();
+}
+
+function renderHistory() {
+  history.replaceChildren();
+
+  for (const chat of chats) {
+    const button = document.createElement("button");
+    button.className = "history-item";
+    button.textContent = chat.title;
+    button.title = chat.title;
+    button.onclick = () => {
+      activeChat = chat;
+      renderMessages();
+      if (window.innerWidth <= 650) {
+        $("sidebar").classList.add("closed");
+      }
+    };
+    history.appendChild(button);
+  }
+}
+
+function addMessageElement(role, text) {
+  if (welcome) welcome.style.display = "none";
+
+  const row = document.createElement("div");
+
+  if (role === "user") {
+    row.className = "user-bubble";
+    row.textContent = text;
+  } else {
+    row.className = "message";
+
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+    avatar.textContent = "✳";
+
+    const content = document.createElement("div");
+    content.className = "message-content";
+
+    const name = document.createElement("div");
+    name.className = "ai-name";
+    name.textContent = "Meine KI";
+
+    const answer = document.createElement("div");
+    answer.textContent = text;
+
+    content.append(name, answer);
+    row.append(avatar, content);
+  }
+
+  messages.appendChild(row);
+  $("chat").scrollTop = $("chat").scrollHeight;
+  return row;
+}
+
+function renderMessages() {
+  messages.replaceChildren();
+
+  const hasMessages = activeChat && activeChat.messages.length;
+  if (welcome) welcome.style.display = hasMessages ? "none" : "flex";
+
+  if (!activeChat) return;
+
+  for (const message of activeChat.messages) {
+    addMessageElement(message.role, message.text);
+  }
+}
+
+function resizeInput() {
+  input.style.height = "auto";
+  input.style.height = Math.min(input.scrollHeight, 180) + "px";
+}
+
+input.addEventListener("input", resizeInput);
+
+input.addEventListener("keydown", event => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    $("form").requestSubmit();
+  }
+});
+
+$("form").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const text = input.value.trim();
+  if (!text || busy) return;
+
+  if (!activeChat) createChat();
+
+  const chat = activeChat;
+
+  if (!chat.messages.length) {
+    chat.title = text.length > 32 ? text.slice(0, 32) + "…" : text;
+    renderHistory();
+  }
+
+  chat.messages.push({role: "user", text});
+  addMessageElement("user", text);
+
+  input.value = "";
+  resizeInput();
+  $("toast").textContent = "";
+  busy = true;
+  sendButton.disabled = true;
+
+  const typing = addMessageElement("assistant", "Die KI verarbeitet deine Nachricht …");
+  typing.classList.add("typing");
+
+  try {
+    // Diese Schnittstelle benötigt einen passenden /api/chat-Endpunkt.
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        message: text,
+        history: chat.messages.slice(-12)
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.fehler || "Der Server hat die Anfrage abgelehnt.");
+    }
+
+    const answer = data.antwort || data.reply;
+    if (typeof answer !== "string") {
+      throw new Error("Der Server hat keine Textantwort geliefert.");
+    }
+
+    chat.messages.push({role: "assistant", text: answer});
+    typing.remove();
+    addMessageElement("assistant", answer);
+  } catch (error) {
+    typing.remove();
+    const notice =
+      "Die Verbindung zur Chat-KI funktioniert noch nicht. " +
+      "Der Server braucht einen /api/chat-Endpunkt, der Text verarbeitet. " +
+      "Das aktuelle neuronale Netz kann bislang nur zwei Zahlen verarbeiten.";
+    $("toast").textContent = error.message;
+    addMessageElement("assistant", notice);
+  } finally {
+    busy = false;
+    sendButton.disabled = false;
+    input.focus();
+  }
+});
+
+document.querySelectorAll("[data-prompt]").forEach(button => {
+  button.addEventListener("click", () => {
+    input.value = button.dataset.prompt;
+    resizeInput();
+    input.focus();
+  });
+});
+
+$("newChat").addEventListener("click", () => {
+  createChat();
+  if (window.innerWidth <= 650) {
+    $("sidebar").classList.add("closed");
+  }
+});
+
+$("menu").addEventListener("click", () => {
+  $("sidebar").classList.toggle("closed");
+});
+
+$("closeSidebar").addEventListener("click", () => {
+  $("sidebar").classList.add("closed");
+});
+
+createChat();
+</script>
+</body>
+</html>

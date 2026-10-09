@@ -1,22 +1,20 @@
-
 "use strict";
 
 const fs = require("node:fs");
 const path = require("node:path");
 
 const STOPWOERTER = new Set([
-  "der", "die", "das", "den", "dem", "des",
-  "ein", "eine", "einer", "eines", "einem",
-  "und", "oder", "aber", "ist", "sind", "war",
-  "ich", "du", "er", "sie", "es", "wir", "ihr",
-  "was", "wie", "wer", "wo", "wann", "warum",
-  "mit", "von", "für", "auf", "in", "im", "am",
-  "an", "zu", "zum", "zur", "auch", "nicht",
-  "kein", "keine", "bitte", "noch", "schon",
-  "sehr", "hat", "haben", "kann", "können"
+  "der", "die", "das", "den", "dem", "des", "ein", "eine",
+  "einer", "eines", "einem", "und", "oder", "aber", "ist",
+  "sind", "war", "waren", "ich", "du", "er", "sie", "es",
+  "wir", "ihr", "was", "wie", "wer", "wo", "wann", "warum",
+  "wieso", "mit", "von", "für", "auf", "in", "im", "am", "an",
+  "zu", "zum", "zur", "auch", "nicht", "kein", "keine", "bitte",
+  "noch", "schon", "sehr", "hat", "haben", "kann", "können",
+  "sich", "mir", "mich", "mein", "meine", "dein", "deine"
 ]);
 
-const VERBOTENE_AUSGABETOKENS = new Set([
+const SPEZIAL_AUSGABE_VERBOTEN = new Set([
   "<PAD>",
   "<BOS>",
   "<UNK>",
@@ -27,23 +25,28 @@ const VERBOTENE_AUSGABETOKENS = new Set([
 
 class NeuronalesNetz {
   constructor(tokenizer = null, optionen = {}) {
-    if (
-      tokenizer &&
-      typeof tokenizer.zerlege !== "function"
-    ) {
+    if (tokenizer && typeof tokenizer.zerlege !== "function") {
       optionen = tokenizer;
       tokenizer = null;
     }
 
     this.tokenizer = tokenizer;
 
-    this.maxVokabular = optionen.maxVokabular || 256;
-    this.embeddingGroesse = optionen.embeddingGroesse || 8;
+    this.maxVokabular = Number.isInteger(optionen.maxVokabular)
+      ? Math.max(16, optionen.maxVokabular)
+      : 512;
 
-    // Das neuronale Netz besitzt jetzt 120 verborgene Neuronen.
-    this.versteckteNeuronen = 120;
+    this.embeddingGroesse = Number.isInteger(optionen.embeddingGroesse)
+      ? Math.max(2, optionen.embeddingGroesse)
+      : 8;
 
-    this.kontextLaenge = optionen.kontextLaenge || 16;
+    this.versteckteNeuronen = Number.isInteger(optionen.versteckteNeuronen)
+      ? Math.max(8, optionen.versteckteNeuronen)
+      : 120;
+
+    this.kontextLaenge = Number.isInteger(optionen.kontextLaenge)
+      ? Math.max(2, optionen.kontextLaenge)
+      : 16;
 
     this.vokabular = [];
     this.embeddings = null;
@@ -59,19 +62,15 @@ class NeuronalesNetz {
 
     this.bereit = false;
     this.konversationsModus = false;
-
     this.trainingsBeispiele = 0;
     this.trainierteEpochen = 0;
-    this.letzterFehler = null;
-
-    // Die Trainingsbeispiele dienen auch zur Antwortplanung.
     this.trainingsPaare = [];
-    this.planungsTreffer = 0;
+    this.letzterFehler = null;
   }
 
-  // --------------------------------------------------
-  // 1. TRAININGSDATEN EINLESEN
-  // --------------------------------------------------
+  // -----------------------------------------------
+  // TEXT UND TRAININGSDATEN
+  // -----------------------------------------------
 
   normalisiereText(text) {
     return text
@@ -106,41 +105,48 @@ class NeuronalesNetz {
       return ergebnis;
     }
 
-    const schluessel = {};
+    const keys = Object.keys(daten);
+    const nachKlein = Object.create(null);
 
-    for (const key of Object.keys(daten)) {
-      schluessel[key.toLowerCase()] = key;
+    for (const key of keys) {
+      nachKlein[key.toLowerCase()] = key;
     }
 
     const frageFelder = [
-      "frage", "question", "prompt", "input"
+      "frage",
+      "question",
+      "prompt",
+      "input"
     ];
 
     const antwortFelder = [
-      "antwort", "answer", "response",
-      "completion", "output"
+      "antwort",
+      "answer",
+      "response",
+      "completion",
+      "output"
     ];
 
     const frageFeld = frageFelder.find(
-      key => schluessel[key]
+      key => nachKlein[key]
     );
 
     const antwortFeld = antwortFelder.find(
-      key => schluessel[key]
+      key => nachKlein[key]
     );
 
     if (
       frageFeld &&
       antwortFeld &&
-      typeof daten[schluessel[frageFeld]] === "string" &&
-      typeof daten[schluessel[antwortFeld]] === "string"
+      typeof daten[nachKlein[frageFeld]] === "string" &&
+      typeof daten[nachKlein[antwortFeld]] === "string"
     ) {
       const frage = this.normalisiereText(
-        daten[schluessel[frageFeld]]
+        daten[nachKlein[frageFeld]]
       );
 
       const antwort = this.normalisiereText(
-        daten[schluessel[antwortFeld]]
+        daten[nachKlein[antwortFeld]]
       );
 
       if (frage && antwort) {
@@ -172,22 +178,22 @@ class NeuronalesNetz {
 
     const { Tokenizer } = require("./tokenizer.js");
 
-    const datei = path.join(
+    const dateipfad = path.join(
       __dirname,
       "modelle",
       "tokenizer.json"
     );
 
-    this.tokenizer = fs.existsSync(datei)
-      ? Tokenizer.laden(datei)
+    this.tokenizer = fs.existsSync(dateipfad)
+      ? Tokenizer.laden(dateipfad)
       : new Tokenizer();
 
     return this.tokenizer;
   }
 
-  // --------------------------------------------------
-  // 2. GEWICHTE INITIALISIEREN
-  // --------------------------------------------------
+  // -----------------------------------------------
+  // GEWICHTE INITIALISIEREN
+  // -----------------------------------------------
 
   initialisiereGewichte() {
     const vokabularGroesse = this.vokabular.length;
@@ -195,14 +201,14 @@ class NeuronalesNetz {
     const eingabeGroesse =
       this.kontextLaenge * this.embeddingGroesse;
 
-    const zufallsGewicht = grenze =>
+    const zufall = grenze =>
       (Math.random() * 2 - 1) * grenze;
 
     this.embeddings = Array.from(
       { length: vokabularGroesse },
       () => Array.from(
         { length: this.embeddingGroesse },
-        () => zufallsGewicht(0.1)
+        () => zufall(0.1)
       )
     );
 
@@ -214,12 +220,12 @@ class NeuronalesNetz {
       2 / (this.versteckteNeuronen + vokabularGroesse)
     );
 
-    // Eingabeschicht -> 120 verborgene Neuronen.
+    // Eingabe -> 120 verborgene Neuronen
     this.gewichte1 = Array.from(
       { length: eingabeGroesse },
       () => Array.from(
         { length: this.versteckteNeuronen },
-        () => zufallsGewicht(grenze1)
+        () => zufall(grenze1)
       )
     );
 
@@ -227,12 +233,12 @@ class NeuronalesNetz {
       this.versteckteNeuronen
     ).fill(0);
 
-    // 120 verborgene Neuronen -> mögliche nächste Tokens.
+    // Verborgene Schicht -> mögliche nächste Tokens
     this.gewichte2 = Array.from(
       { length: this.versteckteNeuronen },
       () => Array.from(
         { length: vokabularGroesse },
-        () => zufallsGewicht(grenze2)
+        () => zufall(grenze2)
       )
     );
 
@@ -240,15 +246,22 @@ class NeuronalesNetz {
   }
 
   begrenze(wert, minimum, maximum) {
-    return Math.max(minimum, Math.min(maximum, wert));
+    return Math.max(
+      minimum,
+      Math.min(maximum, wert)
+    );
   }
 
-  // --------------------------------------------------
-  // 3. VORWÄRTSBERECHNUNG
-  // --------------------------------------------------
+  // -----------------------------------------------
+  // VORWÄRTSBERECHNUNG
+  // -----------------------------------------------
 
   vorwaerts(kontext) {
-    const eingabe = [];
+    const eingabe = new Array(
+      this.kontextLaenge * this.embeddingGroesse
+    );
+
+    let positionIndex = 0;
 
     for (
       let position = 0;
@@ -265,16 +278,18 @@ class NeuronalesNetz {
         id = this.unkId;
       }
 
+      const embedding = this.embeddings[id];
+
       for (
         let d = 0;
         d < this.embeddingGroesse;
         d++
       ) {
-        eingabe.push(this.embeddings[id][d]);
+        eingabe[positionIndex++] = embedding[d];
       }
     }
 
-    const versteckt = Array(
+    const versteckt = new Array(
       this.versteckteNeuronen
     ).fill(0);
 
@@ -292,7 +307,7 @@ class NeuronalesNetz {
       versteckt[h] = Math.tanh(summe);
     }
 
-    const logits = Array(
+    const logits = new Array(
       this.vokabular.length
     ).fill(0);
 
@@ -314,19 +329,23 @@ class NeuronalesNetz {
       logits[v] = summe;
     }
 
-    const maximum = Math.max(...logits);
+    let maximum = -Infinity;
 
-    const exponenten = logits.map(wert =>
-      Math.exp(Math.max(-60, wert - maximum))
+    for (const wert of logits) {
+      if (wert > maximum) maximum = wert;
+    }
+
+    const exponenten = logits.map(
+      wert => Math.exp(Math.max(-60, wert - maximum))
     );
 
     const gesamt = exponenten.reduce(
       (summe, wert) => summe + wert,
       0
-    );
+    ) || 1;
 
     const wahrscheinlichkeiten = exponenten.map(
-      wert => wert / (gesamt || 1)
+      wert => wert / gesamt
     );
 
     return {
@@ -337,9 +356,9 @@ class NeuronalesNetz {
     };
   }
 
-  // --------------------------------------------------
-  // 4. RÜCKWÄRTSBERECHNUNG UND LERNEN
-  // --------------------------------------------------
+  // -----------------------------------------------
+  // RÜCKWÄRTSBERECHNUNG UND LERNEN
+  // -----------------------------------------------
 
   trainiereBeispiel(kontext, ziel, lernrate) {
     const ergebnis = this.vorwaerts(kontext);
@@ -349,7 +368,7 @@ class NeuronalesNetz {
 
     gradAusgabe[ziel] -= 1;
 
-    const gradVersteckt = Array(
+    const gradVersteckt = new Array(
       this.versteckteNeuronen
     ).fill(0);
 
@@ -365,7 +384,8 @@ class NeuronalesNetz {
         v < this.vokabular.length;
         v++
       ) {
-        summe += this.gewichte2[h][v] * gradAusgabe[v];
+        summe +=
+          this.gewichte2[h][v] * gradAusgabe[v];
       }
 
       gradVersteckt[h] = summe;
@@ -373,14 +393,18 @@ class NeuronalesNetz {
 
     const gradVorAktivierung = gradVersteckt.map(
       (wert, h) =>
-        wert * (1 - ergebnis.versteckt[h] ** 2)
+        wert * (
+          1 -
+          ergebnis.versteckt[h] *
+          ergebnis.versteckt[h]
+        )
     );
 
-    const gradEingabe = Array(
+    const gradEingabe = new Array(
       ergebnis.eingabe.length
     ).fill(0);
 
-    // Eingabegradient berechnen, bevor Gewichte geändert werden.
+    // Gradient berechnen, bevor Gewichte verändert werden.
     for (
       let i = 0;
       i < ergebnis.eingabe.length;
@@ -401,7 +425,7 @@ class NeuronalesNetz {
       gradEingabe[i] = this.begrenze(summe, -5, 5);
     }
 
-    // Ausgabeschicht aktualisieren.
+    // Ausgabeschicht aktualisieren
     for (
       let v = 0;
       v < this.vokabular.length;
@@ -421,11 +445,13 @@ class NeuronalesNetz {
         h++
       ) {
         this.gewichte2[h][v] -=
-          lernrate * ergebnis.versteckt[h] * fehler;
+          lernrate *
+          ergebnis.versteckt[h] *
+          fehler;
       }
     }
 
-    // Verborgene Schicht aktualisieren.
+    // Verborgene Schicht aktualisieren
     for (
       let h = 0;
       h < this.versteckteNeuronen;
@@ -441,11 +467,13 @@ class NeuronalesNetz {
         i++
       ) {
         this.gewichte1[i][h] -=
-          lernrate * ergebnis.eingabe[i] * fehler;
+          lernrate *
+          ergebnis.eingabe[i] *
+          fehler;
       }
     }
 
-    // Wort-Embeddings aktualisieren.
+    // Wort-Embeddings aktualisieren
     for (
       let position = 0;
       position < this.kontextLaenge;
@@ -475,9 +503,9 @@ class NeuronalesNetz {
     }
   }
 
-  // --------------------------------------------------
-  // 5. TRAINIEREN
-  // --------------------------------------------------
+  // -----------------------------------------------
+  // SPRACHMODELL TRAINIEREN
+  // -----------------------------------------------
 
   trainiereTexte(daten, tokenizer = null, optionen = {}) {
     if (
@@ -489,12 +517,14 @@ class NeuronalesNetz {
     }
 
     this.trainingsPaare = [];
+    this.bereit = false;
+    this.letzterFehler = null;
 
     const texte = this.extrahiereTexte(daten);
 
     if (texte.length === 0) {
       throw new Error(
-        "Keine gültigen Trainings-Texte gefunden."
+        "Keine Trainings-Texte gefunden."
       );
     }
 
@@ -514,22 +544,19 @@ class NeuronalesNetz {
     );
 
     if (this.vokabular.length < 5) {
-      throw new Error(
-        "Das Vokabular ist zu klein."
-      );
+      throw new Error("Das Vokabular ist zu klein.");
     }
 
-    this.unkId = this.vokabular.indexOf("<UNK>");
-    this.bosId = this.vokabular.indexOf("<BOS>");
-    this.eosId = this.vokabular.indexOf("<EOS>");
-    this.padId = this.vokabular.indexOf("<PAD>");
+    const findeId = (token, fallback) => {
+      const id = this.vokabular.indexOf(token);
+      return id >= 0 ? id : fallback;
+    };
 
-    if (this.unkId < 0) this.unkId = 1;
-    if (this.bosId < 0) this.bosId = 2;
-    if (this.eosId < 0) this.eosId = 3;
-    if (this.padId < 0) this.padId = 0;
+    this.padId = findeId("<PAD>", 0);
+    this.unkId = findeId("<UNK>", 1);
+    this.bosId = findeId("<BOS>", 2);
+    this.eosId = findeId("<EOS>", 3);
 
-    this.bereit = false;
     this.initialisiereGewichte();
 
     const sequenzen = [];
@@ -569,7 +596,7 @@ class NeuronalesNetz {
     );
 
     const beispiele = [];
-    let nummerGlobal = 0;
+    let globalePosition = 0;
 
     for (const sequenz of sequenzen) {
       let kontext = Array(
@@ -577,7 +604,7 @@ class NeuronalesNetz {
       ).fill(this.bosId);
 
       for (const ziel of sequenz) {
-        if (nummerGlobal % schritt === 0) {
+        if (globalePosition % schritt === 0) {
           beispiele.push({
             kontext: kontext.slice(),
             ziel
@@ -585,20 +612,20 @@ class NeuronalesNetz {
         }
 
         kontext = kontext.slice(1).concat(ziel);
-        nummerGlobal++;
+        globalePosition++;
       }
     }
 
     if (beispiele.length === 0) {
       throw new Error(
-        "Es konnten keine Trainingsbeispiele erstellt werden."
+        "Keine Trainingsbeispiele erstellt."
       );
     }
 
     const epochen = Math.max(
       1,
       Math.min(
-        20,
+        30,
         Math.floor(optionen.epochen || 4)
       )
     );
@@ -608,6 +635,7 @@ class NeuronalesNetz {
       : 0.015;
 
     for (let epoche = 0; epoche < epochen; epoche++) {
+      // Trainingsbeispiele zufällig mischen
       for (let i = beispiele.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
 
@@ -632,34 +660,40 @@ class NeuronalesNetz {
     this.trainierteEpochen = epochen;
     this.bereit = true;
 
-    try {
-      this.tokenizer.speichern(
-        path.join(__dirname, "modelle", "tokenizer.json")
+    // Tokenizer speichern; Netzgewichte werden hier
+    // noch nicht dauerhaft gespeichert.
+    if (typeof this.tokenizer.speichern === "function") {
+      const datei = path.join(
+        __dirname,
+        "modelle",
+        "tokenizer.json"
       );
-    } catch (fehler) {
-      console.warn(
-        "Tokenizer konnte nicht gespeichert werden:",
-        fehler.message
-      );
+
+      try {
+        this.tokenizer.speichern(datei);
+      } catch (fehler) {
+        console.warn(
+          "Tokenizer konnte nicht gespeichert werden:",
+          fehler.message
+        );
+      }
     }
 
     return this.status();
   }
 
-  // --------------------------------------------------
-  // 6. ANTWORTPLANUNG
-  // --------------------------------------------------
+  // -----------------------------------------------
+  // ANTWORTPLANUNG UND RELEVANTE WÖRTER
+  // -----------------------------------------------
 
   wichtigeWoerter(text) {
     return new Set(
-      this.tokenizer.zerlege(text).filter(token => {
-        return (
-          /[\p{L}\p{N}]/u.test(token) &&
-          token.length > 2 &&
-          !STOPWOERTER.has(token) &&
-          !token.startsWith("<")
-        );
-      })
+      this.tokenizer.zerlege(text).filter(token =>
+        /[\p{L}\p{N}]/u.test(token) &&
+        token.length > 2 &&
+        !STOPWOERTER.has(token) &&
+        !token.startsWith("<")
+      )
     );
   }
 
@@ -688,17 +722,12 @@ class NeuronalesNetz {
     let bestesPaar = null;
     let bestePunktzahl = 0;
 
-    const normalisierteFrage = this.normalisiereText(frage);
+    const normalisiert = this.normalisiereText(frage);
 
     for (const paar of this.trainingsPaare) {
-      let punktzahl = this.aehnlichkeit(
-        normalisierteFrage,
-        paar.frage
-      );
-
-      if (normalisierteFrage === paar.frage) {
-        punktzahl = 1;
-      }
+      const punktzahl = normalisiert === paar.frage
+        ? 1
+        : this.aehnlichkeit(normalisiert, paar.frage);
 
       if (punktzahl > bestePunktzahl) {
         bestePunktzahl = punktzahl;
@@ -714,7 +743,6 @@ class NeuronalesNetz {
 
   planeAntwort(prompt) {
     const treffer = this.findePassendesBeispiel(prompt);
-
     const kernbegriffe = new Set(
       this.wichtigeWoerter(prompt)
     );
@@ -731,7 +759,7 @@ class NeuronalesNetz {
 
     return {
       eingabe: prompt,
-      ziel: "Die Frage sinnvoll und verständlich beantworten.",
+      ziel: "Eine zusammenhängende Antwort erzeugen.",
       kernbegriffe: [...kernbegriffe],
       beispielAntwort:
         treffer.paar && treffer.punktzahl >= 0.3
@@ -745,9 +773,9 @@ class NeuronalesNetz {
     };
   }
 
-  // --------------------------------------------------
-  // 7. NÄCHSTES TOKEN AUSWÄHLEN
-  // --------------------------------------------------
+  // -----------------------------------------------
+  // NÄCHSTES TOKEN AUSWÄHLEN
+  // -----------------------------------------------
 
   waehleNaechstesToken(
     kontext,
@@ -768,10 +796,10 @@ class NeuronalesNetz {
         token: this.vokabular[id]
       }))
       .filter(element =>
-        !VERBOTENE_AUSGABETOKENS.has(element.token)
+        !SPEZIAL_AUSGABE_VERBOTEN.has(element.token)
       )
       .sort((a, b) => b.wert - a.wert)
-      .slice(0, Math.max(1, topK));
+      .slice(0, Math.max(1, Math.floor(topK)));
 
     if (kandidaten.length === 0) {
       return this.eosId;
@@ -786,7 +814,7 @@ class NeuronalesNetz {
     const gesamt = gewichte.reduce(
       (summe, wert) => summe + wert,
       0
-    );
+    ) || 1;
 
     let zufall = Math.random() * gesamt;
 
@@ -801,19 +829,47 @@ class NeuronalesNetz {
     return kandidaten[0].id;
   }
 
-  // --------------------------------------------------
-  // 8. EINEN VOLLSTÄNDIGEN KANDIDATEN ERZEUGEN
-  // --------------------------------------------------
+  // -----------------------------------------------
+  // TEXTE AUS TOKEN-FOLGEN FORMATIEREN
+  // -----------------------------------------------
+
+  formatiere(tokens) {
+    let text = tokens.join(" ");
+
+    text = text
+      .replace(/\s+([.,!?;:%)\]}»])/g, "$1")
+      .replace(/([([{«])\s+/g, "$1")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (text) {
+      text =
+        text.charAt(0).toLocaleUpperCase("de-DE") +
+        text.slice(1);
+    }
+
+    return text;
+  }
+
+  // -----------------------------------------------
+  // MEHRERE GANZE ANTWORTKANDIDATEN GENERIEREN
+  // -----------------------------------------------
 
   generiereKandidaten(prompt, plan, optionen = {}) {
     const anzahl = Math.max(
       1,
-      Math.min(6, optionen.anzahlKandidaten || 4)
+      Math.min(
+        6,
+        Math.floor(optionen.anzahlKandidaten || 4)
+      )
     );
 
     const maxTokens = Math.max(
       1,
-      Math.min(80, optionen.maxTokens || 35)
+      Math.min(
+        80,
+        Math.floor(optionen.maxTokens || 35)
+      )
     );
 
     const temperatur = Number.isFinite(optionen.temperatur)
@@ -869,7 +925,7 @@ class NeuronalesNetz {
 
         if (
           token &&
-          !VERBOTENE_AUSGABETOKENS.has(token) &&
+          !SPEZIAL_AUSGABE_VERBOTEN.has(token) &&
           token !== "<EOS>"
         ) {
           erzeugteTokens.push(token);
@@ -889,16 +945,13 @@ class NeuronalesNetz {
     return kandidaten;
   }
 
-  // --------------------------------------------------
-  // 9. DIE GANZE ANTWORT BEWERTEN
-  // --------------------------------------------------
-
-  bew ertePlatzhalter() {
-    return 0;
-  }
+  // -----------------------------------------------
+  // GANZE ANTWORTEN BEWERTEN
+  // -----------------------------------------------
 
   bewerteAntwort(text, plan) {
     const tokens = this.tokenizer.zerlege(text);
+
     const woerter = tokens.filter(token =>
       /[\p{L}\p{N}]/u.test(token) &&
       !token.startsWith("<")
@@ -908,26 +961,30 @@ class NeuronalesNetz {
       return -100;
     }
 
-    const einzigartige = new Set(woerter);
-    const vielfalt = einzigartige.size / woerter.length;
+    const vielfalt =
+      new Set(woerter).size / woerter.length;
 
-    // Mehr Abwechslung ist meist besser.
-    let score = vielfalt * 2.0;
+    let score = vielfalt * 2;
 
-    // Extrem kurze oder extrem lange Antworten abwerten.
     if (woerter.length < 3) {
       score -= 2;
-    } else if (woerter.length >= 5 && woerter.length <= 24) {
+    } else if (
+      woerter.length >= 5 &&
+      woerter.length <= 24
+    ) {
       score += 1;
     } else if (woerter.length > 35) {
       score -= 1.5;
     }
 
-    // Wiederholte Wörter und Wortpaare bestrafen.
+    // Wiederholungen bestrafen.
     const zaehler = new Map();
 
     for (const wort of woerter) {
-      zaehler.set(wort, (zaehler.get(wort) || 0) + 1);
+      zaehler.set(
+        wort,
+        (zaehler.get(wort) || 0) + 1
+      );
     }
 
     for (const anzahl of zaehler.values()) {
@@ -936,74 +993,52 @@ class NeuronalesNetz {
       }
     }
 
-    const bigrams = new Set();
-    let wiederholtePaare = 0;
+    // Wiederholte Wortpaare bestrafen.
+    const paare = new Set();
 
     for (let i = 1; i < woerter.length; i++) {
       const paar = `${woerter[i - 1]}|${woerter[i]}`;
 
-      if (bigrams.has(paar)) {
-        wiederholtePaare++;
+      if (paare.has(paar)) {
+        score -= 1.5;
       }
 
-      bigrams.add(paar);
+      paare.add(paar);
     }
 
-    score -= wiederholtePaare * 1.5;
-
-    // Relevanz zur geplanten Antwort erhöhen.
-    const kandidatenWoerter = this.wichtigeWoerter(text);
+    // Bezug zum geplanten Thema bewerten.
+    const antwortWoerter = this.wichtigeWoerter(text);
     const planWoerter = new Set(plan.kernbegriffe);
 
     let gemeinsam = 0;
 
-    for (const wort of kandidatenWoerter) {
-      if (planWoerter.has(wort)) {
-        gemeinsam++;
-      }
+    for (const wort of antwortWoerter) {
+      if (planWoerter.has(wort)) gemeinsam++;
     }
 
     score += Math.min(2, gemeinsam * 0.35);
 
-    // Bei passendem Trainingsbeispiel den Inhalt vergleichen.
+    // Ähnlichkeit zur passenden Trainingsantwort bewerten.
     if (plan.beispielAntwort) {
-      score +=
-        2.5 * this.aehnlichkeit(
-          text,
-          plan.beispielAntwort
-        );
+      score += 2.5 * this.aehnlichkeit(
+        text,
+        plan.beispielAntwort
+      );
     }
 
-    // Markierungen dürfen niemals in der sichtbaren Antwort sein.
-    if (text.includes("<benutzer>") || text.includes("<ki>")) {
+    if (
+      text.includes("<benutzer>") ||
+      text.includes("<ki>")
+    ) {
       score -= 10;
     }
 
     return score;
   }
 
-  formatiere(tokens) {
-    let text = tokens.join(" ");
-
-    text = text
-      .replace(/\s+([.,!?;:%)\]}»])/g, "$1")
-      .replace(/([([{«])\s+/g, "$1")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    if (text) {
-      text =
-        text.charAt(0).toLocaleUpperCase("de-DE") +
-        text.slice(1);
-    }
-
-    return text;
-  }
-
-  // --------------------------------------------------
-  // 10. ANTWORT PLANEN, VOLLSTÄNDIG GENERIEREN,
-  //     KANDIDATEN VERGLEICHEN UND BESTE ANTWORT WÄHLEN
-  // --------------------------------------------------
+  // -----------------------------------------------
+  // ANTWORT PLANEN UND ERZEUGEN
+  // -----------------------------------------------
 
   antwortGenerieren(prompt, optionen = {}) {
     if (!this.bereit) {
@@ -1013,58 +1048,62 @@ class NeuronalesNetz {
       );
     }
 
-    if (typeof prompt !== "string" || !prompt.trim()) {
+    if (
+      typeof prompt !== "string" ||
+      !prompt.trim()
+    ) {
       return "Bitte gib eine Nachricht ein.";
     }
 
-    // Schritt A: Thema und relevante Trainingsbeispiele bestimmen.
+    // 1. Thema und passende Trainingsbeispiele bestimmen.
     const plan = this.planeAntwort(prompt);
 
-    this.planungsTreffer = plan.relevanz;
-
-    // Exakte bekannte Frage: Die gespeicherte Antwort ist
-    // bereits ein vollständiger, gelernter Antwortentwurf.
+    // 2. Bei einer exakt bekannten Frage die zugehörige
+    //    vollständige Trainingsantwort verwenden.
     if (
       plan.beispielAntwort &&
-      plan.relevanz >= 0.99
+      plan.relevanz >= 0.999
     ) {
       return plan.beispielAntwort;
     }
 
-    // Schritt B: Mehrere vollständige Antwortkandidaten erzeugen.
+    // 3. Mehrere vollständige Antwortkandidaten erzeugen.
     const kandidaten = this.generiereKandidaten(
       prompt,
       plan,
       optionen
     );
 
-    // Schritt C: Ganze Antworten bewerten, nicht nur das nächste Wort.
-    kandidaten.sort((a, b) => b.bewertung - a.bewertung);
+    // 4. Die Antworten bewerten und sortieren.
+    kandidaten.sort(
+      (a, b) => b.bewertung - a.bewertung
+    );
 
     const beste = kandidaten[0];
 
-    // Schritt D: Wenn der Generator nur Wiederholungen erzeugt,
-    // ein sehr passendes Trainingsbeispiel als Fallback nutzen.
+    // 5. Bei einer sehr ähnlichen Trainingsfrage eine
+    //    bekannte Antwort nutzen, falls die Generierung
+    //    nur schlechte Ergebnisse liefert.
     if (
       plan.beispielAntwort &&
       plan.relevanz >= 0.55 &&
-      (!beste || beste.bewertung < 1.0)
+      (!beste || beste.bewertung < 1)
     ) {
       return plan.beispielAntwort;
     }
 
     return beste && beste.text
       ? beste.text
-      : "Ich konnte noch keine vollständige Antwort bilden.";
+      : "Ich konnte noch keine zusammenhängende Antwort erzeugen.";
   }
 
   generiere(prompt, optionen = {}) {
     return this.antwortGenerieren(prompt, optionen);
   }
 
-  // --------------------------------------------------
-  // 11. STATUS UND TRAININGSORDNER
-  // --------------------------------------------------
+  // -----------------------------------------------
+  // STATUS
+  // -----------------------------------------------
 
   status() {
     return {
@@ -1081,6 +1120,10 @@ class NeuronalesNetz {
     };
   }
 
+  // -----------------------------------------------
+  // TRAININGSORDNER LADEN
+  // -----------------------------------------------
+
   lerneOrdner(ordner, tokenizer = null, optionen = {}) {
     if (!fs.existsSync(ordner)) {
       throw new Error(
@@ -1088,11 +1131,11 @@ class NeuronalesNetz {
       );
     }
 
+    const daten = [];
+
     const dateien = fs.readdirSync(ordner, {
       withFileTypes: true
     });
-
-    const daten = [];
 
     for (const datei of dateien) {
       if (
@@ -1112,11 +1155,9 @@ class NeuronalesNetz {
             )
           )
         );
-
-        console.log("Trainingsdaten geladen:", datei.name);
       } catch (fehler) {
         console.error(
-          `Datei ${datei.name} übersprungen:`,
+          `Trainingsdatei ${datei.name} übersprungen:`,
           fehler.message
         );
       }

@@ -23,7 +23,7 @@ fs.mkdirSync(DATEN_ORDNER, { recursive: true });
 fs.mkdirSync(MODELL_ORDNER, { recursive: true });
 
 // --------------------------------------------------
-// GitHub-Konfiguration aus Render
+// GitHub-Konfiguration
 // --------------------------------------------------
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
@@ -31,7 +31,7 @@ const GITHUB_OWNER = process.env.GITHUB_OWNER;
 const GITHUB_REPO = process.env.GITHUB_REPO;
 const GITHUB_BRANCH = process.env.GITHUB_BRANCH || "main";
 
-function githubIstKonfiguriert() {
+function githubKonfiguriert() {
   return Boolean(
     GITHUB_TOKEN &&
     GITHUB_OWNER &&
@@ -44,18 +44,17 @@ function githubIstKonfiguriert() {
 // --------------------------------------------------
 
 function ladeTrainingsdaten() {
-  const ergebnis = [];
-  const dateinamen = [];
-
   const dateien = fs.readdirSync(DATEN_ORDNER, {
     withFileTypes: true
-  })
-    .filter(datei =>
-      datei.isFile() &&
-      datei.name.toLowerCase().endsWith(".json") &&
-      datei.name.toLowerCase() !== "tokenizer.json"
-    )
-    .sort((a, b) => a.name.localeCompare(b.name));
+  }).filter(datei =>
+    datei.isFile() &&
+    datei.name.toLowerCase().endsWith(".json") &&
+    datei.name.toLowerCase() !== "tokenizer.json"
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+  const daten = [];
+  const geladeneDateien = [];
+  const fehlerDateien = [];
 
   for (const datei of dateien) {
     const dateipfad = path.join(
@@ -64,94 +63,77 @@ function ladeTrainingsdaten() {
     );
 
     try {
-      const daten = JSON.parse(
-        fs.readFileSync(dateipfad, "utf8")
+      const inhalt = fs.readFileSync(
+        dateipfad,
+        "utf8"
       );
 
-      ergebnis.push(daten);
-      dateinamen.push(datei.name);
+      const json = JSON.parse(inhalt);
+
+      daten.push(json);
+      geladeneDateien.push(datei.name);
 
       console.log("Trainingsdatei geladen:", datei.name);
     } catch (fehler) {
+      fehlerDateien.push(datei.name);
+
       console.error(
-        "JSON-Datei übersprungen:",
-        datei.name,
+        `Datei ${datei.name} übersprungen:`,
         fehler.message
       );
     }
   }
 
-  console.log("Geladene Trainingsdateien:", dateinamen.length);
-
   return {
-    daten: ergebnis,
-    dateinamen
+    daten,
+    geladeneDateien,
+    fehlerDateien
   };
 }
 
-// Der aktuelle Tokenizer ist kleinschreibungssensitiv.
-// Darum normalisieren wir Trainings-Texte und Chat-Eingaben.
-function normalisiereTexte(daten) {
-  if (typeof daten === "string") {
-    return daten
-      .normalize("NFC")
-      .toLocaleLowerCase("de-DE");
-  }
-
-  if (Array.isArray(daten)) {
-    return daten.map(normalisiereTexte);
-  }
-
-  if (daten && typeof daten === "object") {
-    const neu = {};
-
-    for (const [key, wert] of Object.entries(daten)) {
-      neu[key] = normalisiereTexte(wert);
-    }
-
-    return neu;
-  }
-
-  return daten;
-}
-
 // --------------------------------------------------
-// Tokenizer vorbereiten
+// Tokenizer und neuronales Sprachmodell
 // --------------------------------------------------
 
-// Das Vokabular wird bei jedem Start aus den aktuellen
-// Trainingsdaten neu aufgebaut. So vermeiden wir alte,
-// nicht passende Token-IDs aus vorherigen Versionen.
-const tokenizer = new Tokenizer();
+let tokenizer = new Tokenizer();
 
-// --------------------------------------------------
-// Das neuronale Sprachmodell aufbauen und trainieren
-// --------------------------------------------------
-
-const { daten: roheTrainingsdaten, dateinamen } =
-  ladeTrainingsdaten();
-
-const trainingsdaten = normalisiereTexte(
-  roheTrainingsdaten
-);
-
-const netz = new NeuronalesNetz(tokenizer, {
+let netz = new NeuronalesNetz(tokenizer, {
   maxVokabular: 256,
   embeddingGroesse: 8,
   versteckteNeuronen: 16,
   kontextLaenge: 12
 });
 
+let trainingsBereit = false;
 let trainingsFehler = null;
 let trainingsStatus = null;
 
-if (trainingsdaten.length === 0) {
-  trainingsFehler =
-    "Keine JSON-Trainingsdateien in Daten/ gefunden.";
-} else {
+let geladeneDateien = [];
+let fehlerDateien = [];
+
+function trainiereSprachmodell() {
+  trainingsBereit = false;
+  trainingsFehler = null;
+  trainingsStatus = null;
+
+  const ergebnis = ladeTrainingsdaten();
+
+  geladeneDateien = ergebnis.geladeneDateien;
+  fehlerDateien = ergebnis.fehlerDateien;
+
+  if (ergebnis.daten.length === 0) {
+    trainingsFehler =
+      "Keine gültigen JSON-Trainingsdateien in Daten/ gefunden.";
+
+    console.error(trainingsFehler);
+    return false;
+  }
+
   try {
+    // Jede Trainingsdatei kann Frage-Antwort-Paare,
+    // Textsammlungen oder einfache Textfelder enthalten.
     trainingsStatus = netz.trainiereTexte(
-      trainingsdaten,
+      ergebnis.daten,
       tokenizer,
       {
         epochen: Number(process.env.TRAINING_EPOCHS) || 4,
@@ -160,88 +142,95 @@ if (trainingsdaten.length === 0) {
       }
     );
 
+    trainingsBereit = netz.bereit;
+
+    if (!trainingsBereit) {
+      throw new Error(
+        "Das neuronale Netz meldet sich nicht als bereit."
+      );
+    }
+
     console.log("Training abgeschlossen.");
-    console.log("Modellstatus:", trainingsStatus);
+    console.log("Sprachmodell:", trainingsStatus);
+
+    // tokenizer.js speichert das Vokabular bereits
+    // während trainiereTexte(). Hier zusätzlich absichern.
+    tokenizer.speichern(TOKENIZER_DATEI);
+
+    return true;
   } catch (fehler) {
     trainingsFehler = fehler.message;
 
     console.error(
-      "Das Sprachmodell konnte nicht trainiert werden:",
+      "Training fehlgeschlagen:",
       fehler.message
     );
+
+    return false;
   }
 }
 
-// Tokenizer lokal speichern.
-try {
-  tokenizer.speichern(TOKENIZER_DATEI);
-  console.log("Tokenizer lokal gespeichert:", TOKENIZER_DATEI);
-} catch (fehler) {
-  console.error(
-    "Tokenizer konnte nicht gespeichert werden:",
-    fehler.message
-  );
-}
+// Beim Start wird das Modell aus Daten/ trainiert.
+trainiereSprachmodell();
 
 // --------------------------------------------------
-// GitHub: Tokenizer-Datei erstellen oder aktualisieren
+// Tokenizer mit GitHub synchronisieren
 // --------------------------------------------------
 
 async function synchronisiereTokenizerMitGitHub() {
-  if (!githubIstKonfiguriert()) {
+  if (!githubKonfiguriert()) {
     console.log(
-      "GitHub-Upload übersprungen: " +
+      "GitHub-Synchronisierung übersprungen: " +
       "GITHUB_TOKEN, GITHUB_OWNER oder GITHUB_REPO fehlt."
     );
-
     return;
   }
 
-  if (!netz.bereit) {
+  if (!trainingsBereit) {
     console.log(
-      "GitHub-Upload übersprungen: " +
-      "Das Sprachmodell wurde nicht trainiert."
+      "GitHub-Synchronisierung übersprungen: " +
+      "das Sprachmodell ist nicht trainiert."
     );
-
     return;
   }
 
   if (typeof fetch !== "function") {
     console.error(
-      "GitHub-Upload benötigt Node.js 18 oder neuer."
+      "GitHub-API benötigt Node.js 18 oder neuer."
     );
-
     return;
   }
 
-  const relativerPfad = "modelle/tokenizer.json";
+  const dateipfad = "modelle/tokenizer.json";
 
-  const githubUrl =
+  const url =
     "https://api.github.com/repos/" +
-    encodeURIComponent(GITHUB_OWNER) + "/" +
-    encodeURIComponent(GITHUB_REPO) + "/contents/" +
-    relativerPfad.split("/")
+    encodeURIComponent(GITHUB_OWNER) +
+    "/" +
+    encodeURIComponent(GITHUB_REPO) +
+    "/contents/" +
+    dateipfad
+      .split("/")
       .map(encodeURIComponent)
       .join("/");
 
-  const header = {
+  const headers = {
     "Accept": "application/vnd.github+json",
     "Authorization": `Bearer ${GITHUB_TOKEN}`,
     "X-GitHub-Api-Version": "2022-11-28",
     "User-Agent": "MeineEigeneKI"
   };
 
-  const dateiInhalt = fs.readFileSync(
-    TOKENIZER_DATEI,
-    "utf8"
-  );
-
   try {
-    // Prüfen, ob die Datei schon existiert.
+    const dateiInhalt = fs.readFileSync(
+      TOKENIZER_DATEI,
+      "utf8"
+    );
+
+    // Vorhandene Datei abfragen, um ihren SHA zu erhalten.
     const getAntwort = await fetch(
-      githubUrl + "?ref=" +
-      encodeURIComponent(GITHUB_BRANCH),
-      { headers: header }
+      url + "?ref=" + encodeURIComponent(GITHUB_BRANCH),
+      { headers }
     );
 
     let sha = null;
@@ -261,7 +250,9 @@ async function synchronisiereTokenizerMitGitHub() {
         ).toString("utf8");
 
         if (alterInhalt === dateiInhalt) {
-          console.log("GitHub-Tokenizer ist bereits aktuell.");
+          console.log(
+            "GitHub-Tokenizer ist bereits aktuell."
+          );
           return;
         }
       }
@@ -280,38 +271,42 @@ async function synchronisiereTokenizerMitGitHub() {
       branch: GITHUB_BRANCH
     };
 
-    // GitHub verlangt den bisherigen SHA beim Aktualisieren.
     if (sha) {
       payload.sha = sha;
     }
 
-    const putAntwort = await fetch(githubUrl, {
+    const putAntwort = await fetch(url, {
       method: "PUT",
       headers: {
-        ...header,
+        ...headers,
         "Content-Type": "application/json"
       },
       body: JSON.stringify(payload)
     });
 
-    const putDaten = await putAntwort.json().catch(() => ({}));
+    const putDaten = await putAntwort.json().catch(
+      () => ({})
+    );
 
     if (!putAntwort.ok) {
       throw new Error(
         `GitHub-Upload fehlgeschlagen: HTTP ${putAntwort.status}. ` +
-        `${putDaten.message || "Berechtigungen und Branch prüfen."}`
+        `${putDaten.message || "Repository und Berechtigungen prüfen."}`
       );
     }
 
     console.log(
-      "Tokenizer wurde im GitHub-Repository gespeichert."
+      "Tokenizer wurde in GitHub gespeichert."
     );
 
-    if (putDaten.content && putDaten.content.html_url) {
-      console.log("Datei:", putDaten.content.html_url);
+    if (putDaten.content?.html_url) {
+      console.log(
+        "Tokenizer-Datei:",
+        putDaten.content.html_url
+      );
     }
   } catch (fehler) {
-    // Niemals den GitHub-Token ausgeben.
+    // Das Token niemals ausgeben.
     console.error(
       "GitHub-Synchronisierung fehlgeschlagen:",
       fehler.message
@@ -336,17 +331,18 @@ function leseJson(req, maximalBytes = 1024 * 1024) {
   return new Promise((resolve, reject) => {
     let inhalt = "";
     let bytes = 0;
-    let abgeschlossen = false;
+    let beendet = false;
+    let zuGross = false;
 
     req.setEncoding("utf8");
 
     req.on("data", teil => {
-      if (abgeschlossen) return;
+      if (beendet || zuGross) return;
 
       bytes += Buffer.byteLength(teil, "utf8");
 
       if (bytes > maximalBytes) {
-        abgeschlossen = true;
+        zuGross = true;
 
         const fehler = new Error(
           "Die Anfrage ist zu groß."
@@ -354,7 +350,6 @@ function leseJson(req, maximalBytes = 1024 * 1024) {
 
         fehler.status = 413;
         reject(fehler);
-
         return;
       }
 
@@ -362,23 +357,26 @@ function leseJson(req, maximalBytes = 1024 * 1024) {
     });
 
     req.on("end", () => {
-      if (abgeschlossen) return;
+      if (beendet || zuGross) return;
 
-      abgeschlossen = true;
+      beendet = true;
 
       try {
         resolve(JSON.parse(inhalt || "{}"));
       } catch {
-        const fehler = new Error("Ungültiges JSON.");
+        const fehler = new Error(
+          "Die Anfrage enthält ungültiges JSON."
+        );
+
         fehler.status = 400;
         reject(fehler);
       }
     });
 
     req.on("error", fehler => {
-      if (abgeschlossen) return;
+      if (beendet || zuGross) return;
 
-      abgeschlossen = true;
+      beendet = true;
       reject(fehler);
     });
   });
@@ -389,12 +387,13 @@ function leseJson(req, maximalBytes = 1024 * 1024) {
 // --------------------------------------------------
 
 const server = http.createServer(async (req, res) => {
-  const host = req.headers.host || "localhost";
-
   let url;
 
   try {
-    url = new URL(req.url, `http://${host}`);
+    url = new URL(
+      req.url,
+      `http://${req.headers.host || "localhost"}`
+    );
   } catch {
     return sendeJson(res, 400, {
       fehler: "Ungültige URL."
@@ -402,10 +401,11 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
-    // Website ausliefern.
+    // Website
     if (
       req.method === "GET" &&
-      (url.pathname === "/" || url.pathname === "/index.html")
+      (url.pathname === "/" ||
+       url.pathname === "/index.html")
     ) {
       if (!fs.existsSync(HTML_DATEI)) {
         return sendeJson(res, 404, {
@@ -422,7 +422,7 @@ const server = http.createServer(async (req, res) => {
       );
     }
 
-    // Status des Sprach-Hirns anzeigen.
+    // Status des Modells
     if (
       req.method === "GET" &&
       url.pathname === "/api/status"
@@ -431,13 +431,16 @@ const server = http.createServer(async (req, res) => {
         ok: true,
         modell: netz.status(),
         tokenizer: tokenizer.status(),
+        trainingsBereit,
         trainingsFehler,
-        trainingsdateien: dateinamen,
-        githubUploadKonfiguriert: githubIstKonfiguriert()
+        trainingsdateien: geladeneDateien,
+        uebersprungeneDateien: fehlerDateien,
+        githubSynchronisierungKonfiguriert:
+          githubKonfiguriert()
       });
     }
 
-    // Antwort mit dem neuronalen Sprachmodell erzeugen.
+    // Chat: Die Antwort wird durch das neuronale Netz erzeugt.
     if (
       req.method === "POST" &&
       url.pathname === "/api/chat"
@@ -459,7 +462,7 @@ const server = http.createServer(async (req, res) => {
         });
       }
 
-      if (!netz.bereit) {
+      if (!trainingsBereit || !netz.bereit) {
         return sendeJson(res, 503, {
           fehler:
             trainingsFehler ||
@@ -467,16 +470,14 @@ const server = http.createServer(async (req, res) => {
         });
       }
 
-      // Eingabe in dieselbe Schreibweise bringen wie die Trainingsdaten.
-      const eingabe = nachricht
-        .normalize("NFC")
-        .toLocaleLowerCase("de-DE");
-
-      const antwort = netz.antwortGenerieren(eingabe, {
-        maxTokens: 45,
-        temperatur: 0.8,
-        topK: 8
-      });
+      const antwort = netz.antwortGenerieren(
+        nachricht,
+        {
+          maxTokens: 45,
+          temperatur: 0.65,
+          topK: 5
+        }
+      );
 
       return sendeJson(res, 200, {
         antwort,
@@ -489,20 +490,25 @@ const server = http.createServer(async (req, res) => {
       fehler: "API-Endpunkt nicht gefunden."
     });
   } catch (fehler) {
-    console.error("Anfrage fehlgeschlagen:", fehler.message);
-
-    return sendeJson(
-      res,
-      fehler.status || 500,
-      { fehler: fehler.message }
+    console.error(
+      "Anfrage fehlgeschlagen:",
+      fehler.message
     );
+
+    return sendeJson(res, fehler.status || 500, {
+      fehler: fehler.message
+    });
   }
 });
 
+// --------------------------------------------------
+// Server starten
+// --------------------------------------------------
+
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server läuft auf Port ${PORT}.`);
-  console.log("Sprachmodell bereit:", netz.bereit);
+  console.log("Sprachmodell bereit:", trainingsBereit);
 
-  // Datei nach dem Start mit GitHub synchronisieren.
+  // Die GitHub-Synchronisierung blockiert den Chatstart nicht.
   void synchronisiereTokenizerMitGitHub();
 });

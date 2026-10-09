@@ -1,91 +1,57 @@
 
 "use strict";
 
-// ============================================================
-// tokenizer.js
-// Eigener Tokenizer für MeineEigeneKI
-// Keine externen Bibliotheken
-//
-// Funktionen:
-// - Text normalisieren
-// - Text in Tokens zerlegen
-// - Tokens in Zahlen kodieren
-// - Zahlen in Tokens zurückverwandeln
-// - Wortschatz aus eigenen Textdaten aufbauen
-// - Tokenizer speichern und laden
-// ============================================================
-
 const fs = require("node:fs");
 const path = require("node:path");
+
+const SPEZIAL_TOKENS = [
+  "<PAD>",
+  "<UNK>",
+  "<BOS>",
+  "<EOS>",
+  "<SEP>"
+];
 
 class Tokenizer {
   constructor() {
     this.tokenZuId = new Map();
     this.idZuToken = [];
 
-    this.spezialTokens = [
-      "<PAD>",
-      "<UNK>",
-      "<BOS>",
-      "<EOS>",
-      "<SEP>"
-    ];
-
-    this.initialisiereSpezialTokens();
-  }
-
-  // ----------------------------------------------------------
-  // Spezialtokens reservieren
-  // ----------------------------------------------------------
-
-  initialisiereSpezialTokens() {
-    for (const token of this.spezialTokens) {
-      this.fuegeTokenHinzu(token);
+    for (const token of SPEZIAL_TOKENS) {
+      this._registriereToken(token);
     }
   }
 
-  // ----------------------------------------------------------
-  // Text normalisieren
-  // ----------------------------------------------------------
+  static get standardDateipfad() {
+    return process.env.TOKENIZER_PATH ||
+      path.join(__dirname, "modelle", "tokenizer.json");
+  }
 
   normalisiere(text) {
     if (typeof text !== "string") {
       throw new TypeError("Der Text muss eine Zeichenkette sein.");
     }
 
-    return text
-      .normalize("NFC")
-      .replace(/\r\n?/g, "\n")
-      .trim();
+    return text.normalize("NFC").trim();
   }
 
-  // ----------------------------------------------------------
-  // Text zerlegen
-  //
-  // Wörter, Zahlen und Satzzeichen bleiben getrennt.
-  // Beispiel:
-  // "Hallo, Welt!" -> ["Hallo", ",", "Welt", "!"]
-  // ----------------------------------------------------------
-
   zerlege(text) {
-    text = this.normalisiere(text);
+    const normalisiert = this.normalisiere(text);
 
-    if (text.length === 0) {
+    if (!normalisiert) {
       return [];
     }
 
-    const treffer = text.match(
-      /[\p{L}\p{M}]+(?:['’][\p{L}\p{M}]+)*|[\p{N}]+(?:[.,][\p{N}]+)*|[^\s\p{L}\p{M}\p{N}]/gu
-    );
-
-    return treffer || [];
+    return normalisiert.match(
+      /[\p{L}\p{M}]+(?:['’][\p{L}\p{M}]+)*|\p{N}+(?:[.,]\p{N}+)*|[^\s]/gu
+    ) || [];
   }
 
-  // ----------------------------------------------------------
-  // Token zum Wortschatz hinzufügen
-  // ----------------------------------------------------------
+  _registriereToken(token) {
+    if (typeof token !== "string" || token.length === 0) {
+      throw new TypeError("Ungültiges Token.");
+    }
 
-  fuegeTokenHinzu(token) {
     if (this.tokenZuId.has(token)) {
       return this.tokenZuId.get(token);
     }
@@ -98,40 +64,19 @@ class Tokenizer {
     return id;
   }
 
-  // ----------------------------------------------------------
-  // Wortschatz aus Texten lernen
-  // ----------------------------------------------------------
-
   lerneTexte(textsammlung) {
     if (!Array.isArray(textsammlung)) {
-      throw new TypeError(
-        "Die Textsammlung muss ein Array sein."
-      );
+      throw new TypeError("Die Textsammlung muss ein Array sein.");
     }
-
-    let neueTokens = 0;
 
     for (const text of textsammlung) {
       for (const token of this.zerlege(text)) {
-        if (!this.tokenZuId.has(token)) {
-          this.fuegeTokenHinzu(token);
-          neueTokens++;
-        }
+        this._registriereToken(token);
       }
     }
 
-    return {
-      texte: textsammlung.length,
-      neueTokens,
-      wortschatzGroesse: this.idZuToken.length
-    };
+    return this.status();
   }
-
-  // ----------------------------------------------------------
-  // Text in Token-IDs umwandeln
-  //
-  // Unbekannte Tokens werden zu <UNK>.
-  // ----------------------------------------------------------
 
   kodieren(text, optionen = {}) {
     const {
@@ -139,21 +84,14 @@ class Tokenizer {
       endeToken = false
     } = optionen;
 
-    const tokens = this.zerlege(text);
-    const ids = [];
+    const ids = this.zerlege(text).map(token => {
+      return this.tokenZuId.has(token)
+        ? this.tokenZuId.get(token)
+        : this.tokenZuId.get("<UNK>");
+    });
 
     if (startToken) {
-      ids.push(this.tokenZuId.get("<BOS>"));
-    }
-
-    for (const token of tokens) {
-      const id = this.tokenZuId.get(token);
-
-      ids.push(
-        id === undefined
-          ? this.tokenZuId.get("<UNK>")
-          : id
-      );
+      ids.unshift(this.tokenZuId.get("<BOS>"));
     }
 
     if (endeToken) {
@@ -163,189 +101,110 @@ class Tokenizer {
     return ids;
   }
 
-  // ----------------------------------------------------------
-  // Token-IDs wieder in Text umwandeln
-  // ----------------------------------------------------------
-
   dekodieren(ids, optionen = {}) {
-    if (!Array.isArray(ids)) {
-      throw new TypeError("Die Token-IDs müssen ein Array sein.");
-    }
-
     const {
       spezialTokensAnzeigen = false
     } = optionen;
 
-    const tokens = [];
-
-    for (const id of ids) {
-      if (
-        !Number.isInteger(id) ||
-        id < 0 ||
-        id >= this.idZuToken.length
-      ) {
-        tokens.push("<UNK>");
-        continue;
-      }
-
-      const token = this.idZuToken[id];
-
-      if (
-        !spezialTokensAnzeigen &&
-        this.spezialTokens.includes(token)
-      ) {
-        continue;
-      }
-
-      tokens.push(token);
+    if (!Array.isArray(ids)) {
+      throw new TypeError("Die Token-IDs müssen ein Array sein.");
     }
 
-    return this.setzeTokensZusammen(tokens);
-  }
-
-  // ----------------------------------------------------------
-  // Tokens zu lesbarem Text zusammensetzen
-  // ----------------------------------------------------------
-
-  setzeTokensZusammen(tokens) {
-    let text = "";
-
-    const ohneLeerzeichenDavor = new Set([
-      ".", ",", "!", "?", ";", ":", "%",
-      ")", "]", "}", "…"
-    ]);
-
-    const ohneLeerzeichenDanach = new Set([
-      "(", "[", "{"
-    ]);
-
-    for (const token of tokens) {
-      if (text.length === 0) {
-        text = token;
-        continue;
+    const tokens = ids.map(id => {
+      if (!Number.isInteger(id) || id < 0 || id >= this.idZuToken.length) {
+        return "<UNK>";
       }
 
-      if (ohneLeerzeichenDavor.has(token)) {
-        text += token;
-      } else if (ohneLeerzeichenDanach.has(text.slice(-1))) {
-        text += token;
-      } else {
-        text += " " + token;
-      }
-    }
+      return this.idZuToken[id];
+    });
 
-    return text;
+    const gefiltert = spezialTokensAnzeigen
+      ? tokens
+      : tokens.filter(token => !SPEZIAL_TOKENS.includes(token));
+
+    return gefiltert
+      .join(" ")
+      .replace(/\s+([.,!?;:%)\]}»])/g, "$1")
+      .replace(/([([{«])\s+/g, "$1");
   }
-
-  // ----------------------------------------------------------
-  // Token-ID abfragen
-  // ----------------------------------------------------------
 
   idFuer(token) {
-    const id = this.tokenZuId.get(token);
-
-    return id === undefined
-      ? this.tokenZuId.get("<UNK>")
-      : id;
+    return this.tokenZuId.has(token)
+      ? this.tokenZuId.get(token)
+      : this.tokenZuId.get("<UNK>");
   }
 
-  // ----------------------------------------------------------
-  // Token zu einer ID abfragen
-  // ----------------------------------------------------------
-
   tokenFuer(id) {
-    if (
-      !Number.isInteger(id) ||
-      id < 0 ||
-      id >= this.idZuToken.length
-    ) {
+    if (!Number.isInteger(id) || id < 0 || id >= this.idZuToken.length) {
       return "<UNK>";
     }
 
     return this.idZuToken[id];
   }
 
-  // ----------------------------------------------------------
-  // Wortschatzinformationen
-  // ----------------------------------------------------------
-
   status() {
     return {
-      wortschatzGroesse: this.idZuToken.length,
-      spezialTokens: this.spezialTokens.slice()
+      anzahlTokens: this.idZuToken.length,
+      anzahlSpezialTokens: SPEZIAL_TOKENS.length,
+      dateipfad: Tokenizer.standardDateipfad
     };
   }
 
-  // ----------------------------------------------------------
-  // Wortschatz als JSON speichern
-  // ----------------------------------------------------------
+  speichern(dateipfad = Tokenizer.standardDateipfad) {
+    const ordner = path.dirname(dateipfad);
 
-  speichern(dateipfad) {
-    const ziel = path.resolve(dateipfad);
+    fs.mkdirSync(ordner, { recursive: true });
 
     const daten = {
       version: 1,
-      spezialTokens: this.spezialTokens,
+      spezialTokens: SPEZIAL_TOKENS,
       tokens: this.idZuToken
     };
 
-    fs.mkdirSync(path.dirname(ziel), {
-      recursive: true
-    });
-
     fs.writeFileSync(
-      ziel,
+      dateipfad,
       JSON.stringify(daten, null, 2),
       "utf8"
     );
 
-    return ziel;
+    return dateipfad;
   }
 
-  // ----------------------------------------------------------
-  // Wortschatz aus JSON laden
-  // ----------------------------------------------------------
-
-  static laden(dateipfad) {
-    const quelle = path.resolve(dateipfad);
+  static laden(dateipfad = Tokenizer.standardDateipfad) {
+    if (!fs.existsSync(dateipfad)) {
+      throw new Error(
+        `Tokenizer-Datei nicht gefunden: ${dateipfad}`
+      );
+    }
 
     const daten = JSON.parse(
-      fs.readFileSync(quelle, "utf8")
+      fs.readFileSync(dateipfad, "utf8")
     );
 
     if (
-      !daten ||
       daten.version !== 1 ||
       !Array.isArray(daten.tokens) ||
       !Array.isArray(daten.spezialTokens)
     ) {
-      throw new Error("Ungültige Tokenizer-Datei.");
+      throw new Error("Ungültiges Tokenizer-Dateiformat.");
     }
 
     const tokenizer = new Tokenizer();
 
     tokenizer.tokenZuId.clear();
     tokenizer.idZuToken = [];
-    tokenizer.spezialTokens = daten.spezialTokens.slice();
 
     for (const token of daten.tokens) {
-      if (
-        typeof token !== "string" ||
-        tokenizer.tokenZuId.has(token)
-      ) {
-        throw new Error(
-          "Ungültiger oder doppelter Token in der Datei."
-        );
+      if (typeof token !== "string" || tokenizer.tokenZuId.has(token)) {
+        throw new Error("Ungültiges oder doppeltes Token im Vokabular.");
       }
 
-      tokenizer.fuegeTokenHinzu(token);
+      tokenizer._registriereToken(token);
     }
 
-    for (const token of tokenizer.spezialTokens) {
-      if (!tokenizer.tokenZuId.has(token)) {
-        throw new Error(
-          "Spezialtoken fehlt im Wortschatz: " + token
-        );
+    for (let i = 0; i < SPEZIAL_TOKENS.length; i++) {
+      if (tokenizer.idZuToken[i] !== SPEZIAL_TOKENS[i]) {
+        throw new Error("Die Spezial-Tokens sind ungültig.");
       }
     }
 

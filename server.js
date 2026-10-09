@@ -1,544 +1,645 @@
 
 "use strict";
 
-// ============================================================
-// MeineEigeneKI - server.js
-// GitHub + Render
-// Eigener HTTP-Server ohne externe Bibliotheken
-//
-// Projektstruktur:
-//   server.js
-//   netz.js
-//   index.html
-//   package.json
-//   Daten/
-//     xor.json
-//     weitere.json
-// ============================================================
-
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
 
-const { NeuronalesNetz } = require("./netz.js");
+const netzModul = require("./netz.js");
+const { Tokenizer } = require("./tokenizer.js");
 
-// ============================================================
-// KONFIGURATION
-// ============================================================
+const NeuronalesNetz =
+  netzModul.NeuronalesNetz || netzModul;
 
 const PORT = Number(process.env.PORT) || 3000;
-const HOST = "0.0.0.0";
+const ROOT = __dirname;
+const DATEN_ORDNER = path.join(ROOT, "Daten");
+const MODELL_ORDNER = path.join(ROOT, "modelle");
+const HTML_DATEI = path.join(ROOT, "index.html");
+const TOKENIZER_DATEI = path.join(
+  MODELL_ORDNER,
+  "tokenizer.json"
+);
 
-const HTML_DATEI = path.join(__dirname, "index.html");
-const DATEN_ORDNER = path.join(__dirname, "Daten");
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const GITHUB_OWNER = process.env.GITHUB_OWNER;
+const GITHUB_REPO = process.env.GITHUB_REPO;
+const GITHUB_BRANCH = process.env.GITHUB_BRANCH || "main";
+const ADMIN_KEY = process.env.ADMIN_KEY;
 
-const TRAININGS_DURCHLAEUFE =
-  Number(process.env.TRAINING_EPOCHS) || 20000;
+fs.mkdirSync(DATEN_ORDNER, { recursive: true });
+fs.mkdirSync(MODELL_ORDNER, { recursive: true });
 
-const MAX_ANFRAGE_GROESSE = 10000;
+function jsonAntwort(res, status, daten) {
+  res.writeHead(status, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store"
+  });
 
-// ============================================================
-// ALLE JSON-DATEIEN AUS DEM DATEN-ORDNER LADEN
-// ============================================================
+  res.end(JSON.stringify(daten));
+}
 
-function ladeTrainingsdaten() {
-  if (!fs.existsSync(DATEN_ORDNER)) {
-    throw new Error(
-      'Der Ordner "Daten" wurde nicht gefunden: ' + DATEN_ORDNER
-    );
-  }
+function leseJsonAnfrage(req, maxBytes = 1024 * 1024) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    let bytes = 0;
 
-  const dateien = fs.readdirSync(DATEN_ORDNER, {
-    withFileTypes: true
-  })
-    .filter(datei =>
-      datei.isFile() &&
-      datei.name.toLowerCase().endsWith(".json")
-    )
-    .map(datei => datei.name)
-    .sort((a, b) => a.localeCompare(b));
+    req.setEncoding("utf8");
 
-  if (dateien.length === 0) {
-    throw new Error(
-      'Im Ordner "Daten" wurden keine JSON-Dateien gefunden.'
-    );
-  }
+    req.on("data", teil => {
+      bytes += Buffer.byteLength(teil, "utf8");
 
-  const alleBeispiele = [];
-
-  console.log("");
-  console.log("======================================");
-  console.log("       TRAININGSDATEN LADEN");
-  console.log("======================================");
-
-  for (const dateiname of dateien) {
-    const dateipfad = path.join(DATEN_ORDNER, dateiname);
-
-    let inhalt;
-
-    try {
-      inhalt = JSON.parse(
-        fs.readFileSync(dateipfad, "utf8")
-      );
-    } catch (error) {
-      throw new Error(
-        'Fehler in "' + dateiname + '": ' + error.message
-      );
-    }
-
-    // Eine JSON-Datei kann entweder ein Array mit mehreren
-    // Beispielen oder ein einzelnes Beispiel enthalten.
-    const beispiele = Array.isArray(inhalt)
-      ? inhalt
-      : [inhalt];
-
-    if (beispiele.length === 0) {
-      console.warn(
-        "Leere JSON-Datei übersprungen:",
-        dateiname
-      );
-      continue;
-    }
-
-    for (let i = 0; i < beispiele.length; i++) {
-      const beispiel = beispiele[i];
-
-      // Die aktuelle netz.js unterstützt zwei binäre Eingaben
-      // und ein binäres Trainingsziel.
-      if (
-        !beispiel ||
-        typeof beispiel !== "object" ||
-        ![0, 1].includes(beispiel.x1) ||
-        ![0, 1].includes(beispiel.x2) ||
-        ![0, 1].includes(beispiel.target)
-      ) {
-        throw new Error(
-          'Ungültiges Trainingsbeispiel in "' +
-          dateiname + '", Eintrag ' + (i + 1) +
-          '. Erwartet werden x1, x2 und target, ' +
-          'jeweils mit dem Zahlenwert 0 oder 1.'
-        );
+      if (bytes > maxBytes) {
+        reject(new Error("Anfrage ist zu groß."));
+        req.destroy();
+        return;
       }
 
-      alleBeispiele.push({
-        x1: beispiel.x1,
-        x2: beispiel.x2,
-        target: beispiel.target
-      });
+      body += teil;
+    });
+
+    req.on("end", () => {
+      try {
+        resolve(JSON.parse(body || "{}"));
+      } catch {
+        reject(new Error("Ungültiges JSON."));
+      }
+    });
+
+    req.on("error", reject);
+  });
+}
+
+// --------------------------------------------------
+// JSON-Dateien aus Daten/ laden
+// --------------------------------------------------
+
+const trainingsdaten = [];
+const textsammlung = [];
+
+function sammleTextwerte(wert, ergebnis) {
+  if (typeof wert === "string") {
+    const text = wert.trim();
+
+    if (text.length > 0) {
+      ergebnis.push(text);
     }
 
-    console.log(
-      "Geladen: " + dateiname +
-      " | Beispiele: " + beispiele.length
-    );
+    return;
   }
 
-  if (alleBeispiele.length === 0) {
+  if (Array.isArray(wert)) {
+    for (const element of wert) {
+      sammleTextwerte(element, ergebnis);
+    }
+
+    return;
+  }
+
+  if (wert && typeof wert === "object") {
+    for (const element of Object.values(wert)) {
+      sammleTextwerte(element, ergebnis);
+    }
+  }
+}
+
+function sammleTrainingsbeispiele(wert) {
+  if (Array.isArray(wert)) {
+    for (const element of wert) {
+      sammleTrainingsbeispiele(element);
+    }
+
+    return;
+  }
+
+  if (!wert || typeof wert !== "object") {
+    return;
+  }
+
+  if (
+    Number.isFinite(wert.x1) &&
+    Number.isFinite(wert.x2) &&
+    Number.isFinite(wert.target) &&
+    [0, 1].includes(wert.x1) &&
+    [0, 1].includes(wert.x2) &&
+    [0, 1].includes(wert.target)
+  ) {
+    trainingsdaten.push({
+      x1: wert.x1,
+      x2: wert.x2,
+      target: wert.target
+    });
+
+    return;
+  }
+
+  for (const element of Object.values(wert)) {
+    sammleTrainingsbeispiele(element);
+  }
+}
+
+function ladeDaten() {
+  const dateien = fs.readdirSync(DATEN_ORDNER)
+    .filter(name => name.toLowerCase().endsWith(".json"))
+    .sort();
+
+  for (const datei of dateien) {
+    const dateipfad = path.join(DATEN_ORDNER, datei);
+
+    try {
+      const inhalt = fs.readFileSync(dateipfad, "utf8");
+      const daten = JSON.parse(inhalt);
+
+      sammleTrainingsbeispiele(daten);
+      sammleTextwerte(daten, textsammlung);
+
+      console.log("JSON geladen:", datei);
+    } catch (fehler) {
+      console.error(
+        "JSON-Datei übersprungen:",
+        datei,
+        fehler.message
+      );
+    }
+  }
+
+  console.log("Trainingsbeispiele:", trainingsdaten.length);
+  console.log("Gefundene Textabschnitte:", textsammlung.length);
+}
+
+ladeDaten();
+
+// --------------------------------------------------
+// Neuronales Netz initialisieren und trainieren
+// --------------------------------------------------
+
+let netz = null;
+let netzBereit = false;
+let netzFehler = null;
+
+try {
+  netz = new NeuronalesNetz();
+} catch (fehler) {
+  netzFehler = fehler.message;
+  console.error("Netz konnte nicht initialisiert werden:", fehler.message);
+}
+
+function findeMethode(objekt, namen) {
+  if (!objekt) return null;
+
+  for (const name of namen) {
+    if (typeof objekt[name] === "function") {
+      return objekt[name].bind(objekt);
+    }
+  }
+
+  return null;
+}
+
+function trainiereNetz() {
+  if (!netz || trainingsdaten.length === 0) {
+    return;
+  }
+
+  try {
+    const batchTraining = findeMethode(netz, [
+      "trainiereDatensatz",
+      "trainiereDaten",
+      "trainBatch",
+      "trainOnData"
+    ]);
+
+    if (batchTraining) {
+      batchTraining(trainingsdaten, 20000);
+      netzBereit = true;
+      return;
+    }
+
+    const einzelTraining = findeMethode(netz, [
+      "trainiere",
+      "lerne",
+      "lernen",
+      "train",
+      "trainExample"
+    ]);
+
+    if (!einzelTraining) {
+      throw new Error(
+        "Keine passende Trainingsmethode in netz.js gefunden."
+      );
+    }
+
+    for (let epoche = 0; epoche < 20000; epoche++) {
+      for (const beispiel of trainingsdaten) {
+        einzelTraining(
+          [beispiel.x1, beispiel.x2],
+          beispiel.target
+        );
+      }
+    }
+
+    netzBereit = true;
+    console.log("Netztraining abgeschlossen.");
+  } catch (fehler) {
+    netzFehler = fehler.message;
+    console.error("Netztraining fehlgeschlagen:", fehler.message);
+  }
+}
+
+trainiereNetz();
+
+function netzVorhersage(eingaben) {
+  if (!netz || !netzBereit) {
     throw new Error(
-      "In den JSON-Dateien wurden keine Trainingsbeispiele gefunden."
+      netzFehler || "Das neuronale Netz ist noch nicht bereit."
     );
   }
 
-  console.log("--------------------------------------");
-  console.log("JSON-Dateien gefunden:", dateien.length);
-  console.log("Trainingsbeispiele insgesamt:", alleBeispiele.length);
-  console.log("======================================");
-  console.log("");
+  const vorhersage = findeMethode(netz, [
+    "vorhersage",
+    "predict",
+    "vorwaerts",
+    "forward",
+    "berechne"
+  ]);
+
+  if (!vorhersage) {
+    throw new Error(
+      "Keine passende Vorhersagemethode in netz.js gefunden."
+    );
+  }
+
+  let ergebnis = vorhersage(eingaben);
+
+  if (Array.isArray(ergebnis) || ArrayBuffer.isView(ergebnis)) {
+    ergebnis = ergebnis[0];
+  }
+
+  if (ergebnis && typeof ergebnis === "object") {
+    ergebnis =
+      ergebnis.ausgabe ??
+      ergebnis.output ??
+      ergebnis.wert;
+  }
+
+  if (typeof ergebnis !== "number" || !Number.isFinite(ergebnis)) {
+    throw new Error("Das Netzwerk lieferte kein gültiges Ergebnis.");
+  }
 
   return {
-    dateien,
-    beispiele: alleBeispiele
+    rohwert: ergebnis,
+    vorhersage: ergebnis >= 0.5 ? 1 : 0
   };
 }
 
-// ============================================================
-// NEURONALES NETZ INITIALISIEREN UND TRAINIEREN
-// ============================================================
+// --------------------------------------------------
+// Tokenizer laden und aus Texten erweitern
+// --------------------------------------------------
 
-const trainingspaket = ladeTrainingsdaten();
-const trainingsdaten = trainingspaket.beispiele;
+let tokenizer;
 
-const netz = new NeuronalesNetz();
+try {
+  tokenizer = fs.existsSync(TOKENIZER_DATEI)
+    ? Tokenizer.laden(TOKENIZER_DATEI)
+    : new Tokenizer();
+} catch (fehler) {
+  console.error("Tokenizer wird neu erstellt:", fehler.message);
+  tokenizer = new Tokenizer();
+}
 
-console.log("Trainiere das eigene neuronale Netz ...");
-
-const trainingsfehler = netz.trainiere(
-  trainingsdaten.slice(),
-  TRAININGS_DURCHLAEUFE
-);
-
-console.log("Training abgeschlossen.");
-console.log("Trainingsdurchläufe:", TRAININGS_DURCHLAEUFE);
-console.log("Trainingsfehler:", trainingsfehler);
-console.log("");
-
-// ============================================================
-// JSON-ANTWORT SENDEN
-// ============================================================
-
-function sendeJson(response, statusCode, daten) {
-  if (response.destroyed || response.writableEnded) {
+function baueTokenizerAusDaten() {
+  if (textsammlung.length === 0) {
+    console.log(
+      "Keine Textdaten gefunden. " +
+      "Für ein Textvokabular brauchst du Texte in Daten/."
+    );
     return;
   }
 
-  response.writeHead(statusCode, {
-    "Content-Type": "application/json; charset=utf-8",
-    "Cache-Control": "no-store",
-    "X-Content-Type-Options": "nosniff"
-  });
+  tokenizer.lerneTexte(textsammlung);
+  tokenizer.speichern(TOKENIZER_DATEI);
 
-  response.end(JSON.stringify(daten));
-}
-
-// ============================================================
-// JSON-ANFRAGE EINLESEN
-// ============================================================
-
-function leseJsonAnfrage(request) {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    let groesse = 0;
-    let zuGross = false;
-
-    request.on("data", teil => {
-      groesse += teil.length;
-
-      if (groesse > MAX_ANFRAGE_GROESSE) {
-        zuGross = true;
-        body = "";
-        return;
-      }
-
-      if (!zuGross) {
-        body += teil.toString("utf8");
-      }
-    });
-
-    request.on("end", () => {
-      if (zuGross) {
-        const error = new Error(
-          "Die Anfrage ist zu groß. Maximal 10000 Bytes erlaubt."
-        );
-
-        error.statusCode = 413;
-        reject(error);
-        return;
-      }
-
-      try {
-        resolve(JSON.parse(body));
-      } catch {
-        const error = new Error(
-          "Die Anfrage enthält ungültiges JSON."
-        );
-
-        error.statusCode = 400;
-        reject(error);
-      }
-    });
-
-    request.on("error", reject);
-  });
-}
-
-// ============================================================
-// CHAT-ANTWORTEN
-//
-// WICHTIG:
-// Das bestehende neuronale Netz kann nur zwei Zahlen
-// verarbeiten. Die Chat-Antworten sind daher zunächst
-// regelbasiert. Sie werden NICHT vom neuronalen Netz erzeugt.
-// ============================================================
-
-function erzeugeChatAntwort(nachricht) {
-  const text = nachricht
-    .trim()
-    .toLocaleLowerCase("de-DE");
-
-  if (/\b(hallo|hi|hey|servus)\b/.test(text)) {
-    return (
-      "Hallo! Willkommen bei deiner selbst entwickelten KI. " +
-      "Mein neuronales Netz wird mit den Trainingsdaten aus " +
-      'dem Ordner "Daten" trainiert. Es kann derzeit aber ' +
-      "noch keine natürliche Sprache erzeugen."
-    );
-  }
-
-  if (/\b(wer bist du|was bist du)\b/.test(text)) {
-    return (
-      "Ich bin der Chat-Prototyp deines eigenen KI-Projekts. " +
-      "Mein Server und mein neuronales Netz wurden selbst " +
-      "programmiert. Meine aktuellen Chat-Antworten basieren " +
-      "noch auf einfachen Regeln."
-    );
-  }
-
-  if (/\b(neuron|neuronal|gewichte|backpropagation)\b/.test(text)) {
-    return (
-      "Ein neuronales Netz besteht aus künstlichen Neuronen, " +
-      "Gewichten und Berechnungen. Beim Training werden die " +
-      "Gewichte anhand von Beispielen angepasst. Unser " +
-      "aktuelles Netz verarbeitet zwei binäre Eingaben."
-    );
-  }
-
-  if (/\b(training|trainieren|trainingsdaten|lernen)\b/.test(text)) {
-    return (
-      "Beim Serverstart werden alle JSON-Dateien direkt aus " +
-      'dem Ordner "Daten" eingelesen. Die gültigen Beispiele ' +
-      "werden zusammengeführt und an das neuronale Netz " +
-      "übergeben. Derzeit muss jedes Beispiel x1, x2 und " +
-      "target mit den Werten 0 oder 1 enthalten."
-    );
-  }
-
-  if (/\b(hilfe|was kannst du|funktionen)\b/.test(text)) {
-    return (
-      "Ich kann momentan einige einfache Fragen über das " +
-      "KI-Projekt beantworten. Über /api/status kannst du " +
-      "den Trainingsstatus abrufen. Über /api/vorhersage " +
-      "kannst du das neuronale Netz mit zwei Zahlen testen."
-    );
-  }
-
-  if (/\b(tschüss|tschuss|auf wiedersehen|bye)\b/.test(text)) {
-    return (
-      "Bis bald! Wir können dein eigenes neuronales Netz " +
-      "Schritt für Schritt erweitern."
-    );
-  }
-
-  return (
-    "Ich habe deine Nachricht erhalten: „" +
-    nachricht.slice(0, 300) +
-    "“\n\n" +
-    "Ich kann den Text momentan noch nicht wirklich verstehen. " +
-    "Mein neuronales Netz verarbeitet bislang zwei Zahlen. " +
-    "Für echte Sprachfähigkeiten müssen wir selbst eine " +
-    "Textkodierung und ein Sprachmodell entwickeln."
+  console.log(
+    "Tokenizer erstellt. Anzahl Tokens:",
+    tokenizer.status().anzahlTokens
   );
 }
 
-// ============================================================
-// HTTP-ROUTEN
-// ============================================================
+// --------------------------------------------------
+// GitHub-API: Datei erstellen oder aktualisieren
+// --------------------------------------------------
 
-async function verarbeiteAnfrage(request, response) {
-  let url;
-
-  try {
-    url = new URL(
-      request.url,
-      "http://localhost:" + PORT
-    );
-  } catch {
-    sendeJson(response, 400, {
-      fehler: "Ungültige URL."
-    });
-    return;
-  }
-
-  const methode = request.method;
-  const route = url.pathname;
-
-  // ----------------------------------------------------------
-  // GET /
-  // Liefert die Chat-Oberfläche index.html aus.
-  // ----------------------------------------------------------
-
-  if (methode === "GET" && route === "/") {
-    let html;
-
-    try {
-      html = fs.readFileSync(HTML_DATEI);
-    } catch {
-      sendeJson(response, 500, {
-        fehler: "index.html wurde nicht gefunden."
-      });
-      return;
-    }
-
-    response.writeHead(200, {
-      "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff"
-    });
-
-    response.end(html);
-    return;
-  }
-
-  // ----------------------------------------------------------
-  // GET /api/status
-  // Gibt Informationen über die geladenen Daten und das Netz.
-  // ----------------------------------------------------------
-
-  if (methode === "GET" && route === "/api/status") {
-    sendeJson(response, 200, {
-      name: "MeineEigeneKI",
-      server: "online",
-
-      trainingsdateien: trainingspaket.dateien,
-      anzahlTrainingsdateien: trainingspaket.dateien.length,
-      trainingsbeispiele: trainingsdaten.length,
-
-      trainingsdurchlaeufe: TRAININGS_DURCHLAEUFE,
-      trainingsfehler,
-
-      netz: netz.status(),
-
-      sprachmodellVorhanden: false,
-
-      hinweis:
-        "Das Netz lernt momentan eine mathematische Aufgabe. " +
-        "Die Chat-Antworten sind noch regelbasiert."
-    });
-
-    return;
-  }
-
-  // ----------------------------------------------------------
-  // POST /api/vorhersage
-  // Lässt das neuronale Netz eine Vorhersage berechnen.
-  //
-  // Beispiel:
-  // {"x1":0,"x2":1}
-  // ----------------------------------------------------------
-
-  if (methode === "POST" && route === "/api/vorhersage") {
-    let daten;
-
-    try {
-      daten = await leseJsonAnfrage(request);
-    } catch (error) {
-      sendeJson(response, error.statusCode || 400, {
-        fehler: error.message
-      });
-      return;
-    }
-
-    const { x1, x2 } = daten || {};
-
-    if (
-      ![0, 1].includes(x1) ||
-      ![0, 1].includes(x2)
-    ) {
-      sendeJson(response, 400, {
-        fehler: "x1 und x2 müssen jeweils 0 oder 1 sein."
-      });
-      return;
-    }
-
-    sendeJson(response, 200, netz.vorhersage(x1, x2));
-    return;
-  }
-
-  // ----------------------------------------------------------
-  // POST /api/chat
-  // Kompatibel mit der bisherigen index.html.
-  // ----------------------------------------------------------
-
-  if (methode === "POST" && route === "/api/chat") {
-    let daten;
-
-    try {
-      daten = await leseJsonAnfrage(request);
-    } catch (error) {
-      sendeJson(response, error.statusCode || 400, {
-        fehler: error.message
-      });
-      return;
-    }
-
-    if (
-      !daten ||
-      typeof daten.message !== "string" ||
-      daten.message.trim().length === 0
-    ) {
-      sendeJson(response, 400, {
-        fehler: "Bitte gib eine Nachricht ein."
-      });
-      return;
-    }
-
-    if (daten.message.length > 4000) {
-      sendeJson(response, 400, {
-        fehler: "Die Nachricht darf höchstens 4000 Zeichen enthalten."
-      });
-      return;
-    }
-
-    const antwort = erzeugeChatAntwort(
-      daten.message.trim()
-    );
-
-    sendeJson(response, 200, {
-      antwort,
-      modus: "regelbasierter-prototyp",
-      neuronalesNetzVerwendet: false
-    });
-
-    return;
-  }
-
-  // ----------------------------------------------------------
-  // ALLE ANDEREN ROUTEN
-  // ----------------------------------------------------------
-
-  sendeJson(response, 404, {
-    fehler: "Route nicht gefunden."
-  });
+function githubKonfiguriert() {
+  return Boolean(
+    GITHUB_TOKEN &&
+    GITHUB_OWNER &&
+    GITHUB_REPO
+  );
 }
 
-// ============================================================
-// SERVER ERSTELLEN
-// ============================================================
-
-const server = http.createServer((request, response) => {
-  verarbeiteAnfrage(request, response).catch(error => {
-    console.error("Anfragefehler:", error);
-
-    if (!response.headersSent) {
-      sendeJson(response, 500, {
-        fehler: "Interner Serverfehler."
-      });
-    } else if (!response.destroyed) {
-      response.destroy();
-    }
-  });
-});
-
-// ============================================================
-// FEHLER BEIM SERVERSTART
-// ============================================================
-
-server.on("error", error => {
-  console.error("Serverfehler:", error.message);
-
-  if (error.code === "EADDRINUSE") {
-    console.error("Port " + PORT + " ist bereits belegt.");
+async function githubDateiSpeichern(dateiInhalt) {
+  if (!githubKonfiguriert()) {
+    return {
+      gespeichert: false,
+      meldung: "GitHub-Umgebungsvariablen fehlen."
+    };
   }
 
-  process.exitCode = 1;
+  const dateipfad = "modelle/tokenizer.json";
+
+  const apiUrl =
+    `https://api.github.com/repos/` +
+    `${encodeURIComponent(GITHUB_OWNER)}/` +
+    `${encodeURIComponent(GITHUB_REPO)}/contents/` +
+    dateipfad.split("/").map(encodeURIComponent).join("/");
+
+  const headers = {
+    "Accept": "application/vnd.github+json",
+    "Authorization": `Bearer ${GITHUB_TOKEN}`,
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "MeineEigeneKI"
+  };
+
+  // Prüfen, ob die Datei schon existiert.
+  const getAntwort = await fetch(
+    `${apiUrl}?ref=${encodeURIComponent(GITHUB_BRANCH)}`,
+    { headers }
+  );
+
+  let sha = null;
+
+  if (getAntwort.status === 200) {
+    const bestehendeDatei = await getAntwort.json();
+    sha = bestehendeDatei.sha;
+
+    if (
+      bestehendeDatei.encoding === "base64" &&
+      typeof bestehendeDatei.content === "string"
+    ) {
+      const bisherigerInhalt = Buffer.from(
+        bestehendeDatei.content.replace(/\s/g, ""),
+        "base64"
+      ).toString("utf8");
+
+      if (bisherigerInhalt === dateiInhalt) {
+        return {
+          gespeichert: true,
+          unveraendert: true,
+          meldung: "Die GitHub-Datei ist bereits aktuell."
+        };
+      }
+    }
+  } else if (getAntwort.status !== 404) {
+    throw new Error(
+      `GitHub-Abfrage fehlgeschlagen: HTTP ${getAntwort.status}`
+    );
+  }
+
+  const payload = {
+    message: "Tokenizer aktualisieren",
+    content: Buffer.from(dateiInhalt, "utf8").toString("base64"),
+    branch: GITHUB_BRANCH
+  };
+
+  // SHA ist beim Ersetzen einer existierenden Datei notwendig.
+  if (sha) {
+    payload.sha = sha;
+  }
+
+  const putAntwort = await fetch(apiUrl, {
+    method: "PUT",
+    headers: {
+      ...headers,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const putErgebnis = await putAntwort.json().catch(() => ({}));
+
+  if (!putAntwort.ok) {
+    console.error("GitHub meldet einen Fehler:", putAntwort.status);
+
+    throw new Error(
+      `GitHub konnte die Datei nicht speichern (HTTP ${putAntwort.status}). ` +
+      "Prüfe Token, Repository, Branch und Berechtigungen."
+    );
+  }
+
+  return {
+    gespeichert: true,
+    url: putErgebnis.content?.html_url || null,
+    meldung: "Tokenizer wurde auf GitHub gespeichert."
+  };
+}
+
+async function tokenizerAufGitHubSynchronisieren() {
+  if (!githubKonfiguriert()) {
+    console.log(
+      "GitHub-Upload übersprungen: Umgebungsvariablen fehlen."
+    );
+    return;
+  }
+
+  try {
+    const inhalt = fs.readFileSync(TOKENIZER_DATEI, "utf8");
+    const ergebnis = await githubDateiSpeichern(inhalt);
+
+    console.log("GitHub-Tokenizer:", ergebnis.meldung);
+    if (ergebnis.url) console.log(ergebnis.url);
+  } catch (fehler) {
+    console.error("GitHub-Upload fehlgeschlagen:", fehler.message);
+  }
+}
+
+// Erst lokal erstellen, dann automatisch nach GitHub hochladen.
+baueTokenizerAusDaten();
+
+if (textsammlung.length > 0) {
+  tokenizerAufGitHubSynchronisieren();
+} else {
+  // Lokale Datei erstellen, auch wenn noch keine Texte vorhanden sind.
+  tokenizer.speichern(TOKENIZER_DATEI);
+}
+
+// --------------------------------------------------
+// Sicherheit für den Aktualisierungs-Endpunkt
+// --------------------------------------------------
+
+function adminKeyIstGueltig(req) {
+  const erwartet = process.env.ADMIN_KEY;
+  const erhalten = req.headers["x-admin-key"];
+
+  if (
+    typeof erwartet !== "string" ||
+    erwartet.length === 0 ||
+    typeof erhalten !== "string"
+  ) {
+    return false;
+  }
+
+  const a = Buffer.from(erwartet);
+  const b = Buffer.from(erhalten);
+
+  return (
+    a.length === b.length &&
+    crypto.timingSafeEqual(a, b)
+  );
+}
+
+// --------------------------------------------------
+// HTTP-API und Website
+// --------------------------------------------------
+
+const server = http.createServer(async (req, res) => {
+  const url = new URL(
+    req.url,
+    `http://${req.headers.host || "localhost"}`
+  );
+
+  try {
+    if (req.method === "GET" && url.pathname === "/") {
+      if (!fs.existsSync(HTML_DATEI)) {
+        return jsonAntwort(res, 404, {
+          fehler: "index.html wurde nicht gefunden."
+        });
+      }
+
+      res.writeHead(200, {
+        "Content-Type": "text/html; charset=utf-8"
+      });
+
+      return res.end(fs.readFileSync(HTML_DATEI));
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/status") {
+      return jsonAntwort(res, 200, {
+        ok: true,
+        trainingsbeispiele: trainingsdaten.length,
+        netzBereit,
+        netzFehler,
+        tokenizer: tokenizer.status(),
+        githubKonfiguriert: githubKonfiguriert()
+      });
+    }
+
+    if (
+      req.method === "POST" &&
+      url.pathname === "/api/vorhersage"
+    ) {
+      const daten = await leseJsonAnfrage(req);
+      const x1 = Number(daten.x1);
+      const x2 = Number(daten.x2);
+
+      if (![0, 1].includes(x1) || ![0, 1].includes(x2)) {
+        return jsonAntwort(res, 400, {
+          fehler: "x1 und x2 müssen jeweils 0 oder 1 sein."
+        });
+      }
+
+      const ergebnis = netzVorhersage([x1, x2]);
+
+      return jsonAntwort(res, 200, {
+        x1,
+        x2,
+        ...ergebnis
+      });
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/chat") {
+      const daten = await leseJsonAnfrage(req);
+      const nachricht = String(
+        daten.nachricht ?? daten.message ?? daten.text ?? ""
+      ).trim();
+
+      if (!nachricht) {
+        return jsonAntwort(res, 400, {
+          fehler: "Bitte gib eine Nachricht ein."
+        });
+      }
+
+      const text = nachricht.toLowerCase();
+      let antwort;
+
+      if (/^(hallo|hi|hey|guten morgen)\b/.test(text)) {
+        antwort = "Hallo! Schön, dass du da bist.";
+      } else if (text.includes("dein name")) {
+        antwort = "Ich bin deine selbst entwickelte KI.";
+      } else if (text.includes("wie geht")) {
+        antwort = "Danke der Nachfrage! Ich bin bereit zu lernen.";
+      } else if (
+        text.includes("was kannst du") ||
+        text.includes("hilfe")
+      ) {
+        antwort =
+          "Ich kann momentan einfache Antworten geben und " +
+          "einfache Zahlenbeispiele mit meinem neuronalen Netz berechnen.";
+      } else {
+        antwort =
+          "Ich habe deine Nachricht erhalten. Mein Textmodell muss " +
+          "noch entwickelt werden, damit ich daraus eigenständig " +
+          "Antworten erzeugen kann.";
+      }
+
+      return jsonAntwort(res, 200, {
+        antwort,
+        reply: antwort
+      });
+    }
+
+    // Neue Texte lernen und die Datei nach GitHub übertragen.
+    if (
+      req.method === "POST" &&
+      url.pathname === "/api/tokenizer/speichern"
+    ) {
+      if (!adminKeyIstGueltig(req)) {
+        return jsonAntwort(res, 403, {
+          fehler: "Zugriff verweigert."
+        });
+      }
+
+      const daten = await leseJsonAnfrage(req);
+
+      if (
+        !Array.isArray(daten.texte) ||
+        daten.texte.length === 0 ||
+        !daten.texte.every(
+          text => typeof text === "string" && text.length <= 5000
+        )
+      ) {
+        return jsonAntwort(res, 400, {
+          fehler:
+            "Sende ein Array mit dem Namen 'texte', " +
+            "das kurze Textzeichenfolgen enthält."
+        });
+      }
+
+      tokenizer.lerneTexte(daten.texte);
+      tokenizer.speichern(TOKENIZER_DATEI);
+
+      const inhalt = fs.readFileSync(TOKENIZER_DATEI, "utf8");
+      const githubErgebnis = await githubDateiSpeichern(inhalt);
+
+      return jsonAntwort(res, 200, {
+        ok: true,
+        tokenizer: tokenizer.status(),
+        github: githubErgebnis
+      });
+    }
+
+    return jsonAntwort(res, 404, {
+      fehler: "API-Endpunkt nicht gefunden."
+    });
+  } catch (fehler) {
+    console.error("Anfrage fehlgeschlagen:", fehler.message);
+
+    return jsonAntwort(res, 500, {
+      fehler: fehler.message
+    });
+  }
 });
 
-// ============================================================
-// SERVER STARTEN
-// ============================================================
-
-server.listen(PORT, HOST, () => {
-  console.log("");
-  console.log("============================================");
-  console.log("          MEINE EIGENE KI");
-  console.log("============================================");
-  console.log("Server:", "http://" + HOST + ":" + PORT);
-  console.log("HTML-Datei:", HTML_DATEI);
-  console.log("Neuronales Netz: netz.js");
-  console.log("Datenordner:", DATEN_ORDNER);
-  console.log("JSON-Dateien:", trainingspaket.dateien.length);
-  console.log("Trainingsbeispiele:", trainingsdaten.length);
-  console.log("Trainingsdurchläufe:", TRAININGS_DURCHLAEUFE);
-  console.log("============================================");
-  console.log("Die Chat-Oberfläche ist bereit.");
-  console.log("");
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server läuft auf Port ${PORT}.`);
 });

@@ -4,18 +4,24 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
+const VERSION = 2;
+
 const SPEZIAL_TOKENS = [
   "<PAD>",
   "<UNK>",
   "<BOS>",
   "<EOS>",
-  "<SEP>"
+  "<SEP>",
+  "<benutzer>",
+  "<ki>"
 ];
 
 class Tokenizer {
   constructor() {
     this.tokenZuId = new Map();
     this.idZuToken = [];
+    this.spezialTokens = [...SPEZIAL_TOKENS];
+    this.spezialTokenSet = new Set(SPEZIAL_TOKENS);
 
     for (const token of SPEZIAL_TOKENS) {
       this._registriereToken(token);
@@ -29,12 +35,17 @@ class Tokenizer {
 
   normalisiere(text) {
     if (typeof text !== "string") {
-      throw new TypeError("Der Text muss eine Zeichenkette sein.");
+      throw new TypeError(
+        "Der Text muss eine Zeichenkette sein."
+      );
     }
 
     return text.normalize("NFC").trim();
   }
 
+  // WICHTIG:
+  // Markierungen wie <benutzer> und <ki> bleiben
+  // jeweils ein zusammenhängendes Token.
   zerlege(text) {
     const normalisiert = this.normalisiere(text);
 
@@ -42,9 +53,10 @@ class Tokenizer {
       return [];
     }
 
-    return normalisiert.match(
-      /[\p{L}\p{M}]+(?:['’][\p{L}\p{M}]+)*|\p{N}+(?:[.,]\p{N}+)*|[^\s]/gu
-    ) || [];
+    const muster =
+      /<[^>\s]+>|[\p{L}\p{M}]+(?:['’][\p{L}\p{M}]+)*|\p{N}+(?:[.,]\p{N}+)*|[^\s]/gu;
+
+    return normalisiert.match(muster) || [];
   }
 
   _registriereToken(token) {
@@ -66,10 +78,16 @@ class Tokenizer {
 
   lerneTexte(textsammlung) {
     if (!Array.isArray(textsammlung)) {
-      throw new TypeError("Die Textsammlung muss ein Array sein.");
+      throw new TypeError(
+        "Die Textsammlung muss ein Array sein."
+      );
     }
 
     for (const text of textsammlung) {
+      if (typeof text !== "string") {
+        continue;
+      }
+
       for (const token of this.zerlege(text)) {
         this._registriereToken(token);
       }
@@ -85,9 +103,11 @@ class Tokenizer {
     } = optionen;
 
     const ids = this.zerlege(text).map(token => {
-      return this.tokenZuId.has(token)
-        ? this.tokenZuId.get(token)
-        : this.tokenZuId.get("<UNK>");
+      const id = this.tokenZuId.get(token);
+
+      return id === undefined
+        ? this.tokenZuId.get("<UNK>")
+        : id;
     });
 
     if (startToken) {
@@ -107,58 +127,85 @@ class Tokenizer {
     } = optionen;
 
     if (!Array.isArray(ids)) {
-      throw new TypeError("Die Token-IDs müssen ein Array sein.");
+      throw new TypeError(
+        "Die Token-IDs müssen ein Array sein."
+      );
     }
 
-    const tokens = ids.map(id => {
-      if (!Number.isInteger(id) || id < 0 || id >= this.idZuToken.length) {
+    let tokens = ids.map(id => {
+      if (
+        !Number.isInteger(id) ||
+        id < 0 ||
+        id >= this.idZuToken.length
+      ) {
         return "<UNK>";
       }
 
       return this.idZuToken[id];
     });
 
-    const gefiltert = spezialTokensAnzeigen
-      ? tokens
-      : tokens.filter(token => !SPEZIAL_TOKENS.includes(token));
+    if (!spezialTokensAnzeigen) {
+      tokens = tokens.filter(
+        token => !this.spezialTokenSet.has(token)
+      );
+    }
 
-    return gefiltert
+    return this.formatiere(tokens);
+  }
+
+  formatiere(tokens) {
+    return tokens
       .join(" ")
       .replace(/\s+([.,!?;:%)\]}»])/g, "$1")
-      .replace(/([([{«])\s+/g, "$1");
+      .replace(/([([{«])\s+/g, "$1")
+      .trim();
   }
 
   idFuer(token) {
-    return this.tokenZuId.has(token)
-      ? this.tokenZuId.get(token)
-      : this.tokenZuId.get("<UNK>");
+    const id = this.tokenZuId.get(token);
+
+    return id === undefined
+      ? this.tokenZuId.get("<UNK>")
+      : id;
   }
 
   tokenFuer(id) {
-    if (!Number.isInteger(id) || id < 0 || id >= this.idZuToken.length) {
+    if (
+      !Number.isInteger(id) ||
+      id < 0 ||
+      id >= this.idZuToken.length
+    ) {
       return "<UNK>";
     }
 
     return this.idZuToken[id];
   }
 
+  hat(token) {
+    return this.tokenZuId.has(token);
+  }
+
   status() {
     return {
+      version: VERSION,
       anzahlTokens: this.idZuToken.length,
       anzahlSpezialTokens: SPEZIAL_TOKENS.length,
-      dateipfad: Tokenizer.standardDateipfad
+      spezialTokens: [...SPEZIAL_TOKENS],
+      unbekanntesTokenId: this.tokenZuId.get("<UNK>")
     };
   }
 
   speichern(dateipfad = Tokenizer.standardDateipfad) {
     const ordner = path.dirname(dateipfad);
 
-    fs.mkdirSync(ordner, { recursive: true });
+    fs.mkdirSync(ordner, {
+      recursive: true
+    });
 
     const daten = {
-      version: 1,
-      spezialTokens: SPEZIAL_TOKENS,
-      tokens: this.idZuToken
+      version: VERSION,
+      spezialTokens: [...SPEZIAL_TOKENS],
+      tokens: [...this.idZuToken]
     };
 
     fs.writeFileSync(
@@ -182,11 +229,12 @@ class Tokenizer {
     );
 
     if (
-      daten.version !== 1 ||
-      !Array.isArray(daten.tokens) ||
-      !Array.isArray(daten.spezialTokens)
+      ![1, VERSION].includes(daten.version) ||
+      !Array.isArray(daten.tokens)
     ) {
-      throw new Error("Ungültiges Tokenizer-Dateiformat.");
+      throw new Error(
+        "Ungültiges Tokenizer-Dateiformat."
+      );
     }
 
     const tokenizer = new Tokenizer();
@@ -194,22 +242,51 @@ class Tokenizer {
     tokenizer.tokenZuId.clear();
     tokenizer.idZuToken = [];
 
+    // Bestehende IDs beibehalten, damit gespeicherte
+    // Vokabulare nicht unnötig durcheinandergeraten.
     for (const token of daten.tokens) {
-      if (typeof token !== "string" || tokenizer.tokenZuId.has(token)) {
-        throw new Error("Ungültiges oder doppeltes Token im Vokabular.");
+      if (
+        typeof token !== "string" ||
+        token.length === 0 ||
+        tokenizer.tokenZuId.has(token)
+      ) {
+        throw new Error(
+          "Ungültiges oder doppeltes Token im Vokabular."
+        );
       }
 
       tokenizer._registriereToken(token);
     }
 
-    for (let i = 0; i < SPEZIAL_TOKENS.length; i++) {
-      if (tokenizer.idZuToken[i] !== SPEZIAL_TOKENS[i]) {
-        throw new Error("Die Spezial-Tokens sind ungültig.");
+    const grundTokens = [
+      "<PAD>",
+      "<UNK>",
+      "<BOS>",
+      "<EOS>",
+      "<SEP>"
+    ];
+
+    for (let i = 0; i < grundTokens.length; i++) {
+      if (tokenizer.idZuToken[i] !== grundTokens[i]) {
+        throw new Error(
+          "Die Reihenfolge der grundlegenden Spezial-Tokens ist ungültig."
+        );
       }
     }
+
+    // Fehlende Spezial-Tokens an das Ende setzen.
+    // Bereits vorhandene Token-IDs bleiben unverändert.
+    for (const token of SPEZIAL_TOKENS) {
+      tokenizer._registriereToken(token);
+    }
+
+    tokenizer.spezialTokens = [...SPEZIAL_TOKENS];
+    tokenizer.spezialTokenSet = new Set(SPEZIAL_TOKENS);
 
     return tokenizer;
   }
 }
 
-module.exports = { Tokenizer };
+module.exports = {
+  Tokenizer
+};

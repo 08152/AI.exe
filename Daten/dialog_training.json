@@ -1,0 +1,262 @@
+[
+  {
+    "frage": "hallo",
+    "antwort": "Hallo! Schön, dass du mit mir redest."
+  },
+  {
+    "frage": "hi",
+    "antwort": "Hi! Was möchtest du heute besprechen?"
+  },
+  {
+    "frage": "guten morgen",
+    "antwort": "Guten Morgen! Wie beginnt dein Tag?"
+  },
+  {
+    "frage": "guten abend",
+    "antwort": "Guten Abend! Worüber möchtest du reden?"
+  },
+  {
+    "frage": "wie geht es dir",
+    "antwort": "Danke der Nachfrage! Ich bin bereit, dir zu helfen."
+  },
+  {
+    "frage": "mir geht es gut",
+    "antwort": "Das freut mich! Was war heute schön für dich?"
+  },
+  {
+    "frage": "mir geht es schlecht",
+    "antwort": "Das tut mir leid. Möchtest du erzählen, was los ist?"
+  },
+  {
+    "frage": "ich bin traurig",
+    "antwort": "Es tut mir leid, dass du traurig bist. Möchtest du darüber sprechen?"
+  },
+  {
+    "frage": "ich bin glücklich",
+    "antwort": "Das ist schön zu hören! Was macht dich gerade glücklich?"
+  },
+  {
+    "frage": "ich bin wütend",
+    "antwort": "Manchmal wird man wütend. Möchtest du erzählen, was passiert ist?"
+  },
+  {
+    "frage": "ich bin gelangweilt",
+    "antwort": "Wir könnten über ein Hobby reden oder gemeinsam eine Idee finden."
+  },
+  {
+    "frage": "ich habe angst",
+    "antwort": "Das klingt unangenehm. Magst du mir sagen, was dir Angst macht?"
+  },
+  {
+    "frage": "ich brauche hilfe",
+    "antwort": "Ich versuche zu helfen. Wobei brauchst du Unterstützung?"
+  },
+  {
+    "frage": "danke",
+    "antwort": "Gern geschehen!"
+  },
+  {
+    "frage": "vielen dank",
+    "antwort": "Sehr gern. Frag mich jederzeit wieder."
+  },
+  {
+    "frage": "bitte",
+    "antwort": "Natürlich! Was möchtest du wissen?"
+  },
+  {
+    "frage": "tschüss",
+    "antwort": "Tschüss! Bis zum nächsten Gespräch."
+  },
+  {
+    "frage": "bis später",
+    "antwort": "Bis später! Ich wünsche dir eine gute Zeit."
+  },
+  {
+    "frage": "wie heißt du",
+    "antwort": "Ich bin deine selbst entwickelte KI. Du kannst mir auch einen Namen geben."
+  },
+  {
+    "frage": "wer bist du",
+    "antwort": "Ich bin ein kleines neuronales Sprachmodell, das mit Beispielen trainiert wird."
+  },
+  {
+    "frage": "was kannst du",
+    "antwort": "Ich kann Texte verarbeiten und Antworten erzeugen. Meine Fähigkeiten hängen von meinem Training ab."
+  },
+  {
+    "frage": "was kannst du nicht",
+    "antwort": "Ich weiß nicht alles und kann Fehler machen. Deshalb sollten wichtige Informationen überprüft werden."
+  },
+  {
+    "frage": "wie lernst du",
+    "antwort": "Beim Training passe ich meine Netzwerkgewichte an Beispielen an."
+  },
+  {
+    "frage": "lernst du aus jedem chat",
+    "antwort": "In meiner aktuellen Version werden neue Chats nicht automatisch dauerhaft als Trainingsdaten gespeichert."
+  },
+  {
+    "frage": "kannst du dich an mich erinnern",
+    "antwort": "Nur wenn meine Anwendung Informationen ausdrücklich speichert und später wieder lädt."
+  },
+  {
+    "frage": "was ist künstliche intelligenz",
+    "antwort": "Künstliche Intelligenz ist Software, die Aufgaben wie Mustererkennung, Vorhersagen oder Textverarbeitung erledigen kann."
+  },
+  {
+    "frage": "was ist ein neuronales netz",
+    "antwort": "Ein neuronales Netz besteht aus miteinander verbundenen Recheneinheiten und anpassbaren Gewichten."
+  },
+  {
+    "frage": "was ist ein tokenizer",
+    "antwort": "Ein Tokenizer zerlegt Text in kleine Einheiten und ordnet ihnen Zahlen-IDs zu."
+  },
+  {
+    "frage": "was sind tokens",
+    "antwort": "Tokens sind Textbausteine. Sie können Wörter, Wortteile oder Satzzeichen sein."
+  },
+  {
+    "frage": "was sind trainingsdaten",
+    "antwort": "Trainingsdaten sind Beispiele, aus denen ein Modell Muster lernt."
+  },
+  {
+    "frage": "was sind gewichte",
+    "antwort": "Gewichte bestimmen, wie stark Informationen die Berechnungen eines neuronalen Netzes beeinflussen."
+  },
+  {
+    "frage": "was ist ein embedding",
+    "antwort": "Ein Embedding stellt ein Token als Zahlenvektor dar."
+  },
+  {
+    "frage": "was ist ein kontext",
+    "antwort": "Der Kontext enthält Informationen aus dem bisherigen Text, die bei der nächsten Vorhersage helfen."
+  },
+  {
+    "frage": "warum wiederholst du wörter",
+    "antwort": "Mein Modell ist klein und hat begrenzte Trainingsdaten. Deshalb kann es Wörter wiederholen."
+  },
+  {
+    "frage": "warum ist deine antwort falsch",
+    "antwort": "Ich kann Muster falsch einschätzen. Ein besseres Beispiel oder eine genauere Frage kann helfen."
+  },
+  {
+    "frage": "wie wirst du besser",
+    "antwort": "Mit vielfältigen, korrekten Trainingsbeispielen und einem verbesserten Trainingsverfahren kann ich bessere Muster lernen."
+  },
+  {
+    "frage": "erkläre es einfacher",
+    "antwort": "Gern. Ich kann es mit einfacheren Worten und einem kurzen Beispiel erklären."
+  },
+  {
+    "frage": "ich verstehe das nicht",
+    "antwort": "Kein Problem. Wir gehen es Schritt für Schritt durch."
+  },
+  {
+    "frage": "stell mir eine frage",
+    "antwort": "Was machst du besonders gern in deiner Freizeit?"
+  },
+  {
+    "frage": "ich spiele gern minecraft",
+    "antwort": "Minecraft bietet viele Möglichkeiten zum Bauen und Erkunden. Was baust du am liebsten?"
+  },
+  {
+    "frage": "ich programmiere gern",
+    "antwort": "Cool! Welche Art von Programm möchtest du als Nächstes entwickeln?"
+  },
+  {
+    "frage": "ich mag tiere",
+    "antwort": "Tiere sind faszinierend. Welches Tier findest du besonders interessant?"
+  },
+  {
+    "frage": "ich mag musik",
+    "antwort": "Musik kann viele Stimmungen ausdrücken. Welche Musik hörst du gern?"
+  },
+  {
+    "frage": "ich weiß es nicht",
+    "antwort": "Das ist völlig in Ordnung. Wir können gemeinsam überlegen."
+  },
+  {
+    "frage": "was ist 2 plus 2",
+    "antwort": "2 plus 2 ergibt 4."
+  },
+  {
+    "frage": "was ist json",
+    "antwort": "JSON ist ein Textformat, mit dem strukturierte Daten gespeichert werden."
+  },
+  {
+    "frage": "was ist javascript",
+    "antwort": "JavaScript ist eine Programmiersprache für Webseiten und Anwendungen."
+  },
+  {
+    "frage": "was macht server js",
+    "antwort": "server.js nimmt Anfragen entgegen und verbindet die Website mit dem Modell."
+  },
+  {
+    "frage": "was macht netz js",
+    "antwort": "netz.js enthält die Berechnungen, das Training und die Textgenerierung des neuronalen Netzes."
+  },
+  {
+    "frage": "was macht tokenizer js",
+    "antwort": "tokenizer.js zerlegt Texte und wandelt Tokens in Zahlen-IDs um."
+  },
+  {
+    "frage": "was ist github",
+    "antwort": "GitHub hilft dabei, Code zu speichern und Änderungen zu verwalten."
+  },
+  {
+    "frage": "was ist render",
+    "antwort": "Render kann deinen Server im Internet ausführen."
+  },
+  {
+    "frage": "wie kann ich dich testen",
+    "antwort": "Stelle mir unterschiedliche Fragen und prüfe, ob meine Antworten verständlich und passend sind."
+  },
+  {
+    "frage": "gib mir einen tipp",
+    "antwort": "Baue dein Projekt in kleinen Schritten und teste jede Änderung einzeln."
+  },
+  {
+    "frage": "erzähl mir etwas",
+    "antwort": "Wusstest du, dass manche neuronalen Netze beim Training lernen, das nächste Token in einer Textfolge vorherzusagen?"
+  },
+  {
+    "frage": "warum",
+    "antwort": "Das hängt vom Thema ab. Sag mir bitte, worauf sich deine Frage bezieht."
+  },
+  {
+    "frage": "was meinst du",
+    "antwort": "Ich versuche, meine Antwort verständlich zu erklären. Welcher Teil ist unklar?"
+  },
+  {
+    "frage": "kannst du ein beispiel geben",
+    "antwort": "Ja. Wenn ich viele Beispiele für Begrüßungen sehe, kann ich lernen, dass auf Hallo oft eine Begrüßung folgt."
+  },
+  {
+    "frage": "reden wir über programmieren",
+    "antwort": "Gern! Möchtest du über JavaScript, neuronale Netze oder deine eigene KI sprechen?"
+  },
+  {
+    "frage": "ich habe eine idee",
+    "antwort": "Erzähl mir davon! Ich helfe dir, sie in einzelne Schritte aufzuteilen."
+  },
+  {
+    "frage": "das war hilfreich",
+    "antwort": "Schön, dass es geholfen hat!"
+  },
+  {
+    "frage": "du hast recht",
+    "antwort": "Danke! Trotzdem lohnt es sich, wichtige Aussagen zu überprüfen."
+  },
+  {
+    "frage": "ich bin anderer meinung",
+    "antwort": "Das ist in Ordnung. Was siehst du anders?"
+  },
+  {
+    "frage": "kannst du deine antwort begründen",
+    "antwort": "Ich kann erklären, welche Informationen oder Muster zu meiner Antwort beigetragen haben, soweit mein Modell das unterstützt."
+  },
+  {
+    "frage": "was soll ich als nächstes lernen",
+    "antwort": "Lerne zuerst, wie Trainingsdaten geladen werden, wie Tokens entstehen und wie das Netz daraus Vorhersagen berechnet."
+  }
+]

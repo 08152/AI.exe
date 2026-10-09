@@ -1,514 +1,1135 @@
 
 "use strict";
 
-const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const { Tokenizer } = require("./tokenizer.js");
-const { NeuronalesNetz } = require("./netz.js");
+const STOPWOERTER = new Set([
+  "der", "die", "das", "den", "dem", "des",
+  "ein", "eine", "einer", "eines", "einem",
+  "und", "oder", "aber", "ist", "sind", "war",
+  "ich", "du", "er", "sie", "es", "wir", "ihr",
+  "was", "wie", "wer", "wo", "wann", "warum",
+  "mit", "von", "für", "auf", "in", "im", "am",
+  "an", "zu", "zum", "zur", "auch", "nicht",
+  "kein", "keine", "bitte", "noch", "schon",
+  "sehr", "hat", "haben", "kann", "können"
+]);
 
-const PORT = Number(process.env.PORT) || 3000;
+const VERBOTENE_AUSGABETOKENS = new Set([
+  "<PAD>",
+  "<BOS>",
+  "<UNK>",
+  "<SEP>",
+  "<benutzer>",
+  "<ki>"
+]);
 
-const ROOT = __dirname;
-const DATEN_ORDNER = path.join(ROOT, "Daten");
-const MODELL_ORDNER = path.join(ROOT, "modelle");
-const HTML_DATEI = path.join(ROOT, "index.html");
-const TOKENIZER_DATEI = path.join(
-  MODELL_ORDNER,
-  "tokenizer.json"
-);
+class NeuronalesNetz {
+  constructor(tokenizer = null, optionen = {}) {
+    if (
+      tokenizer &&
+      typeof tokenizer.zerlege !== "function"
+    ) {
+      optionen = tokenizer;
+      tokenizer = null;
+    }
 
-fs.mkdirSync(DATEN_ORDNER, { recursive: true });
-fs.mkdirSync(MODELL_ORDNER, { recursive: true });
+    this.tokenizer = tokenizer;
 
-// --------------------------------------------------
-// GitHub-Konfiguration
-// --------------------------------------------------
+    this.maxVokabular = optionen.maxVokabular || 256;
+    this.embeddingGroesse = optionen.embeddingGroesse || 8;
 
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_OWNER = process.env.GITHUB_OWNER;
-const GITHUB_REPO = process.env.GITHUB_REPO;
-const GITHUB_BRANCH = process.env.GITHUB_BRANCH || "main";
+    // Das neuronale Netz besitzt jetzt 120 verborgene Neuronen.
+    this.versteckteNeuronen = 120;
 
-function githubKonfiguriert() {
-  return Boolean(
-    GITHUB_TOKEN &&
-    GITHUB_OWNER &&
-    GITHUB_REPO
-  );
-}
+    this.kontextLaenge = optionen.kontextLaenge || 16;
 
-// --------------------------------------------------
-// Trainingsdaten laden
-// --------------------------------------------------
+    this.vokabular = [];
+    this.embeddings = null;
+    this.gewichte1 = null;
+    this.bias1 = null;
+    this.gewichte2 = null;
+    this.bias2 = null;
 
-function ladeTrainingsdaten() {
-  const dateien = fs.readdirSync(DATEN_ORDNER, {
-    withFileTypes: true
-  }).filter(datei =>
-    datei.isFile() &&
-    datei.name.toLowerCase().endsWith(".json") &&
-    datei.name.toLowerCase() !== "tokenizer.json"
-  ).sort((a, b) => a.name.localeCompare(b.name));
+    this.unkId = 1;
+    this.bosId = 2;
+    this.eosId = 3;
+    this.padId = 0;
 
-  const daten = [];
-  const geladeneDateien = [];
-  const fehlerDateien = [];
+    this.bereit = false;
+    this.konversationsModus = false;
 
-  for (const datei of dateien) {
-    const dateipfad = path.join(
-      DATEN_ORDNER,
-      datei.name
+    this.trainingsBeispiele = 0;
+    this.trainierteEpochen = 0;
+    this.letzterFehler = null;
+
+    // Die Trainingsbeispiele dienen auch zur Antwortplanung.
+    this.trainingsPaare = [];
+    this.planungsTreffer = 0;
+  }
+
+  // --------------------------------------------------
+  // 1. TRAININGSDATEN EINLESEN
+  // --------------------------------------------------
+
+  normalisiereText(text) {
+    return text
+      .normalize("NFC")
+      .toLocaleLowerCase("de-DE")
+      .trim();
+  }
+
+  extrahiereTexte(daten, ergebnis = []) {
+    if (typeof daten === "string") {
+      const text = this.normalisiereText(daten);
+
+      if (text) {
+        ergebnis.push({
+          text,
+          istKonversation: false
+        });
+      }
+
+      return ergebnis;
+    }
+
+    if (Array.isArray(daten)) {
+      for (const element of daten) {
+        this.extrahiereTexte(element, ergebnis);
+      }
+
+      return ergebnis;
+    }
+
+    if (!daten || typeof daten !== "object") {
+      return ergebnis;
+    }
+
+    const schluessel = {};
+
+    for (const key of Object.keys(daten)) {
+      schluessel[key.toLowerCase()] = key;
+    }
+
+    const frageFelder = [
+      "frage", "question", "prompt", "input"
+    ];
+
+    const antwortFelder = [
+      "antwort", "answer", "response",
+      "completion", "output"
+    ];
+
+    const frageFeld = frageFelder.find(
+      key => schluessel[key]
     );
 
-    try {
-      const inhalt = fs.readFileSync(
-        dateipfad,
-        "utf8"
+    const antwortFeld = antwortFelder.find(
+      key => schluessel[key]
+    );
+
+    if (
+      frageFeld &&
+      antwortFeld &&
+      typeof daten[schluessel[frageFeld]] === "string" &&
+      typeof daten[schluessel[antwortFeld]] === "string"
+    ) {
+      const frage = this.normalisiereText(
+        daten[schluessel[frageFeld]]
       );
 
-      const json = JSON.parse(inhalt);
+      const antwort = this.normalisiereText(
+        daten[schluessel[antwortFeld]]
+      );
 
-      daten.push(json);
-      geladeneDateien.push(datei.name);
+      if (frage && antwort) {
+        this.trainingsPaare.push({
+          frage,
+          antwort
+        });
 
-      console.log("Trainingsdatei geladen:", datei.name);
+        ergebnis.push({
+          text: `<benutzer> ${frage} <ki> ${antwort}`,
+          istKonversation: true
+        });
+      }
+
+      return ergebnis;
+    }
+
+    for (const wert of Object.values(daten)) {
+      this.extrahiereTexte(wert, ergebnis);
+    }
+
+    return ergebnis;
+  }
+
+  ladeTokenizer() {
+    if (this.tokenizer) {
+      return this.tokenizer;
+    }
+
+    const { Tokenizer } = require("./tokenizer.js");
+
+    const datei = path.join(
+      __dirname,
+      "modelle",
+      "tokenizer.json"
+    );
+
+    this.tokenizer = fs.existsSync(datei)
+      ? Tokenizer.laden(datei)
+      : new Tokenizer();
+
+    return this.tokenizer;
+  }
+
+  // --------------------------------------------------
+  // 2. GEWICHTE INITIALISIEREN
+  // --------------------------------------------------
+
+  initialisiereGewichte() {
+    const vokabularGroesse = this.vokabular.length;
+
+    const eingabeGroesse =
+      this.kontextLaenge * this.embeddingGroesse;
+
+    const zufallsGewicht = grenze =>
+      (Math.random() * 2 - 1) * grenze;
+
+    this.embeddings = Array.from(
+      { length: vokabularGroesse },
+      () => Array.from(
+        { length: this.embeddingGroesse },
+        () => zufallsGewicht(0.1)
+      )
+    );
+
+    const grenze1 = Math.sqrt(
+      2 / (eingabeGroesse + this.versteckteNeuronen)
+    );
+
+    const grenze2 = Math.sqrt(
+      2 / (this.versteckteNeuronen + vokabularGroesse)
+    );
+
+    // Eingabeschicht -> 120 verborgene Neuronen.
+    this.gewichte1 = Array.from(
+      { length: eingabeGroesse },
+      () => Array.from(
+        { length: this.versteckteNeuronen },
+        () => zufallsGewicht(grenze1)
+      )
+    );
+
+    this.bias1 = Array(
+      this.versteckteNeuronen
+    ).fill(0);
+
+    // 120 verborgene Neuronen -> mögliche nächste Tokens.
+    this.gewichte2 = Array.from(
+      { length: this.versteckteNeuronen },
+      () => Array.from(
+        { length: vokabularGroesse },
+        () => zufallsGewicht(grenze2)
+      )
+    );
+
+    this.bias2 = Array(vokabularGroesse).fill(0);
+  }
+
+  begrenze(wert, minimum, maximum) {
+    return Math.max(minimum, Math.min(maximum, wert));
+  }
+
+  // --------------------------------------------------
+  // 3. VORWÄRTSBERECHNUNG
+  // --------------------------------------------------
+
+  vorwaerts(kontext) {
+    const eingabe = [];
+
+    for (
+      let position = 0;
+      position < this.kontextLaenge;
+      position++
+    ) {
+      let id = kontext[position];
+
+      if (
+        !Number.isInteger(id) ||
+        id < 0 ||
+        id >= this.vokabular.length
+      ) {
+        id = this.unkId;
+      }
+
+      for (
+        let d = 0;
+        d < this.embeddingGroesse;
+        d++
+      ) {
+        eingabe.push(this.embeddings[id][d]);
+      }
+    }
+
+    const versteckt = Array(
+      this.versteckteNeuronen
+    ).fill(0);
+
+    for (
+      let h = 0;
+      h < this.versteckteNeuronen;
+      h++
+    ) {
+      let summe = this.bias1[h];
+
+      for (let i = 0; i < eingabe.length; i++) {
+        summe += eingabe[i] * this.gewichte1[i][h];
+      }
+
+      versteckt[h] = Math.tanh(summe);
+    }
+
+    const logits = Array(
+      this.vokabular.length
+    ).fill(0);
+
+    for (
+      let v = 0;
+      v < this.vokabular.length;
+      v++
+    ) {
+      let summe = this.bias2[v];
+
+      for (
+        let h = 0;
+        h < this.versteckteNeuronen;
+        h++
+      ) {
+        summe += versteckt[h] * this.gewichte2[h][v];
+      }
+
+      logits[v] = summe;
+    }
+
+    const maximum = Math.max(...logits);
+
+    const exponenten = logits.map(wert =>
+      Math.exp(Math.max(-60, wert - maximum))
+    );
+
+    const gesamt = exponenten.reduce(
+      (summe, wert) => summe + wert,
+      0
+    );
+
+    const wahrscheinlichkeiten = exponenten.map(
+      wert => wert / (gesamt || 1)
+    );
+
+    return {
+      eingabe,
+      versteckt,
+      logits,
+      wahrscheinlichkeiten
+    };
+  }
+
+  // --------------------------------------------------
+  // 4. RÜCKWÄRTSBERECHNUNG UND LERNEN
+  // --------------------------------------------------
+
+  trainiereBeispiel(kontext, ziel, lernrate) {
+    const ergebnis = this.vorwaerts(kontext);
+
+    const gradAusgabe =
+      ergebnis.wahrscheinlichkeiten.slice();
+
+    gradAusgabe[ziel] -= 1;
+
+    const gradVersteckt = Array(
+      this.versteckteNeuronen
+    ).fill(0);
+
+    for (
+      let h = 0;
+      h < this.versteckteNeuronen;
+      h++
+    ) {
+      let summe = 0;
+
+      for (
+        let v = 0;
+        v < this.vokabular.length;
+        v++
+      ) {
+        summe += this.gewichte2[h][v] * gradAusgabe[v];
+      }
+
+      gradVersteckt[h] = summe;
+    }
+
+    const gradVorAktivierung = gradVersteckt.map(
+      (wert, h) =>
+        wert * (1 - ergebnis.versteckt[h] ** 2)
+    );
+
+    const gradEingabe = Array(
+      ergebnis.eingabe.length
+    ).fill(0);
+
+    // Eingabegradient berechnen, bevor Gewichte geändert werden.
+    for (
+      let i = 0;
+      i < ergebnis.eingabe.length;
+      i++
+    ) {
+      let summe = 0;
+
+      for (
+        let h = 0;
+        h < this.versteckteNeuronen;
+        h++
+      ) {
+        summe +=
+          this.gewichte1[i][h] *
+          gradVorAktivierung[h];
+      }
+
+      gradEingabe[i] = this.begrenze(summe, -5, 5);
+    }
+
+    // Ausgabeschicht aktualisieren.
+    for (
+      let v = 0;
+      v < this.vokabular.length;
+      v++
+    ) {
+      const fehler = this.begrenze(
+        gradAusgabe[v],
+        -5,
+        5
+      );
+
+      this.bias2[v] -= lernrate * fehler;
+
+      for (
+        let h = 0;
+        h < this.versteckteNeuronen;
+        h++
+      ) {
+        this.gewichte2[h][v] -=
+          lernrate * ergebnis.versteckt[h] * fehler;
+      }
+    }
+
+    // Verborgene Schicht aktualisieren.
+    for (
+      let h = 0;
+      h < this.versteckteNeuronen;
+      h++
+    ) {
+      const fehler = gradVorAktivierung[h];
+
+      this.bias1[h] -= lernrate * fehler;
+
+      for (
+        let i = 0;
+        i < ergebnis.eingabe.length;
+        i++
+      ) {
+        this.gewichte1[i][h] -=
+          lernrate * ergebnis.eingabe[i] * fehler;
+      }
+    }
+
+    // Wort-Embeddings aktualisieren.
+    for (
+      let position = 0;
+      position < this.kontextLaenge;
+      position++
+    ) {
+      let id = kontext[position];
+
+      if (
+        !Number.isInteger(id) ||
+        id < 0 ||
+        id >= this.vokabular.length
+      ) {
+        id = this.unkId;
+      }
+
+      for (
+        let d = 0;
+        d < this.embeddingGroesse;
+        d++
+      ) {
+        const index =
+          position * this.embeddingGroesse + d;
+
+        this.embeddings[id][d] -=
+          lernrate * gradEingabe[index];
+      }
+    }
+  }
+
+  // --------------------------------------------------
+  // 5. TRAINIEREN
+  // --------------------------------------------------
+
+  trainiereTexte(daten, tokenizer = null, optionen = {}) {
+    if (
+      tokenizer &&
+      typeof tokenizer.zerlege !== "function"
+    ) {
+      optionen = tokenizer;
+      tokenizer = null;
+    }
+
+    this.trainingsPaare = [];
+
+    const texte = this.extrahiereTexte(daten);
+
+    if (texte.length === 0) {
+      throw new Error(
+        "Keine gültigen Trainings-Texte gefunden."
+      );
+    }
+
+    this.tokenizer = tokenizer || this.ladeTokenizer();
+
+    this.tokenizer.lerneTexte(
+      texte.map(element => element.text)
+    );
+
+    this.konversationsModus = texte.some(
+      element => element.istKonversation
+    );
+
+    this.vokabular = this.tokenizer.idZuToken.slice(
+      0,
+      this.maxVokabular
+    );
+
+    if (this.vokabular.length < 5) {
+      throw new Error(
+        "Das Vokabular ist zu klein."
+      );
+    }
+
+    this.unkId = this.vokabular.indexOf("<UNK>");
+    this.bosId = this.vokabular.indexOf("<BOS>");
+    this.eosId = this.vokabular.indexOf("<EOS>");
+    this.padId = this.vokabular.indexOf("<PAD>");
+
+    if (this.unkId < 0) this.unkId = 1;
+    if (this.bosId < 0) this.bosId = 2;
+    if (this.eosId < 0) this.eosId = 3;
+    if (this.padId < 0) this.padId = 0;
+
+    this.bereit = false;
+    this.initialisiereGewichte();
+
+    const sequenzen = [];
+
+    for (const element of texte) {
+      const tokens = this.tokenizer.zerlege(
+        element.text
+      );
+
+      const ids = tokens.map(token => {
+        const id = this.tokenizer.tokenZuId.get(token);
+
+        return Number.isInteger(id) &&
+          id < this.vokabular.length
+          ? id
+          : this.unkId;
+      });
+
+      if (ids.length > 0) {
+        sequenzen.push([...ids, this.eosId]);
+      }
+    }
+
+    const anzahlZiele = sequenzen.reduce(
+      (summe, sequenz) => summe + sequenz.length,
+      0
+    );
+
+    const maxBeispiele = Math.max(
+      1,
+      Math.floor(optionen.maxTrainingsBeispiele || 700)
+    );
+
+    const schritt = Math.max(
+      1,
+      Math.ceil(anzahlZiele / maxBeispiele)
+    );
+
+    const beispiele = [];
+    let nummerGlobal = 0;
+
+    for (const sequenz of sequenzen) {
+      let kontext = Array(
+        this.kontextLaenge
+      ).fill(this.bosId);
+
+      for (const ziel of sequenz) {
+        if (nummerGlobal % schritt === 0) {
+          beispiele.push({
+            kontext: kontext.slice(),
+            ziel
+          });
+        }
+
+        kontext = kontext.slice(1).concat(ziel);
+        nummerGlobal++;
+      }
+    }
+
+    if (beispiele.length === 0) {
+      throw new Error(
+        "Es konnten keine Trainingsbeispiele erstellt werden."
+      );
+    }
+
+    const epochen = Math.max(
+      1,
+      Math.min(
+        20,
+        Math.floor(optionen.epochen || 4)
+      )
+    );
+
+    const lernrate = Number.isFinite(optionen.lernrate)
+      ? optionen.lernrate
+      : 0.015;
+
+    for (let epoche = 0; epoche < epochen; epoche++) {
+      for (let i = beispiele.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+
+        [beispiele[i], beispiele[j]] =
+          [beispiele[j], beispiele[i]];
+      }
+
+      for (const beispiel of beispiele) {
+        this.trainiereBeispiel(
+          beispiel.kontext,
+          beispiel.ziel,
+          lernrate
+        );
+      }
+
+      console.log(
+        `Sprachmodell: Epoche ${epoche + 1}/${epochen}`
+      );
+    }
+
+    this.trainingsBeispiele = beispiele.length;
+    this.trainierteEpochen = epochen;
+    this.bereit = true;
+
+    try {
+      this.tokenizer.speichern(
+        path.join(__dirname, "modelle", "tokenizer.json")
+      );
     } catch (fehler) {
-      fehlerDateien.push(datei.name);
-
-      console.error(
-        `Datei ${datei.name} übersprungen:`,
+      console.warn(
+        "Tokenizer konnte nicht gespeichert werden:",
         fehler.message
       );
     }
+
+    return this.status();
   }
 
-  return {
-    daten,
-    geladeneDateien,
-    fehlerDateien
-  };
-}
+  // --------------------------------------------------
+  // 6. ANTWORTPLANUNG
+  // --------------------------------------------------
 
-// --------------------------------------------------
-// Tokenizer und neuronales Sprachmodell
-// --------------------------------------------------
-
-let tokenizer = new Tokenizer();
-
-let netz = new NeuronalesNetz(tokenizer, {
-  maxVokabular: 256,
-  embeddingGroesse: 8,
-  versteckteNeuronen: 16,
-  kontextLaenge: 12
-});
-
-let trainingsBereit = false;
-let trainingsFehler = null;
-let trainingsStatus = null;
-
-let geladeneDateien = [];
-let fehlerDateien = [];
-
-function trainiereSprachmodell() {
-  trainingsBereit = false;
-  trainingsFehler = null;
-  trainingsStatus = null;
-
-  const ergebnis = ladeTrainingsdaten();
-
-  geladeneDateien = ergebnis.geladeneDateien;
-  fehlerDateien = ergebnis.fehlerDateien;
-
-  if (ergebnis.daten.length === 0) {
-    trainingsFehler =
-      "Keine gültigen JSON-Trainingsdateien in Daten/ gefunden.";
-
-    console.error(trainingsFehler);
-    return false;
-  }
-
-  try {
-    // Jede Trainingsdatei kann Frage-Antwort-Paare,
-    // Textsammlungen oder einfache Textfelder enthalten.
-    trainingsStatus = netz.trainiereTexte(
-      ergebnis.daten,
-      tokenizer,
-      {
-        epochen: Number(process.env.TRAINING_EPOCHS) || 4,
-        maxTrainingsBeispiele: 1000,
-        lernrate: 0.025
-      }
+  wichtigeWoerter(text) {
+    return new Set(
+      this.tokenizer.zerlege(text).filter(token => {
+        return (
+          /[\p{L}\p{N}]/u.test(token) &&
+          token.length > 2 &&
+          !STOPWOERTER.has(token) &&
+          !token.startsWith("<")
+        );
+      })
     );
+  }
 
-    trainingsBereit = netz.bereit;
+  aehnlichkeit(textA, textB) {
+    const a = this.wichtigeWoerter(textA);
+    const b = this.wichtigeWoerter(textB);
 
-    if (!trainingsBereit) {
-      throw new Error(
-        "Das neuronale Netz meldet sich nicht als bereit."
-      );
+    if (a.size === 0 || b.size === 0) {
+      return 0;
     }
 
-    console.log("Training abgeschlossen.");
-    console.log("Sprachmodell:", trainingsStatus);
+    let gemeinsam = 0;
 
-    // tokenizer.js speichert das Vokabular bereits
-    // während trainiereTexte(). Hier zusätzlich absichern.
-    tokenizer.speichern(TOKENIZER_DATEI);
-
-    return true;
-  } catch (fehler) {
-    trainingsFehler = fehler.message;
-
-    console.error(
-      "Training fehlgeschlagen:",
-      fehler.message
-    );
-
-    return false;
-  }
-}
-
-// Beim Start wird das Modell aus Daten/ trainiert.
-trainiereSprachmodell();
-
-// --------------------------------------------------
-// Tokenizer mit GitHub synchronisieren
-// --------------------------------------------------
-
-async function synchronisiereTokenizerMitGitHub() {
-  if (!githubKonfiguriert()) {
-    console.log(
-      "GitHub-Synchronisierung übersprungen: " +
-      "GITHUB_TOKEN, GITHUB_OWNER oder GITHUB_REPO fehlt."
-    );
-    return;
-  }
-
-  if (!trainingsBereit) {
-    console.log(
-      "GitHub-Synchronisierung übersprungen: " +
-      "das Sprachmodell ist nicht trainiert."
-    );
-    return;
-  }
-
-  if (typeof fetch !== "function") {
-    console.error(
-      "GitHub-API benötigt Node.js 18 oder neuer."
-    );
-    return;
-  }
-
-  const dateipfad = "modelle/tokenizer.json";
-
-  const url =
-    "https://api.github.com/repos/" +
-    encodeURIComponent(GITHUB_OWNER) +
-    "/" +
-    encodeURIComponent(GITHUB_REPO) +
-    "/contents/" +
-    dateipfad
-      .split("/")
-      .map(encodeURIComponent)
-      .join("/");
-
-  const headers = {
-    "Accept": "application/vnd.github+json",
-    "Authorization": `Bearer ${GITHUB_TOKEN}`,
-    "X-GitHub-Api-Version": "2022-11-28",
-    "User-Agent": "MeineEigeneKI"
-  };
-
-  try {
-    const dateiInhalt = fs.readFileSync(
-      TOKENIZER_DATEI,
-      "utf8"
-    );
-
-    // Vorhandene Datei abfragen, um ihren SHA zu erhalten.
-    const getAntwort = await fetch(
-      url + "?ref=" + encodeURIComponent(GITHUB_BRANCH),
-      { headers }
-    );
-
-    let sha = null;
-
-    if (getAntwort.status === 200) {
-      const vorhandeneDatei = await getAntwort.json();
-
-      sha = vorhandeneDatei.sha;
-
-      if (
-        vorhandeneDatei.encoding === "base64" &&
-        typeof vorhandeneDatei.content === "string"
-      ) {
-        const alterInhalt = Buffer.from(
-          vorhandeneDatei.content.replace(/\s/g, ""),
-          "base64"
-        ).toString("utf8");
-
-        if (alterInhalt === dateiInhalt) {
-          console.log(
-            "GitHub-Tokenizer ist bereits aktuell."
-          );
-          return;
-        }
-      }
-    } else if (getAntwort.status !== 404) {
-      throw new Error(
-        `GitHub-Dateiabfrage fehlgeschlagen: HTTP ${getAntwort.status}`
-      );
+    for (const wort of a) {
+      if (b.has(wort)) gemeinsam++;
     }
 
-    const payload = {
-      message: "Tokenizer aus Trainingsdaten aktualisieren",
-      content: Buffer.from(
-        dateiInhalt,
-        "utf8"
-      ).toString("base64"),
-      branch: GITHUB_BRANCH
+    const vereinigt = new Set([...a, ...b]).size;
+    const jaccard = gemeinsam / Math.max(1, vereinigt);
+    const abdeckung = gemeinsam / Math.max(1, a.size);
+
+    return 0.6 * jaccard + 0.4 * abdeckung;
+  }
+
+  findePassendesBeispiel(frage) {
+    let bestesPaar = null;
+    let bestePunktzahl = 0;
+
+    const normalisierteFrage = this.normalisiereText(frage);
+
+    for (const paar of this.trainingsPaare) {
+      let punktzahl = this.aehnlichkeit(
+        normalisierteFrage,
+        paar.frage
+      );
+
+      if (normalisierteFrage === paar.frage) {
+        punktzahl = 1;
+      }
+
+      if (punktzahl > bestePunktzahl) {
+        bestePunktzahl = punktzahl;
+        bestesPaar = paar;
+      }
+    }
+
+    return {
+      paar: bestesPaar,
+      punktzahl: bestePunktzahl
     };
-
-    if (sha) {
-      payload.sha = sha;
-    }
-
-    const putAntwort = await fetch(url, {
-      method: "PUT",
-      headers: {
-        ...headers,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const putDaten = await putAntwort.json().catch(
-      () => ({})
-    );
-
-    if (!putAntwort.ok) {
-      throw new Error(
-        `GitHub-Upload fehlgeschlagen: HTTP ${putAntwort.status}. ` +
-        `${putDaten.message || "Repository und Berechtigungen prüfen."}`
-      );
-    }
-
-    console.log(
-      "Tokenizer wurde in GitHub gespeichert."
-    );
-
-    if (putDaten.content?.html_url) {
-      console.log(
-        "Tokenizer-Datei:",
-        putDaten.content.html_url
-      );
-    }
-  } catch (fehler) {
-    // Das Token niemals ausgeben.
-    console.error(
-      "GitHub-Synchronisierung fehlgeschlagen:",
-      fehler.message
-    );
   }
-}
 
-// --------------------------------------------------
-// HTTP-Hilfsfunktionen
-// --------------------------------------------------
+  planeAntwort(prompt) {
+    const treffer = this.findePassendesBeispiel(prompt);
 
-function sendeJson(res, status, daten) {
-  res.writeHead(status, {
-    "Content-Type": "application/json; charset=utf-8",
-    "Cache-Control": "no-store"
-  });
+    const kernbegriffe = new Set(
+      this.wichtigeWoerter(prompt)
+    );
 
-  res.end(JSON.stringify(daten));
-}
+    if (treffer.paar && treffer.punktzahl >= 0.3) {
+      for (
+        const wort of this.wichtigeWoerter(
+          treffer.paar.antwort
+        )
+      ) {
+        kernbegriffe.add(wort);
+      }
+    }
 
-function leseJson(req, maximalBytes = 1024 * 1024) {
-  return new Promise((resolve, reject) => {
-    let inhalt = "";
-    let bytes = 0;
-    let beendet = false;
-    let zuGross = false;
+    return {
+      eingabe: prompt,
+      ziel: "Die Frage sinnvoll und verständlich beantworten.",
+      kernbegriffe: [...kernbegriffe],
+      beispielAntwort:
+        treffer.paar && treffer.punktzahl >= 0.3
+          ? treffer.paar.antwort
+          : null,
+      beispielFrage:
+        treffer.paar && treffer.punktzahl >= 0.3
+          ? treffer.paar.frage
+          : null,
+      relevanz: treffer.punktzahl
+    };
+  }
 
-    req.setEncoding("utf8");
+  // --------------------------------------------------
+  // 7. NÄCHSTES TOKEN AUSWÄHLEN
+  // --------------------------------------------------
 
-    req.on("data", teil => {
-      if (beendet || zuGross) return;
+  waehleNaechstesToken(
+    kontext,
+    temperatur = 0.65,
+    topK = 5
+  ) {
+    const ergebnis = this.vorwaerts(kontext);
 
-      bytes += Buffer.byteLength(teil, "utf8");
+    const temp = Math.max(
+      0.1,
+      Math.min(2, temperatur)
+    );
 
-      if (bytes > maximalBytes) {
-        zuGross = true;
+    const kandidaten = ergebnis.logits
+      .map((wert, id) => ({
+        id,
+        wert: wert / temp,
+        token: this.vokabular[id]
+      }))
+      .filter(element =>
+        !VERBOTENE_AUSGABETOKENS.has(element.token)
+      )
+      .sort((a, b) => b.wert - a.wert)
+      .slice(0, Math.max(1, topK));
 
-        const fehler = new Error(
-          "Die Anfrage ist zu groß."
+    if (kandidaten.length === 0) {
+      return this.eosId;
+    }
+
+    const maximum = kandidaten[0].wert;
+
+    const gewichte = kandidaten.map(element =>
+      Math.exp(Math.max(-60, element.wert - maximum))
+    );
+
+    const gesamt = gewichte.reduce(
+      (summe, wert) => summe + wert,
+      0
+    );
+
+    let zufall = Math.random() * gesamt;
+
+    for (let i = 0; i < kandidaten.length; i++) {
+      zufall -= gewichte[i];
+
+      if (zufall <= 0) {
+        return kandidaten[i].id;
+      }
+    }
+
+    return kandidaten[0].id;
+  }
+
+  // --------------------------------------------------
+  // 8. EINEN VOLLSTÄNDIGEN KANDIDATEN ERZEUGEN
+  // --------------------------------------------------
+
+  generiereKandidaten(prompt, plan, optionen = {}) {
+    const anzahl = Math.max(
+      1,
+      Math.min(6, optionen.anzahlKandidaten || 4)
+    );
+
+    const maxTokens = Math.max(
+      1,
+      Math.min(80, optionen.maxTokens || 35)
+    );
+
+    const temperatur = Number.isFinite(optionen.temperatur)
+      ? optionen.temperatur
+      : 0.65;
+
+    const topK = Number.isFinite(optionen.topK)
+      ? optionen.topK
+      : 5;
+
+    const eingabetext = this.konversationsModus
+      ? `<benutzer> ${this.normalisiereText(prompt)} <ki>`
+      : this.normalisiereText(prompt);
+
+    const tokenStrings = this.tokenizer.zerlege(
+      eingabetext
+    );
+
+    let startKontext = Array(
+      this.kontextLaenge
+    ).fill(this.bosId);
+
+    for (const token of tokenStrings) {
+      const originalId = this.tokenizer.tokenZuId.get(token);
+
+      const id =
+        Number.isInteger(originalId) &&
+        originalId < this.vokabular.length
+          ? originalId
+          : this.unkId;
+
+      startKontext = startKontext.slice(1).concat(id);
+    }
+
+    const kandidaten = [];
+
+    for (let versuch = 0; versuch < anzahl; versuch++) {
+      let kontext = startKontext.slice();
+      const erzeugteTokens = [];
+
+      for (let i = 0; i < maxTokens; i++) {
+        const naechsteId = this.waehleNaechstesToken(
+          kontext,
+          temperatur,
+          topK
         );
 
-        fehler.status = 413;
-        reject(fehler);
-        return;
+        if (naechsteId === this.eosId) {
+          break;
+        }
+
+        const token = this.vokabular[naechsteId];
+
+        if (
+          token &&
+          !VERBOTENE_AUSGABETOKENS.has(token) &&
+          token !== "<EOS>"
+        ) {
+          erzeugteTokens.push(token);
+        }
+
+        kontext = kontext.slice(1).concat(naechsteId);
       }
 
-      inhalt += teil;
+      const text = this.formatiere(erzeugteTokens);
+
+      kandidaten.push({
+        text,
+        bewertung: this.bewerteAntwort(text, plan)
+      });
+    }
+
+    return kandidaten;
+  }
+
+  // --------------------------------------------------
+  // 9. DIE GANZE ANTWORT BEWERTEN
+  // --------------------------------------------------
+
+  bew ertePlatzhalter() {
+    return 0;
+  }
+
+  bewerteAntwort(text, plan) {
+    const tokens = this.tokenizer.zerlege(text);
+    const woerter = tokens.filter(token =>
+      /[\p{L}\p{N}]/u.test(token) &&
+      !token.startsWith("<")
+    );
+
+    if (woerter.length === 0) {
+      return -100;
+    }
+
+    const einzigartige = new Set(woerter);
+    const vielfalt = einzigartige.size / woerter.length;
+
+    // Mehr Abwechslung ist meist besser.
+    let score = vielfalt * 2.0;
+
+    // Extrem kurze oder extrem lange Antworten abwerten.
+    if (woerter.length < 3) {
+      score -= 2;
+    } else if (woerter.length >= 5 && woerter.length <= 24) {
+      score += 1;
+    } else if (woerter.length > 35) {
+      score -= 1.5;
+    }
+
+    // Wiederholte Wörter und Wortpaare bestrafen.
+    const zaehler = new Map();
+
+    for (const wort of woerter) {
+      zaehler.set(wort, (zaehler.get(wort) || 0) + 1);
+    }
+
+    for (const anzahl of zaehler.values()) {
+      if (anzahl > 1) {
+        score -= (anzahl - 1) * 0.7;
+      }
+    }
+
+    const bigrams = new Set();
+    let wiederholtePaare = 0;
+
+    for (let i = 1; i < woerter.length; i++) {
+      const paar = `${woerter[i - 1]}|${woerter[i]}`;
+
+      if (bigrams.has(paar)) {
+        wiederholtePaare++;
+      }
+
+      bigrams.add(paar);
+    }
+
+    score -= wiederholtePaare * 1.5;
+
+    // Relevanz zur geplanten Antwort erhöhen.
+    const kandidatenWoerter = this.wichtigeWoerter(text);
+    const planWoerter = new Set(plan.kernbegriffe);
+
+    let gemeinsam = 0;
+
+    for (const wort of kandidatenWoerter) {
+      if (planWoerter.has(wort)) {
+        gemeinsam++;
+      }
+    }
+
+    score += Math.min(2, gemeinsam * 0.35);
+
+    // Bei passendem Trainingsbeispiel den Inhalt vergleichen.
+    if (plan.beispielAntwort) {
+      score +=
+        2.5 * this.aehnlichkeit(
+          text,
+          plan.beispielAntwort
+        );
+    }
+
+    // Markierungen dürfen niemals in der sichtbaren Antwort sein.
+    if (text.includes("<benutzer>") || text.includes("<ki>")) {
+      score -= 10;
+    }
+
+    return score;
+  }
+
+  formatiere(tokens) {
+    let text = tokens.join(" ");
+
+    text = text
+      .replace(/\s+([.,!?;:%)\]}»])/g, "$1")
+      .replace(/([([{«])\s+/g, "$1")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (text) {
+      text =
+        text.charAt(0).toLocaleUpperCase("de-DE") +
+        text.slice(1);
+    }
+
+    return text;
+  }
+
+  // --------------------------------------------------
+  // 10. ANTWORT PLANEN, VOLLSTÄNDIG GENERIEREN,
+  //     KANDIDATEN VERGLEICHEN UND BESTE ANTWORT WÄHLEN
+  // --------------------------------------------------
+
+  antwortGenerieren(prompt, optionen = {}) {
+    if (!this.bereit) {
+      return (
+        "Mein neuronales Sprachmodell ist noch nicht trainiert. " +
+        "Bitte überprüfe deine Trainingsdaten."
+      );
+    }
+
+    if (typeof prompt !== "string" || !prompt.trim()) {
+      return "Bitte gib eine Nachricht ein.";
+    }
+
+    // Schritt A: Thema und relevante Trainingsbeispiele bestimmen.
+    const plan = this.planeAntwort(prompt);
+
+    this.planungsTreffer = plan.relevanz;
+
+    // Exakte bekannte Frage: Die gespeicherte Antwort ist
+    // bereits ein vollständiger, gelernter Antwortentwurf.
+    if (
+      plan.beispielAntwort &&
+      plan.relevanz >= 0.99
+    ) {
+      return plan.beispielAntwort;
+    }
+
+    // Schritt B: Mehrere vollständige Antwortkandidaten erzeugen.
+    const kandidaten = this.generiereKandidaten(
+      prompt,
+      plan,
+      optionen
+    );
+
+    // Schritt C: Ganze Antworten bewerten, nicht nur das nächste Wort.
+    kandidaten.sort((a, b) => b.bewertung - a.bewertung);
+
+    const beste = kandidaten[0];
+
+    // Schritt D: Wenn der Generator nur Wiederholungen erzeugt,
+    // ein sehr passendes Trainingsbeispiel als Fallback nutzen.
+    if (
+      plan.beispielAntwort &&
+      plan.relevanz >= 0.55 &&
+      (!beste || beste.bewertung < 1.0)
+    ) {
+      return plan.beispielAntwort;
+    }
+
+    return beste && beste.text
+      ? beste.text
+      : "Ich konnte noch keine vollständige Antwort bilden.";
+  }
+
+  generiere(prompt, optionen = {}) {
+    return this.antwortGenerieren(prompt, optionen);
+  }
+
+  // --------------------------------------------------
+  // 11. STATUS UND TRAININGSORDNER
+  // --------------------------------------------------
+
+  status() {
+    return {
+      bereit: this.bereit,
+      modell: "Neuronales Sprachmodell mit Antwortplanung",
+      versteckteNeuronen: this.versteckteNeuronen,
+      vokabularGroesse: this.vokabular.length,
+      trainingsBeispiele: this.trainingsBeispiele,
+      trainierteEpochen: this.trainierteEpochen,
+      kontextLaenge: this.kontextLaenge,
+      konversationsModus: this.konversationsModus,
+      trainingsPaare: this.trainingsPaare.length,
+      letzterFehler: this.letzterFehler
+    };
+  }
+
+  lerneOrdner(ordner, tokenizer = null, optionen = {}) {
+    if (!fs.existsSync(ordner)) {
+      throw new Error(
+        `Trainingsordner nicht gefunden: ${ordner}`
+      );
+    }
+
+    const dateien = fs.readdirSync(ordner, {
+      withFileTypes: true
     });
 
-    req.on("end", () => {
-      if (beendet || zuGross) return;
+    const daten = [];
 
-      beendet = true;
+    for (const datei of dateien) {
+      if (
+        !datei.isFile() ||
+        !datei.name.toLowerCase().endsWith(".json") ||
+        datei.name.toLowerCase() === "tokenizer.json"
+      ) {
+        continue;
+      }
 
       try {
-        resolve(JSON.parse(inhalt || "{}"));
-      } catch {
-        const fehler = new Error(
-          "Die Anfrage enthält ungültiges JSON."
+        daten.push(
+          JSON.parse(
+            fs.readFileSync(
+              path.join(ordner, datei.name),
+              "utf8"
+            )
+          )
         );
 
-        fehler.status = 400;
-        reject(fehler);
+        console.log("Trainingsdaten geladen:", datei.name);
+      } catch (fehler) {
+        console.error(
+          `Datei ${datei.name} übersprungen:`,
+          fehler.message
+        );
       }
-    });
+    }
 
-    req.on("error", fehler => {
-      if (beendet || zuGross) return;
-
-      beendet = true;
-      reject(fehler);
-    });
-  });
+    return this.trainiereTexte(
+      daten,
+      tokenizer,
+      optionen
+    );
+  }
 }
 
-// --------------------------------------------------
-// HTTP-Server
-// --------------------------------------------------
-
-const server = http.createServer(async (req, res) => {
-  let url;
-
-  try {
-    url = new URL(
-      req.url,
-      `http://${req.headers.host || "localhost"}`
-    );
-  } catch {
-    return sendeJson(res, 400, {
-      fehler: "Ungültige URL."
-    });
-  }
-
-  try {
-    // Website
-    if (
-      req.method === "GET" &&
-      (url.pathname === "/" ||
-       url.pathname === "/index.html")
-    ) {
-      if (!fs.existsSync(HTML_DATEI)) {
-        return sendeJson(res, 404, {
-          fehler: "index.html wurde nicht gefunden."
-        });
-      }
-
-      res.writeHead(200, {
-        "Content-Type": "text/html; charset=utf-8"
-      });
-
-      return res.end(
-        fs.readFileSync(HTML_DATEI)
-      );
-    }
-
-    // Status des Modells
-    if (
-      req.method === "GET" &&
-      url.pathname === "/api/status"
-    ) {
-      return sendeJson(res, 200, {
-        ok: true,
-        modell: netz.status(),
-        tokenizer: tokenizer.status(),
-        trainingsBereit,
-        trainingsFehler,
-        trainingsdateien: geladeneDateien,
-        uebersprungeneDateien: fehlerDateien,
-        githubSynchronisierungKonfiguriert:
-          githubKonfiguriert()
-      });
-    }
-
-    // Chat: Die Antwort wird durch das neuronale Netz erzeugt.
-    if (
-      req.method === "POST" &&
-      url.pathname === "/api/chat"
-    ) {
-      const daten = await leseJson(req);
-
-      const nachricht =
-        typeof daten.nachricht === "string"
-          ? daten.nachricht
-          : typeof daten.message === "string"
-            ? daten.message
-            : typeof daten.text === "string"
-              ? daten.text
-              : "";
-
-      if (!nachricht.trim()) {
-        return sendeJson(res, 400, {
-          fehler: "Bitte gib eine Nachricht ein."
-        });
-      }
-
-      if (!trainingsBereit || !netz.bereit) {
-        return sendeJson(res, 503, {
-          fehler:
-            trainingsFehler ||
-            "Das neuronale Sprachmodell ist noch nicht bereit."
-        });
-      }
-
-      const antwort = netz.antwortGenerieren(
-        nachricht,
-        {
-          maxTokens: 45,
-          temperatur: 0.65,
-          topK: 5
-        }
-      );
-
-      return sendeJson(res, 200, {
-        antwort,
-        reply: antwort,
-        generiertVomNeuronalenNetz: true
-      });
-    }
-
-    return sendeJson(res, 404, {
-      fehler: "API-Endpunkt nicht gefunden."
-    });
-  } catch (fehler) {
-    console.error(
-      "Anfrage fehlgeschlagen:",
-      fehler.message
-    );
-
-    return sendeJson(res, fehler.status || 500, {
-      fehler: fehler.message
-    });
-  }
-});
-
-// --------------------------------------------------
-// Server starten
-// --------------------------------------------------
-
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server läuft auf Port ${PORT}.`);
-  console.log("Sprachmodell bereit:", trainingsBereit);
-
-  // Die GitHub-Synchronisierung blockiert den Chatstart nicht.
-  void synchronisiereTokenizerMitGitHub();
-});
+module.exports = {
+  NeuronalesNetz
+};

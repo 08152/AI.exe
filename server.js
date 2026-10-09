@@ -4,15 +4,12 @@
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
-const crypto = require("node:crypto");
 
-const netzModul = require("./netz.js");
 const { Tokenizer } = require("./tokenizer.js");
-
-const NeuronalesNetz =
-  netzModul.NeuronalesNetz || netzModul;
+const { NeuronalesNetz } = require("./netz.js");
 
 const PORT = Number(process.env.PORT) || 3000;
+
 const ROOT = __dirname;
 const DATEN_ORDNER = path.join(ROOT, "Daten");
 const MODELL_ORDNER = path.join(ROOT, "modelle");
@@ -22,16 +19,311 @@ const TOKENIZER_DATEI = path.join(
   "tokenizer.json"
 );
 
+fs.mkdirSync(DATEN_ORDNER, { recursive: true });
+fs.mkdirSync(MODELL_ORDNER, { recursive: true });
+
+// --------------------------------------------------
+// GitHub-Konfiguration aus Render
+// --------------------------------------------------
+
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_OWNER = process.env.GITHUB_OWNER;
 const GITHUB_REPO = process.env.GITHUB_REPO;
 const GITHUB_BRANCH = process.env.GITHUB_BRANCH || "main";
-const ADMIN_KEY = process.env.ADMIN_KEY;
 
-fs.mkdirSync(DATEN_ORDNER, { recursive: true });
-fs.mkdirSync(MODELL_ORDNER, { recursive: true });
+function githubIstKonfiguriert() {
+  return Boolean(
+    GITHUB_TOKEN &&
+    GITHUB_OWNER &&
+    GITHUB_REPO
+  );
+}
 
-function jsonAntwort(res, status, daten) {
+// --------------------------------------------------
+// Trainingsdaten laden
+// --------------------------------------------------
+
+function ladeTrainingsdaten() {
+  const ergebnis = [];
+  const dateinamen = [];
+
+  const dateien = fs.readdirSync(DATEN_ORDNER, {
+    withFileTypes: true
+  })
+    .filter(datei =>
+      datei.isFile() &&
+      datei.name.toLowerCase().endsWith(".json") &&
+      datei.name.toLowerCase() !== "tokenizer.json"
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  for (const datei of dateien) {
+    const dateipfad = path.join(
+      DATEN_ORDNER,
+      datei.name
+    );
+
+    try {
+      const daten = JSON.parse(
+        fs.readFileSync(dateipfad, "utf8")
+      );
+
+      ergebnis.push(daten);
+      dateinamen.push(datei.name);
+
+      console.log("Trainingsdatei geladen:", datei.name);
+    } catch (fehler) {
+      console.error(
+        "JSON-Datei übersprungen:",
+        datei.name,
+        fehler.message
+      );
+    }
+  }
+
+  console.log("Geladene Trainingsdateien:", dateinamen.length);
+
+  return {
+    daten: ergebnis,
+    dateinamen
+  };
+}
+
+// Der aktuelle Tokenizer ist kleinschreibungssensitiv.
+// Darum normalisieren wir Trainings-Texte und Chat-Eingaben.
+function normalisiereTexte(daten) {
+  if (typeof daten === "string") {
+    return daten
+      .normalize("NFC")
+      .toLocaleLowerCase("de-DE");
+  }
+
+  if (Array.isArray(daten)) {
+    return daten.map(normalisiereTexte);
+  }
+
+  if (daten && typeof daten === "object") {
+    const neu = {};
+
+    for (const [key, wert] of Object.entries(daten)) {
+      neu[key] = normalisiereTexte(wert);
+    }
+
+    return neu;
+  }
+
+  return daten;
+}
+
+// --------------------------------------------------
+// Tokenizer vorbereiten
+// --------------------------------------------------
+
+// Das Vokabular wird bei jedem Start aus den aktuellen
+// Trainingsdaten neu aufgebaut. So vermeiden wir alte,
+// nicht passende Token-IDs aus vorherigen Versionen.
+const tokenizer = new Tokenizer();
+
+// --------------------------------------------------
+// Das neuronale Sprachmodell aufbauen und trainieren
+// --------------------------------------------------
+
+const { daten: roheTrainingsdaten, dateinamen } =
+  ladeTrainingsdaten();
+
+const trainingsdaten = normalisiereTexte(
+  roheTrainingsdaten
+);
+
+const netz = new NeuronalesNetz(tokenizer, {
+  maxVokabular: 256,
+  embeddingGroesse: 8,
+  versteckteNeuronen: 16,
+  kontextLaenge: 12
+});
+
+let trainingsFehler = null;
+let trainingsStatus = null;
+
+if (trainingsdaten.length === 0) {
+  trainingsFehler =
+    "Keine JSON-Trainingsdateien in Daten/ gefunden.";
+} else {
+  try {
+    trainingsStatus = netz.trainiereTexte(
+      trainingsdaten,
+      tokenizer,
+      {
+        epochen: Number(process.env.TRAINING_EPOCHS) || 4,
+        maxTrainingsBeispiele: 1000,
+        lernrate: 0.025
+      }
+    );
+
+    console.log("Training abgeschlossen.");
+    console.log("Modellstatus:", trainingsStatus);
+  } catch (fehler) {
+    trainingsFehler = fehler.message;
+
+    console.error(
+      "Das Sprachmodell konnte nicht trainiert werden:",
+      fehler.message
+    );
+  }
+}
+
+// Tokenizer lokal speichern.
+try {
+  tokenizer.speichern(TOKENIZER_DATEI);
+  console.log("Tokenizer lokal gespeichert:", TOKENIZER_DATEI);
+} catch (fehler) {
+  console.error(
+    "Tokenizer konnte nicht gespeichert werden:",
+    fehler.message
+  );
+}
+
+// --------------------------------------------------
+// GitHub: Tokenizer-Datei erstellen oder aktualisieren
+// --------------------------------------------------
+
+async function synchronisiereTokenizerMitGitHub() {
+  if (!githubIstKonfiguriert()) {
+    console.log(
+      "GitHub-Upload übersprungen: " +
+      "GITHUB_TOKEN, GITHUB_OWNER oder GITHUB_REPO fehlt."
+    );
+
+    return;
+  }
+
+  if (!netz.bereit) {
+    console.log(
+      "GitHub-Upload übersprungen: " +
+      "Das Sprachmodell wurde nicht trainiert."
+    );
+
+    return;
+  }
+
+  if (typeof fetch !== "function") {
+    console.error(
+      "GitHub-Upload benötigt Node.js 18 oder neuer."
+    );
+
+    return;
+  }
+
+  const relativerPfad = "modelle/tokenizer.json";
+
+  const githubUrl =
+    "https://api.github.com/repos/" +
+    encodeURIComponent(GITHUB_OWNER) + "/" +
+    encodeURIComponent(GITHUB_REPO) + "/contents/" +
+    relativerPfad.split("/")
+      .map(encodeURIComponent)
+      .join("/");
+
+  const header = {
+    "Accept": "application/vnd.github+json",
+    "Authorization": `Bearer ${GITHUB_TOKEN}`,
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "MeineEigeneKI"
+  };
+
+  const dateiInhalt = fs.readFileSync(
+    TOKENIZER_DATEI,
+    "utf8"
+  );
+
+  try {
+    // Prüfen, ob die Datei schon existiert.
+    const getAntwort = await fetch(
+      githubUrl + "?ref=" +
+      encodeURIComponent(GITHUB_BRANCH),
+      { headers: header }
+    );
+
+    let sha = null;
+
+    if (getAntwort.status === 200) {
+      const vorhandeneDatei = await getAntwort.json();
+
+      sha = vorhandeneDatei.sha;
+
+      if (
+        vorhandeneDatei.encoding === "base64" &&
+        typeof vorhandeneDatei.content === "string"
+      ) {
+        const alterInhalt = Buffer.from(
+          vorhandeneDatei.content.replace(/\s/g, ""),
+          "base64"
+        ).toString("utf8");
+
+        if (alterInhalt === dateiInhalt) {
+          console.log("GitHub-Tokenizer ist bereits aktuell.");
+          return;
+        }
+      }
+    } else if (getAntwort.status !== 404) {
+      throw new Error(
+        `GitHub-Dateiabfrage fehlgeschlagen: HTTP ${getAntwort.status}`
+      );
+    }
+
+    const payload = {
+      message: "Tokenizer aus Trainingsdaten aktualisieren",
+      content: Buffer.from(
+        dateiInhalt,
+        "utf8"
+      ).toString("base64"),
+      branch: GITHUB_BRANCH
+    };
+
+    // GitHub verlangt den bisherigen SHA beim Aktualisieren.
+    if (sha) {
+      payload.sha = sha;
+    }
+
+    const putAntwort = await fetch(githubUrl, {
+      method: "PUT",
+      headers: {
+        ...header,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const putDaten = await putAntwort.json().catch(() => ({}));
+
+    if (!putAntwort.ok) {
+      throw new Error(
+        `GitHub-Upload fehlgeschlagen: HTTP ${putAntwort.status}. ` +
+        `${putDaten.message || "Berechtigungen und Branch prüfen."}`
+      );
+    }
+
+    console.log(
+      "Tokenizer wurde im GitHub-Repository gespeichert."
+    );
+
+    if (putDaten.content && putDaten.content.html_url) {
+      console.log("Datei:", putDaten.content.html_url);
+    }
+  } catch (fehler) {
+    // Niemals den GitHub-Token ausgeben.
+    console.error(
+      "GitHub-Synchronisierung fehlgeschlagen:",
+      fehler.message
+    );
+  }
+}
+
+// --------------------------------------------------
+// HTTP-Hilfsfunktionen
+// --------------------------------------------------
+
+function sendeJson(res, status, daten) {
   res.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store"
@@ -40,468 +332,83 @@ function jsonAntwort(res, status, daten) {
   res.end(JSON.stringify(daten));
 }
 
-function leseJsonAnfrage(req, maxBytes = 1024 * 1024) {
+function leseJson(req, maximalBytes = 1024 * 1024) {
   return new Promise((resolve, reject) => {
-    let body = "";
+    let inhalt = "";
     let bytes = 0;
+    let abgeschlossen = false;
 
     req.setEncoding("utf8");
 
     req.on("data", teil => {
+      if (abgeschlossen) return;
+
       bytes += Buffer.byteLength(teil, "utf8");
 
-      if (bytes > maxBytes) {
-        reject(new Error("Anfrage ist zu groß."));
-        req.destroy();
+      if (bytes > maximalBytes) {
+        abgeschlossen = true;
+
+        const fehler = new Error(
+          "Die Anfrage ist zu groß."
+        );
+
+        fehler.status = 413;
+        reject(fehler);
+
         return;
       }
 
-      body += teil;
+      inhalt += teil;
     });
 
     req.on("end", () => {
+      if (abgeschlossen) return;
+
+      abgeschlossen = true;
+
       try {
-        resolve(JSON.parse(body || "{}"));
+        resolve(JSON.parse(inhalt || "{}"));
       } catch {
-        reject(new Error("Ungültiges JSON."));
+        const fehler = new Error("Ungültiges JSON.");
+        fehler.status = 400;
+        reject(fehler);
       }
     });
 
-    req.on("error", reject);
+    req.on("error", fehler => {
+      if (abgeschlossen) return;
+
+      abgeschlossen = true;
+      reject(fehler);
+    });
   });
 }
 
 // --------------------------------------------------
-// JSON-Dateien aus Daten/ laden
-// --------------------------------------------------
-
-const trainingsdaten = [];
-const textsammlung = [];
-
-function sammleTextwerte(wert, ergebnis) {
-  if (typeof wert === "string") {
-    const text = wert.trim();
-
-    if (text.length > 0) {
-      ergebnis.push(text);
-    }
-
-    return;
-  }
-
-  if (Array.isArray(wert)) {
-    for (const element of wert) {
-      sammleTextwerte(element, ergebnis);
-    }
-
-    return;
-  }
-
-  if (wert && typeof wert === "object") {
-    for (const element of Object.values(wert)) {
-      sammleTextwerte(element, ergebnis);
-    }
-  }
-}
-
-function sammleTrainingsbeispiele(wert) {
-  if (Array.isArray(wert)) {
-    for (const element of wert) {
-      sammleTrainingsbeispiele(element);
-    }
-
-    return;
-  }
-
-  if (!wert || typeof wert !== "object") {
-    return;
-  }
-
-  if (
-    Number.isFinite(wert.x1) &&
-    Number.isFinite(wert.x2) &&
-    Number.isFinite(wert.target) &&
-    [0, 1].includes(wert.x1) &&
-    [0, 1].includes(wert.x2) &&
-    [0, 1].includes(wert.target)
-  ) {
-    trainingsdaten.push({
-      x1: wert.x1,
-      x2: wert.x2,
-      target: wert.target
-    });
-
-    return;
-  }
-
-  for (const element of Object.values(wert)) {
-    sammleTrainingsbeispiele(element);
-  }
-}
-
-function ladeDaten() {
-  const dateien = fs.readdirSync(DATEN_ORDNER)
-    .filter(name => name.toLowerCase().endsWith(".json"))
-    .sort();
-
-  for (const datei of dateien) {
-    const dateipfad = path.join(DATEN_ORDNER, datei);
-
-    try {
-      const inhalt = fs.readFileSync(dateipfad, "utf8");
-      const daten = JSON.parse(inhalt);
-
-      sammleTrainingsbeispiele(daten);
-      sammleTextwerte(daten, textsammlung);
-
-      console.log("JSON geladen:", datei);
-    } catch (fehler) {
-      console.error(
-        "JSON-Datei übersprungen:",
-        datei,
-        fehler.message
-      );
-    }
-  }
-
-  console.log("Trainingsbeispiele:", trainingsdaten.length);
-  console.log("Gefundene Textabschnitte:", textsammlung.length);
-}
-
-ladeDaten();
-
-// --------------------------------------------------
-// Neuronales Netz initialisieren und trainieren
-// --------------------------------------------------
-
-let netz = null;
-let netzBereit = false;
-let netzFehler = null;
-
-try {
-  netz = new NeuronalesNetz();
-} catch (fehler) {
-  netzFehler = fehler.message;
-  console.error("Netz konnte nicht initialisiert werden:", fehler.message);
-}
-
-function findeMethode(objekt, namen) {
-  if (!objekt) return null;
-
-  for (const name of namen) {
-    if (typeof objekt[name] === "function") {
-      return objekt[name].bind(objekt);
-    }
-  }
-
-  return null;
-}
-
-function trainiereNetz() {
-  if (!netz || trainingsdaten.length === 0) {
-    return;
-  }
-
-  try {
-    const batchTraining = findeMethode(netz, [
-      "trainiereDatensatz",
-      "trainiereDaten",
-      "trainBatch",
-      "trainOnData"
-    ]);
-
-    if (batchTraining) {
-      batchTraining(trainingsdaten, 20000);
-      netzBereit = true;
-      return;
-    }
-
-    const einzelTraining = findeMethode(netz, [
-      "trainiere",
-      "lerne",
-      "lernen",
-      "train",
-      "trainExample"
-    ]);
-
-    if (!einzelTraining) {
-      throw new Error(
-        "Keine passende Trainingsmethode in netz.js gefunden."
-      );
-    }
-
-    for (let epoche = 0; epoche < 20000; epoche++) {
-      for (const beispiel of trainingsdaten) {
-        einzelTraining(
-          [beispiel.x1, beispiel.x2],
-          beispiel.target
-        );
-      }
-    }
-
-    netzBereit = true;
-    console.log("Netztraining abgeschlossen.");
-  } catch (fehler) {
-    netzFehler = fehler.message;
-    console.error("Netztraining fehlgeschlagen:", fehler.message);
-  }
-}
-
-trainiereNetz();
-
-function netzVorhersage(eingaben) {
-  if (!netz || !netzBereit) {
-    throw new Error(
-      netzFehler || "Das neuronale Netz ist noch nicht bereit."
-    );
-  }
-
-  const vorhersage = findeMethode(netz, [
-    "vorhersage",
-    "predict",
-    "vorwaerts",
-    "forward",
-    "berechne"
-  ]);
-
-  if (!vorhersage) {
-    throw new Error(
-      "Keine passende Vorhersagemethode in netz.js gefunden."
-    );
-  }
-
-  let ergebnis = vorhersage(eingaben);
-
-  if (Array.isArray(ergebnis) || ArrayBuffer.isView(ergebnis)) {
-    ergebnis = ergebnis[0];
-  }
-
-  if (ergebnis && typeof ergebnis === "object") {
-    ergebnis =
-      ergebnis.ausgabe ??
-      ergebnis.output ??
-      ergebnis.wert;
-  }
-
-  if (typeof ergebnis !== "number" || !Number.isFinite(ergebnis)) {
-    throw new Error("Das Netzwerk lieferte kein gültiges Ergebnis.");
-  }
-
-  return {
-    rohwert: ergebnis,
-    vorhersage: ergebnis >= 0.5 ? 1 : 0
-  };
-}
-
-// --------------------------------------------------
-// Tokenizer laden und aus Texten erweitern
-// --------------------------------------------------
-
-let tokenizer;
-
-try {
-  tokenizer = fs.existsSync(TOKENIZER_DATEI)
-    ? Tokenizer.laden(TOKENIZER_DATEI)
-    : new Tokenizer();
-} catch (fehler) {
-  console.error("Tokenizer wird neu erstellt:", fehler.message);
-  tokenizer = new Tokenizer();
-}
-
-function baueTokenizerAusDaten() {
-  if (textsammlung.length === 0) {
-    console.log(
-      "Keine Textdaten gefunden. " +
-      "Für ein Textvokabular brauchst du Texte in Daten/."
-    );
-    return;
-  }
-
-  tokenizer.lerneTexte(textsammlung);
-  tokenizer.speichern(TOKENIZER_DATEI);
-
-  console.log(
-    "Tokenizer erstellt. Anzahl Tokens:",
-    tokenizer.status().anzahlTokens
-  );
-}
-
-// --------------------------------------------------
-// GitHub-API: Datei erstellen oder aktualisieren
-// --------------------------------------------------
-
-function githubKonfiguriert() {
-  return Boolean(
-    GITHUB_TOKEN &&
-    GITHUB_OWNER &&
-    GITHUB_REPO
-  );
-}
-
-async function githubDateiSpeichern(dateiInhalt) {
-  if (!githubKonfiguriert()) {
-    return {
-      gespeichert: false,
-      meldung: "GitHub-Umgebungsvariablen fehlen."
-    };
-  }
-
-  const dateipfad = "modelle/tokenizer.json";
-
-  const apiUrl =
-    `https://api.github.com/repos/` +
-    `${encodeURIComponent(GITHUB_OWNER)}/` +
-    `${encodeURIComponent(GITHUB_REPO)}/contents/` +
-    dateipfad.split("/").map(encodeURIComponent).join("/");
-
-  const headers = {
-    "Accept": "application/vnd.github+json",
-    "Authorization": `Bearer ${GITHUB_TOKEN}`,
-    "X-GitHub-Api-Version": "2022-11-28",
-    "User-Agent": "MeineEigeneKI"
-  };
-
-  // Prüfen, ob die Datei schon existiert.
-  const getAntwort = await fetch(
-    `${apiUrl}?ref=${encodeURIComponent(GITHUB_BRANCH)}`,
-    { headers }
-  );
-
-  let sha = null;
-
-  if (getAntwort.status === 200) {
-    const bestehendeDatei = await getAntwort.json();
-    sha = bestehendeDatei.sha;
-
-    if (
-      bestehendeDatei.encoding === "base64" &&
-      typeof bestehendeDatei.content === "string"
-    ) {
-      const bisherigerInhalt = Buffer.from(
-        bestehendeDatei.content.replace(/\s/g, ""),
-        "base64"
-      ).toString("utf8");
-
-      if (bisherigerInhalt === dateiInhalt) {
-        return {
-          gespeichert: true,
-          unveraendert: true,
-          meldung: "Die GitHub-Datei ist bereits aktuell."
-        };
-      }
-    }
-  } else if (getAntwort.status !== 404) {
-    throw new Error(
-      `GitHub-Abfrage fehlgeschlagen: HTTP ${getAntwort.status}`
-    );
-  }
-
-  const payload = {
-    message: "Tokenizer aktualisieren",
-    content: Buffer.from(dateiInhalt, "utf8").toString("base64"),
-    branch: GITHUB_BRANCH
-  };
-
-  // SHA ist beim Ersetzen einer existierenden Datei notwendig.
-  if (sha) {
-    payload.sha = sha;
-  }
-
-  const putAntwort = await fetch(apiUrl, {
-    method: "PUT",
-    headers: {
-      ...headers,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
-
-  const putErgebnis = await putAntwort.json().catch(() => ({}));
-
-  if (!putAntwort.ok) {
-    console.error("GitHub meldet einen Fehler:", putAntwort.status);
-
-    throw new Error(
-      `GitHub konnte die Datei nicht speichern (HTTP ${putAntwort.status}). ` +
-      "Prüfe Token, Repository, Branch und Berechtigungen."
-    );
-  }
-
-  return {
-    gespeichert: true,
-    url: putErgebnis.content?.html_url || null,
-    meldung: "Tokenizer wurde auf GitHub gespeichert."
-  };
-}
-
-async function tokenizerAufGitHubSynchronisieren() {
-  if (!githubKonfiguriert()) {
-    console.log(
-      "GitHub-Upload übersprungen: Umgebungsvariablen fehlen."
-    );
-    return;
-  }
-
-  try {
-    const inhalt = fs.readFileSync(TOKENIZER_DATEI, "utf8");
-    const ergebnis = await githubDateiSpeichern(inhalt);
-
-    console.log("GitHub-Tokenizer:", ergebnis.meldung);
-    if (ergebnis.url) console.log(ergebnis.url);
-  } catch (fehler) {
-    console.error("GitHub-Upload fehlgeschlagen:", fehler.message);
-  }
-}
-
-// Erst lokal erstellen, dann automatisch nach GitHub hochladen.
-baueTokenizerAusDaten();
-
-if (textsammlung.length > 0) {
-  tokenizerAufGitHubSynchronisieren();
-} else {
-  // Lokale Datei erstellen, auch wenn noch keine Texte vorhanden sind.
-  tokenizer.speichern(TOKENIZER_DATEI);
-}
-
-// --------------------------------------------------
-// Sicherheit für den Aktualisierungs-Endpunkt
-// --------------------------------------------------
-
-function adminKeyIstGueltig(req) {
-  const erwartet = process.env.ADMIN_KEY;
-  const erhalten = req.headers["x-admin-key"];
-
-  if (
-    typeof erwartet !== "string" ||
-    erwartet.length === 0 ||
-    typeof erhalten !== "string"
-  ) {
-    return false;
-  }
-
-  const a = Buffer.from(erwartet);
-  const b = Buffer.from(erhalten);
-
-  return (
-    a.length === b.length &&
-    crypto.timingSafeEqual(a, b)
-  );
-}
-
-// --------------------------------------------------
-// HTTP-API und Website
+// HTTP-Server
 // --------------------------------------------------
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(
-    req.url,
-    `http://${req.headers.host || "localhost"}`
-  );
+  const host = req.headers.host || "localhost";
+
+  let url;
 
   try {
-    if (req.method === "GET" && url.pathname === "/") {
+    url = new URL(req.url, `http://${host}`);
+  } catch {
+    return sendeJson(res, 400, {
+      fehler: "Ungültige URL."
+    });
+  }
+
+  try {
+    // Website ausliefern.
+    if (
+      req.method === "GET" &&
+      (url.pathname === "/" || url.pathname === "/index.html")
+    ) {
       if (!fs.existsSync(HTML_DATEI)) {
-        return jsonAntwort(res, 404, {
+        return sendeJson(res, 404, {
           fehler: "index.html wurde nicht gefunden."
         });
       }
@@ -510,136 +417,92 @@ const server = http.createServer(async (req, res) => {
         "Content-Type": "text/html; charset=utf-8"
       });
 
-      return res.end(fs.readFileSync(HTML_DATEI));
+      return res.end(
+        fs.readFileSync(HTML_DATEI)
+      );
     }
 
-    if (req.method === "GET" && url.pathname === "/api/status") {
-      return jsonAntwort(res, 200, {
+    // Status des Sprach-Hirns anzeigen.
+    if (
+      req.method === "GET" &&
+      url.pathname === "/api/status"
+    ) {
+      return sendeJson(res, 200, {
         ok: true,
-        trainingsbeispiele: trainingsdaten.length,
-        netzBereit,
-        netzFehler,
+        modell: netz.status(),
         tokenizer: tokenizer.status(),
-        githubKonfiguriert: githubKonfiguriert()
+        trainingsFehler,
+        trainingsdateien: dateinamen,
+        githubUploadKonfiguriert: githubIstKonfiguriert()
       });
     }
 
+    // Antwort mit dem neuronalen Sprachmodell erzeugen.
     if (
       req.method === "POST" &&
-      url.pathname === "/api/vorhersage"
+      url.pathname === "/api/chat"
     ) {
-      const daten = await leseJsonAnfrage(req);
-      const x1 = Number(daten.x1);
-      const x2 = Number(daten.x2);
+      const daten = await leseJson(req);
 
-      if (![0, 1].includes(x1) || ![0, 1].includes(x2)) {
-        return jsonAntwort(res, 400, {
-          fehler: "x1 und x2 müssen jeweils 0 oder 1 sein."
-        });
-      }
+      const nachricht =
+        typeof daten.nachricht === "string"
+          ? daten.nachricht
+          : typeof daten.message === "string"
+            ? daten.message
+            : typeof daten.text === "string"
+              ? daten.text
+              : "";
 
-      const ergebnis = netzVorhersage([x1, x2]);
-
-      return jsonAntwort(res, 200, {
-        x1,
-        x2,
-        ...ergebnis
-      });
-    }
-
-    if (req.method === "POST" && url.pathname === "/api/chat") {
-      const daten = await leseJsonAnfrage(req);
-      const nachricht = String(
-        daten.nachricht ?? daten.message ?? daten.text ?? ""
-      ).trim();
-
-      if (!nachricht) {
-        return jsonAntwort(res, 400, {
+      if (!nachricht.trim()) {
+        return sendeJson(res, 400, {
           fehler: "Bitte gib eine Nachricht ein."
         });
       }
 
-      const text = nachricht.toLowerCase();
-      let antwort;
-
-      if (/^(hallo|hi|hey|guten morgen)\b/.test(text)) {
-        antwort = "Hallo! Schön, dass du da bist.";
-      } else if (text.includes("dein name")) {
-        antwort = "Ich bin deine selbst entwickelte KI.";
-      } else if (text.includes("wie geht")) {
-        antwort = "Danke der Nachfrage! Ich bin bereit zu lernen.";
-      } else if (
-        text.includes("was kannst du") ||
-        text.includes("hilfe")
-      ) {
-        antwort =
-          "Ich kann momentan einfache Antworten geben und " +
-          "einfache Zahlenbeispiele mit meinem neuronalen Netz berechnen.";
-      } else {
-        antwort =
-          "Ich habe deine Nachricht erhalten. Mein Textmodell muss " +
-          "noch entwickelt werden, damit ich daraus eigenständig " +
-          "Antworten erzeugen kann.";
-      }
-
-      return jsonAntwort(res, 200, {
-        antwort,
-        reply: antwort
-      });
-    }
-
-    // Neue Texte lernen und die Datei nach GitHub übertragen.
-    if (
-      req.method === "POST" &&
-      url.pathname === "/api/tokenizer/speichern"
-    ) {
-      if (!adminKeyIstGueltig(req)) {
-        return jsonAntwort(res, 403, {
-          fehler: "Zugriff verweigert."
-        });
-      }
-
-      const daten = await leseJsonAnfrage(req);
-
-      if (
-        !Array.isArray(daten.texte) ||
-        daten.texte.length === 0 ||
-        !daten.texte.every(
-          text => typeof text === "string" && text.length <= 5000
-        )
-      ) {
-        return jsonAntwort(res, 400, {
+      if (!netz.bereit) {
+        return sendeJson(res, 503, {
           fehler:
-            "Sende ein Array mit dem Namen 'texte', " +
-            "das kurze Textzeichenfolgen enthält."
+            trainingsFehler ||
+            "Das neuronale Sprachmodell ist noch nicht bereit."
         });
       }
 
-      tokenizer.lerneTexte(daten.texte);
-      tokenizer.speichern(TOKENIZER_DATEI);
+      // Eingabe in dieselbe Schreibweise bringen wie die Trainingsdaten.
+      const eingabe = nachricht
+        .normalize("NFC")
+        .toLocaleLowerCase("de-DE");
 
-      const inhalt = fs.readFileSync(TOKENIZER_DATEI, "utf8");
-      const githubErgebnis = await githubDateiSpeichern(inhalt);
+      const antwort = netz.antwortGenerieren(eingabe, {
+        maxTokens: 45,
+        temperatur: 0.8,
+        topK: 8
+      });
 
-      return jsonAntwort(res, 200, {
-        ok: true,
-        tokenizer: tokenizer.status(),
-        github: githubErgebnis
+      return sendeJson(res, 200, {
+        antwort,
+        reply: antwort,
+        generiertVomNeuronalenNetz: true
       });
     }
 
-    return jsonAntwort(res, 404, {
+    return sendeJson(res, 404, {
       fehler: "API-Endpunkt nicht gefunden."
     });
   } catch (fehler) {
     console.error("Anfrage fehlgeschlagen:", fehler.message);
 
-    return jsonAntwort(res, 500, {
-      fehler: fehler.message
-    });
+    return sendeJson(
+      res,
+      fehler.status || 500,
+      { fehler: fehler.message }
+    );
   }
 });
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server läuft auf Port ${PORT}.`);
+  console.log("Sprachmodell bereit:", netz.bereit);
+
+  // Datei nach dem Start mit GitHub synchronisieren.
+  void synchronisiereTokenizerMitGitHub();
 });

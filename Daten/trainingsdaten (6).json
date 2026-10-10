@@ -1,0 +1,2078 @@
+[
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 1)",
+    "antwort": "Programmierung (von altgriechisch πρόγραμμα prógramma „öffentlich und schriftlich bekannt gemachte Nachricht, Befehl“) bezeichnet die Tätigkeit, Computerprogramme zu erstellen und wird der Softwareentwicklung zugerechnet."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 2)",
+    "antwort": "Computerprogramme werden mit Hilfe einer Programmiersprache formuliert („codiert“). Die Programmierenden überführen dabei die z. B. im Pflichtenheft vorgegebenen Anforderungen in eine bestimmte Programmiersprache. Teilweise werden dazu Codegeneratoren verwendet, die Teile des Programmcodes auf Basis von Modellen (die im Entwurf entstanden sind) automatisch erzeugen."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 3)",
+    "antwort": "Beim Programmieren sind wesentliche Aspekte zur Softwarequalität zu berücksichtigen und durch die Gestaltung des Quellcodes umzusetzen. Siehe dazu als Beispiele: Programmierstil, Benutzerfreundlichkeit, Wiederverwendbarkeit / Modularität, Wartbarkeit."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 4)",
+    "antwort": "„Programmieren“ in erweitertem Sinn umfasst neben der Codeerstellung zahlreiche weitere Tätigkeiten, zum Beispiel das Testen (Entwicklertest) des Programms oder das Erstellen der Programmdokumentation. Abgrenzen vom Begriff des Programmierens lassen sich andere Tätigkeiten zur Softwareentwicklung wie beispielsweise das Projektmanagement, die Anforderungsanalyse oder die Datenmodellierung."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 5)",
+    "antwort": "Abhängig vom Typ und der Einsatzumgebung von Software (z. B. für Systemsoftware, Spielesoftware, Standardsoftware, Grafiksoftware. usw.) können zur Entwicklung unterschiedliche Verfahren oder/und Werkzeuge (wie Programmiersprachen, Testverfahren etc.) zum Einsatz kommen und/oder von spezialisierten Entwicklern ausgeführt werden."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 6)",
+    "antwort": "Je nach angewendetem Vorgehensmodell verlaufen die Aktivitäten zur Programmierung in zeitlich voneinander abgegrenzten Projektphasen, parallel oder iterativ. In der Praxis geschieht das Programmieren häufig in Teamarbeit, mit modernen Entwicklungsmethoden (wie Agile Softwareentwicklung) und Programmierwerkzeugen."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 7)",
+    "antwort": "Ähnliche Bedeutungen: Umgangssprachlich bezeichnet man gelegentlich auch das Konfigurieren (das Einstellen/Einrichten) von Haushalts- oder anderen elektrischen Geräten als „Programmieren“. Auch Organisationseinheiten von Unternehmen, in denen Software entwickelt wird, werden oder wurden zum Teil „Programmierung“ genannt."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 8)",
+    "antwort": "Charles Babbage beschrieb 1834 eine programmierbare Maschine, die Analytical Engine, welche allerdings nie gebaut wurde. Seine „Notations of calculations for the Analytical Engine“ umfasst 27 Programme. Diese sind in „The Babbage Papers“ des Science Museums von London abrufbar. Die Programme enthalten bereits „Indirekte Adressierung“ und „bedingte Ausführungen“ (IF-THEN-ELSE-Befehle). Diese Dokumente dürften als erste Programme und Programmiersprache bezeichnet werden."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 9)",
+    "antwort": "Ada Lovelace übersetzte 1843 eine ursprünglich französische Beschreibung der Analytical Engine von Luigi Federico Menabrea ins Englische und fügte eigene Notizen hinzu. Diese Anmerkungen enthielten einen tabellarischen Plan zur Berechnung der Bernoulli-Zahlen. 1941 realisierte Konrad Zuse mit dem Z3 die erste programmgesteuerte Rechenmaschine, von 1942 an entwickelte er mit Plankalkül die erste höhere Programmiersprache. Die Mathematikerin Grace Hopper schuf 1949 den ersten Compiler, der Quellcode in Maschinencode übersetzt."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 10)",
+    "antwort": "Die Qualität von Software entsteht zu großen Teilen im Rahmen der Tätigkeiten des Programmierens, besonders die folgenden Qualitätskriterien betreffend:"
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 11)",
+    "antwort": "Ein Programm muss die im Entwurf gemachten Vorgaben korrekt umsetzen. Dazu muss es in der Regel fehlerfrei sein, wobei beim Programmieren meist zwei verschiedene Arten von Fehlern auftreten:"
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 12)",
+    "antwort": "Syntaxfehler: Fehlerhaft formulierter Quellcode – man verwendet Formulierungen oder Konstrukte, die so nicht in der verwendeten Programmiersprache vorkommen (Tippfehler, Unkenntnis, …). Syntaxfehler können beim Übersetzen vom Compiler/Interpreter oder Parser erkannt werden und verhindern i. d. R. die Programmausführung."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 13)",
+    "antwort": "Semantische Fehler: Das Programm verhält sich nicht wie gewünscht, weil möglicherweise der Algorithmus oder seine Umsetzung fehlerhaft war. Semantische Fehler können in der Regel nicht automatisch erkannt, sondern nur durch gewissenhaftes Testen gefunden werden – beispielsweise in Form von Unittests."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 14)",
+    "antwort": "Der Übergang zwischen diesen beiden Fehlerarten ist fließend. Beispielsweise wird ein Tippfehler im Code (z. B. „>“ anstatt „<“ in einem Vergleichsbefehl) zu einem gültigen ausführbaren Programm führen, das Resultat dürfte jedoch falsch sein. An anderer Stelle könnte derselbe Fehler ein Syntaxfehler sein."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 15)",
+    "antwort": "Statistisch gesehen wird die meiste Zeit für die Entwicklung von Quelltext benötigt, um auf Fehler oder außergewöhnliche Anwendungs- oder Hardwareumgebungen zu reagieren. Ein Programmtext, der auch bei unvorhergesehenen Fehlern oder ungewöhnlichen Umgebungen sinnvoll reagiert, wird als robust bzw. portabel bezeichnet. Geübte Programmierer können die möglichen Fehler und Laufzeitumgebungen gut einschätzen und strukturieren das Programm und seinen Quelltext dementsprechend. Der Zeitdruck bei der Entwicklung von Anwendungen stellt selbst an erfahrene Programmierer immer höchste Ansprüche hinsichtlich dieses Kriteriums."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 16)",
+    "antwort": "Damit eine Software dauerhaft funktioniert, muss sie wartbar sein. Das heißt, Änderungen wie Bugfixes, Anpassungen und neue Features müssen ohne großen Aufwand eingepflegt werden können. Dies erfordert vor allem, dass der Programmierer keinen zu kurzen, „kryptischen“ Quelltext (oder Quellcode) erzeugen soll, der für andere Entwickler nicht oder nur mit hoher Einarbeitungszeit verständlich ist."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 17)",
+    "antwort": "Um solche Probleme zu vermeiden, existieren häufig Namenskonventionen, in denen beispielsweise selbsterklärende (oder auch „sprechende“) Bezeichner/Namen für Variablen etc. zur Verwendung empfohlen/vorgeschrieben werden – oder die Verwendung aussagefähiger Kommentare im Code. Auch eine sinnvolle Aufteilung des Codes in intuitiv verständliche Funktionen und Klassen trägt zum Verständnis und Übersichtlichkeit bei."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 18)",
+    "antwort": "In der Regel stehen einem Programm nur begrenzte Ressourcen (Laufzeit, Speicherverbrauch, Bandbreite) zur Verfügung. Gute Programmierung kann dazu beitragen, unnötigen Ressourcenverbrauch zu reduzieren. Beispielsweise erfolgt dies, indem bei Verwendung großer Datenmengen an mehreren Stellen im Programm nicht jeweils der gesamte Datensatz kopiert wird, sondern nur die Adresse übertragen wird, an der die Daten gespeichert werden."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 19)",
+    "antwort": "Gemäß Niklaus Wirth zeichnet sich gute Programmierung zum einen dadurch aus, dass die Funktionen, die die jeweils verwendete Programmierumgebung bereitstellt, möglichst effizient genutzt werden. Insbesondere geht es darum, für neue Aufgabenstellungen das Rad nicht immer wieder neu zu erfinden, wenn bestimmte Funktionen schon bereitgestellt werden (zum Beispiel durch die Programmierumgebung in Form von Programmbibliotheken)."
+  },
+  {
+    "frage": "Was erfährt man über Programmierung? (Textabschnitt 20)",
+    "antwort": "Sie zeichnet sich also vor allem dadurch aus, dass ein guter Überblick über den grundsätzlichen Funktionsumfang und die Systematik der von der Programmierumgebung bereitgestellten Funktionen (die in die zehntausende gehen können) möglich ist. Für eine definierte Aufgabenstellung kann in entsprechenden Dokumentationen dann schnell eine verfügbare Funktion ermittelt, eingesetzt und ggf. erweitert werden."
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 1)",
+    "antwort": "Eine Programmiersprache ist eine formale Sprache zur Formulierung von Datenstrukturen und Algorithmen, d. h. von Rechenvorschriften, die von einem Computer ausgeführt werden können. Sie setzen sich üblicherweise aus schrittweisen Anweisungen aus erlaubten (Text-)Mustern zusammen, der sogenannten Syntax."
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 2)",
+    "antwort": "Während die ersten Programmiersprachen noch unmittelbar an den Eigenschaften der jeweiligen Rechner ausgerichtet waren, werden heute meist problemorientierte oder auch (allgemeiner) höhere Programmiersprachen verwendet, die eine maschinenunabhängigere und somit für den Menschen leichter verständliche Ausdrucksweise erlauben. In diesen Sprachen geschriebene Programme können automatisiert in Maschinensprache übersetzt werden, welche unmittelbar von einem Prozessor ausgeführt werden kann. Zunehmend kommen auch visuelle Programmiersprachen zum Einsatz, welche den Zugang zu Programmiersprachen erleichtern."
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 3)",
+    "antwort": "Bei deklarativen Programmiersprachen ist der Ausführungsalgorithmus schon vorab festgelegt und wird nicht im Quelltext ausformuliert/beschrieben, sondern es werden nur seine Anfangswerte und Bedingungen festgelegt sowie die Regeln, die das Ergebnis erfüllen muss."
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 4)",
+    "antwort": "Die Anweisungen eines Programms werden meist mittels einfacher Texteditoren erzeugt; man nennt sie den Quelltext (oder auch Quellcode). Um auf einem Computer ausgeführt zu werden, muss der Quelltext in die Maschinensprache dieses Computer(typ)s übersetzt werden. Diese ist im Gegensatz zu höheren Programmiersprachen und zur Assemblersprache ein für Menschen schwer lesbarer Binärcode. Wird von Programmierung in Maschinensprache gesprochen, so ist heute meist die Assemblersprache gemeint."
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 5)",
+    "antwort": "Die Übersetzung in Maschinensprache kann entweder vor der Ausführung durch einen Compiler oder – zur Laufzeit – durch einen Interpreter oder JIT-Compiler geschehen. Oft wird eine Kombination aus beiden Varianten gewählt, bei der zuerst der Quelltext des Programms in einen Zwischencode übersetzt wird, welcher dann zur Laufzeit innerhalb einer Laufzeitumgebung in Maschinencode überführt wird. Dieses Prinzip hat den Vorteil, dass derselbe Zwischencode auf verschiedenen Plattformen ausführbar ist. Beispiele für einen solchen Zwischencode sind der Java-Bytecode sowie die Common Intermediate Language."
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 6)",
+    "antwort": "Programmiersprachen bieten meist mindestens"
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 7)",
+    "antwort": "Ein-/Ausgabe-Befehle, damit das Programm Daten entgegennehmen und wieder ausgeben kann;"
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 8)",
+    "antwort": "Deklaration von Variablen und Feldern, um Informationen zwischenspeichern zu können;"
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 9)",
+    "antwort": "mathematische Grund- und Standardfunktionen;"
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 10)",
+    "antwort": "Grundfunktionen zur Zeichenkettenverarbeitung;"
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 11)",
+    "antwort": "Steueranweisungen für bedingte Ausführung, Wiederholung, Programmunterteilung (z. B. in Unterfunktionen) sowie Einbinden von Bibliotheken."
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 12)",
+    "antwort": "Meist ist es möglich, aus diesen Grundfunktionen höhere Funktionen zu erstellen und diese als Bibliothek wiederverwendbar zu kapseln. Von dort zu einer höheren oder problemorientierten Sprache zu gelangen, ist kein großer Schritt mehr. So gab es schon bald eine große Zahl an Spezialsprachen für die verschiedensten Anwendungsgebiete."
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 13)",
+    "antwort": "Damit steigt die Effizienz der Programmierer und die Portabilität der Programme, meist nimmt dafür die Verarbeitungsgeschwindigkeit der erzeugten Programme ab, und die Mächtigkeit der Sprache nimmt ab: Je höher und komfortabler die Sprache, desto mehr ist der Programmierer daran gebunden, die in ihr vorgesehenen Wege zu beschreiten."
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 14)",
+    "antwort": "Sprachen sind verschieden erfolgreich – manche „wachsen“ und finden zunehmend breitere Anwendung; immer wieder sind auch Sprachen mit dem Anspruch entworfen worden, Mehrzweck- und Breitbandsprachen zu sein, oft mit bescheidenem Erfolg (PL/1, Ada, Algol 68). Verschiedene Dienste versuchen, die Verbreitung der verschiedenen Sprachen zu messen; bekannt sind beispielsweise der TIOBE-Index, PYPL und die Analysen von RedMonk."
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 15)",
+    "antwort": "Die Bedeutung von Programmiersprachen für die Informatik drückt sich auch in der Vielfalt der Ausprägungen und der Breite der Anwendungen aus."
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 16)",
+    "antwort": "Maschinensprache, Assemblersprachen oder C erlauben eine hardwarenahe Programmierung."
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 17)",
+    "antwort": "Höhere Programmiersprachen erlauben komfortableres, schnelleres Programmieren."
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 18)",
+    "antwort": "Skriptsprachen dienen zur einfachen Steuerung von Rechnern, wie bei der Stapelverarbeitung."
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 19)",
+    "antwort": "Sprachen mit visuellen Programmierumgebungen erleichtern die graphische Gestaltung von Benutzeroberflächen."
+  },
+  {
+    "frage": "Was erfährt man über Programmiersprache? (Textabschnitt 20)",
+    "antwort": "Esoterische Programmiersprachen sind experimentelle Sprachen mit unüblichen Programmierkonzepten und/oder Berücksichtigung themenfremder Aspekte, z. B. ästhetisches Aussehen des Quellcodes."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 1)",
+    "antwort": "Quelltext, auch Quellcode (englisch source code) oder unscharf Programmcode genannt, ist in der Informatik der für Menschen lesbare, in einer Programmiersprache geschriebene Text eines Computerprogrammes. Abstrakt betrachtet kann der Quelltext für ein Programm auch als Software-Dokument bezeichnet werden, welches das Programm formal so exakt und vollständig beschreibt, dass dieses aus ihm vollständig automatisch von einem Computer in Maschinensprache übersetzt werden kann."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 2)",
+    "antwort": "Quelltext kann auch (teilweise oder komplett) nicht-textueller Form sein, zum Beispiel als grafische Verknüpfung von logischen Funktionsblöcken (beispielsweise in Simulink oder als UML-Diagramm). Der Quelltext eines Programms kann mehrteilig sein, zum Beispiel auf mehrere Dateien (evtl. unterschiedlicher Formate) aufgeteilt sein oder teilweise grafisch, teilweise textuell vorliegen (z. B. UML, angereichert mit Methodenimplementierungen in der verwendeten Programmiersprache)."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 3)",
+    "antwort": "Quelltext wird meist manuell mit Hilfe einer integrierten Entwicklungsumgebung oder eines Texteditors erstellt. Es gibt aber auch Codegeneratoren, die den Code aus strukturierten Entwurfsdokumenten, z. B. Struktogrammen oder UML-Entwürfen, automatisch generieren. Eine weitere Erstellungsmöglichkeit sind Entwicklungswerkzeuge, die aus Entwürfen Code und umgekehrt auch aus Code wieder Entwürfe erzeugen können. Dabei werden manuelle Änderungen am Code nachträglich wieder in den Entwurf übernommen."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 4)",
+    "antwort": "Auf diese Weise ist ein „Round-Trip-Engineering“ möglich, bei dem an jeder Stelle manuelle Veränderungen in den gesamten Entwicklungsprozess eingebracht werden können."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 5)",
+    "antwort": "Zum Erstellen des Quelltextes ist meist ein einfacher Texteditor ausreichend. Mithilfe sprachspezifischer Editoren können gewisse Arbeitsschritte vereinfacht werden: Durch Syntaxhervorhebung werden Teile des Quelltextes entsprechend ihrer Funktionalität farblich hervorgehoben, was die Lesbarkeit verbessert. Ebenfalls zur Verbesserung der Lesbarkeit halten sich Programmierer meist an eine bestimmte Quelltextformatierung (z. B. Einrückung von Unterabschnitten, Groß-/Kleinschreibung …). In manchen Sprachen ist eine bestimmte Quelltextformatierung vorgegeben (z. B."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 6)",
+    "antwort": "Fortran-77, Python), manche integrierte Entwicklungsumgebung kann den Quelltext automatisch formatieren (sog. Beautifier)."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 7)",
+    "antwort": "Bei größeren Programmen, die aus vielen einzelnen Quelldateien bestehen, werden mitunter Informationen verwaltet, welche die Abhängigkeiten der Quelltextdateien untereinander beschreiben. Dies erlaubt beim Kompilieren mittels eines einzigen Aufrufes, alle Arbeitsschritte zur Erstellung des fertigen Programms auszuführen und nur jene Bestandteile erneut zu übersetzen, welche zwischenzeitlich geändert wurden oder von geänderten Komponenten abhängen. Beispiel hierfür sind Makefiles."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 8)",
+    "antwort": "Zur besseren Dokumentation der Änderungen oder der gezielten Synchronisierung von mehreren gleichzeitig arbeitenden Programmierern wird der Quelltext häufig mit einer Software-Versionsverwaltung gespeichert, wodurch Änderungen später einsehbar sind und erforderlichenfalls rückgängig gemacht werden können."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 9)",
+    "antwort": "Bevor das Programm, das der Programmierer schreibt, von einem Computer ausgeführt werden kann, muss es in Maschinensprache, also in eine vom Computer verständliche Folge von Bits, umgesetzt werden. Dies kann entweder vorab durch einen Compiler oder – zur Laufzeit – durch einen Interpreter oder JIT-Compiler geschehen."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 10)",
+    "antwort": "Bei einigen Programmiersprachen wird auch eine Kombination aus beiden Varianten gewählt, wobei zuerst der Quelltext der jeweiligen Sprache – meist vom Programmierer veranlasst – in einen abstrakten Zwischencode übersetzt wird, welcher dann zur Laufzeit von einer Laufzeitumgebung durch einen Interpreter oder JIT-Compiler in den Maschinencode überführt wird. Dieses Prinzip hat den Vorteil, dass ein und derselbe Zwischencode auf sehr vielen verschiedenen Plattformen ausführbar ist und somit nicht für jedes auf dem Markt übliche System eine eigene Version der Software erscheinen muss."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 11)",
+    "antwort": "Typische Beispiele für einen solchen Zwischencode sind der Java-Bytecode sowie die Common Intermediate Language. Mittels eines Debuggers kann die Funktionsweise des Programmes zur Laufzeit verfolgt werden."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 12)",
+    "antwort": "Kommen bei der Programmierung Precompiler zum Einsatz, so kann der vom Programmierer erzeugte originäre Quelltext u. a. Ausdrücke/Anweisungen enthalten, die die eigentliche Programmiersprache nicht ‚versteht‘. Ein Beispiel dafür sind SQL-Anweisungen. Solche Anweisungen werden vom Precompiler in Befehle der Programmiersprache übersetzt; in den dabei oft nur temporär erzeugten Quelltextdaten werden die Originalanweisungen meist als Kommentare eingefügt, um sichtbar zu bleiben. Ähnlich wird auch beim Einsatz von Makroprozessoren verfahren: Diese generieren aus den als Makro formulierten Anweisungen Befehle der jeweiligen Programmiersprache."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 13)",
+    "antwort": "Die bei der Kompilierung erzeugten Maschinenbefehle (bei höheren Programmiersprachen meist mehrere je Quellcodeanweisung) repräsentieren in der Regel die programmierte Funktion selbst (bei einfachen Befehlen wie z. B. Addieren von Variableninhalten); dazu gehören auch Aufrufe von Betriebssystemfunktionen. Alternativ kann der Compiler eine der programmierten Anweisung entsprechende Routine, z. B. aus einer Programmbibliothek, im Zielcode direkt einfügen – oder nur einen Aufrufbefehl für eine solche Routine (z. B. für einen Datenbankaufruf oder für komplexe Algorithmen)."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 14)",
+    "antwort": "So aufgerufene Routinen führen im Quelltext codierte Anweisungen als Unterprogramm und somit ‚gekapselt‘ aus."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 15)",
+    "antwort": "Software und der dazugehörige Quelltext unterliegen dem Urheberrecht. Sie können in zwei Kategorien unterteilt werden: Proprietäre Software und quelloffene-Software."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 16)",
+    "antwort": "Quelloffene Programme, also solche, die unter einer „Open-Source“-Lizenz stehen, werden in der Regel direkt mit ihrem Quelltext ausgeliefert, dessen Änderung und Weitergabe durch die Lizenz gestattet ist. Dies ermöglicht deren Studium, Prüfung und Anpassung für spezifische Bedürfnisse. Verfechter des Open-Source-Prinzips sind der Meinung, dass dies zudem die Qualität verbessere, da Fachleute die Fehler besser lokalisieren könnten und sie entweder direkt beheben oder den ursprünglichen Programmierern qualitativ bessere Fehlermeldungen liefern könnten."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 17)",
+    "antwort": "Die Möglichkeit, Open-Source-Software anhand ihres Quelltextes zu überprüfen, erhöhe das Vertrauen des Anwenders in ihre Korrektheit und Funktionalität im Sinne des Anwenders. Freie Software ist in diesem Sinne mit Open-Source-Software identisch."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 18)",
+    "antwort": "Proprietäre Software wird in der Regel ohne Quelltext (Closed Source) oder nur unter besonders restriktiven Lizenzen ausgeliefert. Dem Schutz des Abnehmers/Anwenders dienen dann manchmal Vereinbarungen zur Quelltexthinterlegung (Source Code Escrow Agreements). Bei individuell beauftragter Erstellung von Individualsoftware durch Dritte wird in der Regel die Übergabe des Quelltexts ebenfalls vereinbart. Bei Software, die ein Anwender, zum Beispiel ein Unternehmen, für eigene Zwecke erstellt, sind Lizenzvereinbarungen überflüssig."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 19)",
+    "antwort": "Im weiteren Sinne versteht man unter Quelltext auch die menschenlesbare Beschreibung eines gerenderten Mediums."
+  },
+  {
+    "frage": "Was erfährt man über Quelltext? (Textabschnitt 20)",
+    "antwort": "Der Quelltext von Web-Seiten ist in der Regel in HTML geschrieben."
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 1)",
+    "antwort": "Als Programmcode (oder Programmkode) werden die Anweisungen bezeichnet, die im Rahmen der Softwareentwicklung für ein bestimmtes Computerprogramm oder einen Teil davon entstehen und die dessen Funktionalität in einer bestimmten Programmiersprache beschreiben bzw. repräsentieren."
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 2)",
+    "antwort": "Im Allgemeinen werden folgende Arten von Programmcode unterschieden bzw. so bezeichnet:"
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 3)",
+    "antwort": "Quelltext ist die für Menschen lesbare und meist von Menschen erstellte Form eines Computerprogramms."
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 4)",
+    "antwort": "(wird auch Quell-, Source-, Primärcode oder Quellprogramm genannt)"
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 5)",
+    "antwort": "Zwischencode wird beim Kompiliervorgang erzeugt und anschließend interpretiert oder in andere formale Sprachen, z. B. Maschinencode, übersetzt."
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 6)",
+    "antwort": "(wird plattformspezifisch meist unterschiedlich bezeichnet: Bytecode, Objektcode, Pseudocode oder ähnlich)"
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 7)",
+    "antwort": "Maschinencode kann von einer Maschine direkt ausgeführt werden, ist für Menschen jedoch nicht oder nur schwer lesbar."
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 8)",
+    "antwort": "(wird auch Maschinenprogramm, Binärprogramm oder ähnlich genannt)"
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 9)",
+    "antwort": "Jeder Programmcode bezieht sich auf genau ein Programm oder einen Programmteil. Die verschiedenen Codearten bauen aufeinander auf; beispielsweise ist der Quelltext die Grundlage für den Zwischencode, dieser für den Maschinencode. In der Regel wird Quelltext von Programmierern erzeugt, die anderen Codearten automatisch generiert. Dabei werden auf der jeweils nächsten Entwicklungsstufe häufig die Programmcodes mehrerer Funktionen/Programmteile zusammengefasst, sodass beispielsweise der Maschinencode eines ganzen Programms (als letzte Stufe) unter Verwendung mehrerer/vieler Programmcode-Teile entstand."
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 10)",
+    "antwort": "Abgrenzung/Mehrdeutige Verwendung des Begriffs"
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 11)",
+    "antwort": "Mit ‚Programmcode‘ ist nicht ‚Code‘ im Sinn von Sprache/Syntax gemeint, sondern im Sinne von ‚Programmstück‘."
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 12)",
+    "antwort": "In der Literatur wird der Ausdruck „Programmcode“ zum Teil gleichbedeutend für nur eine der vorgenannten Unterarten verwendet, in vielen Fällen nur für „Quelltext“, aber auch für andere Codearten, zum Beispiel für „Maschinencode“."
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 13)",
+    "antwort": "Mit deklarativen oder mit grafischen Programmiersprachen erzeugte Anweisungen werden nur teilweise als Programmcode/Quelltext bezeichnet (Beispiel siehe), zum Teil aber auch als „Gegenteil von Programmcode“ (= kein Programm-„Text“), Beispiel siehe."
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 14)",
+    "antwort": "Programmcodevarianten unterscheiden sich bezüglich ihrer Struktur, Form, Syntax, Speicherung etc. je nach Programmiersprache und den verwendeten Programmierwerkzeugen erheblich. Zum Teil fallen nicht alle Codevarianten an (zum Beispiel kein Zwischencode oder kein Maschinencode), oder sie werden mit anderen Bezeichnungen benannt (wie „Bytecode“)."
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 15)",
+    "antwort": "In bestimmten Entwicklungsumgebungen wird zwischen verwaltetem Code und nicht verwalteten Code unterschieden (englisch ‚managed …‘ und ‚unmanaged code‘ genannt), siehe beispielsweise in Java oder auch in den .NET-Sprachen. Bei verwaltetem Code wird unter anderem die Speicherverwaltung weitgehend von der Laufzeitumgebung sowie von deren Übersetzern übernommen."
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 16)",
+    "antwort": "Im Rahmen der Entwicklung von Programmcode wird dieser meist sehr oft und kurzfristig geändert/korrigiert (Quelltext) bzw. neu erzeugt (die anderen Arten). Programmcodes existieren dabei oft nur temporär bis zum nächsten Arbeitsschritt oder bis zur nächsten Softwareversion, zum Beispiel nach der Korrektur eines Programmfehlers."
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 17)",
+    "antwort": "‚Programmcode‘ ist ein immaterieller Begriff und kann in unterschiedlichen Medien existieren, beispielsweise im Hauptspeicher eines Editors (während der Erstellung von Quelltext), als Member einer Programmbibliothek oder als ausführbare Datei (wenn er gespeichert wird), im Hauptspeicher des Computers (bei der Ausführung des Programms) oder auf Papier (beispielsweise in einer Quelltextliste)."
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 18)",
+    "antwort": "Bevor ein Computerprogramm von einem Computer ausgeführt werden kann, muss es in Maschinensprache, also in eine vom Computer verständliche Folge von Bits, umgesetzt werden. Dies kann entweder vorab durch einen Compiler oder – zur Laufzeit – durch einen Interpreter oder JIT-Compiler geschehen. In vielen Fällen wird mittlerweile eine Kombination aus beiden Varianten gewählt, bei der zur Übersetzungszeit der Quelltext der eigentlichen Programmiersprache in einen abstrakten Zwischencode übersetzt wird, welcher dann zur Laufzeit von einer Laufzeitumgebung durch einen Interpreter oder JIT-Compiler in den eigentlichen Maschinencode überführt wird."
+  },
+  {
+    "frage": "Was erfährt man über Programmcode? (Textabschnitt 19)",
+    "antwort": "Dieses Prinzip hat den Vorteil, dass ein und derselbe Zwischencode auf sehr vielen verschiedenen Rechnerarchitekturen ausführbar ist und somit nicht für jede Zielarchitektur eine eigene Version der Software erscheinen muss. Typische Beispiele für einen solchen Zwischencode sind der Java-Bytecode sowie die Common Intermediate Language. Mittels eines Debuggers kann die Funktionsweise des Programmes zur Laufzeit verfolgt werden."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 1)",
+    "antwort": "Ein Compiler (auch Kompilierer; von englisch compile ‚zusammentragen‘ bzw. lateinisch compilare ‚aufhäufen‘) ist ein Computerprogramm, das Quellcodes einer bestimmten Programmiersprache in eine Form übersetzt, die von einem Computer (direkter) ausgeführt werden kann. Daraus entsteht ein mehr oder weniger direkt ausführbares Programm. Davon zu unterscheiden sind Interpreter, etwa für frühe Versionen von BASIC, die keinen Maschinencode erzeugen."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 2)",
+    "antwort": "Teils wird zwischen den Begriffen Übersetzer und Compiler unterschieden. Ein Übersetzer überführt ein Programm aus einer formalen Quellsprache in ein semantisches Äquivalent in einer formalen Zielsprache. Compiler sind spezielle Übersetzer, die Programmcode aus höheren Programmiersprachen, in ausführbare Maschinensprache einer bestimmten Rechnerarchitektur oder einen Zwischencode überführen. Diese Trennung zwischen den Begriffen Übersetzer und Compiler wird nicht in allen Fällen vorgenommen."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 3)",
+    "antwort": "Der Vorgang der Übersetzung durch den Compiler wird als Kompilierung oder Umwandlung bezeichnet. Das Gegenteil, also die Rückübersetzung von Maschinensprache in Quelltext einer bestimmten Programmiersprache, wird Dekompilierung und entsprechende Programme Decompiler genannt."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 4)",
+    "antwort": "Ein Übersetzer ist ein Programm, das als Eingabe ein in einer Quellsprache formuliertes Programm akzeptiert und es in ein semantisch äquivalentes Programm in einer Zielsprache übersetzt. Es wird also insbesondere gefordert, dass das erzeugte Programm die gleichen Ergebnisse wie das gegebene Programm liefert. Als Ausnahme wird oft die Quell-Sprache Assembler angesehen – ihr Übersetzer (in Maschinencode) heißt „Assembler“ und wird i. A. nicht als „Compiler“ bezeichnet. Die Aufgabe des Übersetzers umfasst ein großes Spektrum an Teilaufgaben, von der Syntaxanalyse bis zur Zielcodeerzeugung."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 5)",
+    "antwort": "Eine wichtige Aufgabe besteht auch darin, Fehler im Quellprogramm zu erkennen und zu melden."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 6)",
+    "antwort": "Das Wort „Compiler“ stammt vom Englischen „to compile“ (dt. zusammentragen, zusammenstellen) ab und heißt im eigentlichen Wortsinn also „Zusammentrager“. In den 1950er-Jahren war der Begriff noch nicht fest in der Computerwelt verankert. Ursprünglich bezeichnete Compiler ein Hilfsprogramm, das ein Gesamtprogramm aus einzelnen Unterprogrammen oder Formelauswertungen zusammentrug, um spezielle Aufgaben auszuführen. (Diese Aufgabe erfüllt heute der Linker, der jedoch auch im Compiler integriert sein kann. ) Die einzelnen Unterprogramme wurden noch „von Hand“ in Maschinensprache geschrieben."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 7)",
+    "antwort": "Ab 1954 kam der Begriff „algebraic compiler“ für ein Programm auf, das die Umsetzung von Formeln in Maschinencode selbständig übernahm. Das „algebraic“ fiel im Laufe der Zeit weg."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 8)",
+    "antwort": "Ende der 1950er-Jahre wurde der Begriff des Compilers im englischsprachigen Raum noch kontrovers diskutiert. So hielt das Fortran-Entwicklerteam noch jahrelang am Begriff „translator“ (deutsch „Übersetzer“) fest, um den Compiler zu bezeichnen. Diese Bezeichnung ist sogar im Namen der Programmiersprache Fortran selbst enthalten: Fortran ist zusammengesetzt aus Formula und Translation, heißt also in etwa Formel-Übersetzung. Erst 1964 setzte sich der Begriff Compiler auch im Zusammenhang mit Fortran gegenüber dem Begriff Translator durch."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 9)",
+    "antwort": "Nach Carsten Busch liegt eine „besondere Ironie der Geschichte darin“, dass der Begriff Compiler im Deutschen mit „Übersetzer“ übersetzt wird. Einige deutsche Publikationen verwenden jedoch auch den englischen Fachbegriff Compiler anstelle von Übersetzer."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 10)",
+    "antwort": "In einem engeren Sinne verwenden einige deutschsprachige Publikationen den Fachbegriff Compiler jedoch nur, wenn die Quellsprache eine höhere Programmiersprache ist als die Zielsprache. Typische Anwendungsfälle sind die Übersetzung einer höheren Programmiersprache in die Maschinensprache eines Computers, sowie die Übersetzung in Bytecode einer virtuellen Maschine. Zielsprache von Compilern (in diesem Sinne) kann auch eine Assemblersprache sein. Ein Übersetzer zur Übertragung von Assembler-Quellprogrammen in Maschinensprache wird als Assembler oder Assemblierer bezeichnet."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 11)",
+    "antwort": "Bereits für die erste entworfene höhere Programmiersprache, den Plankalkül von Konrad Zuse, plante dieser – nach heutiger Terminologie – einen Compiler. Zuse bezeichnete ein einzelnes Programm als Rechenplan und hatte schon 1944 die Idee für ein sogenanntes Planfertigungsgerät, welches automatisch aus einem mathematisch formulierten Rechenplan einen gestanzten Lochstreifen mit entsprechendem Maschinenplan für den Zuse-Z4-Computer erzeugen sollte."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 12)",
+    "antwort": "Konkreter als die Idee von Zuse eines Planfertigungsgeräts war ein Konzept von Heinz Rutishauser zur automatischen Rechenplanfertigung. In einem Vortrag vor der Gesellschaft für Angewandte Mathematik und Mechanik (GAMM) wie auch 1951 in seiner Habilitationsschrift an der ETH Zürich beschrieb er, welche zusätzlichen Programmierbefehle (Instruktionen) und Hardware-Ergänzungen an der damals an der ETHZ genutzten Z4 nötig seien, um den Rechner ebenfalls als Hilfsmittel zur automatischen Programmerstellung einzusetzen."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 13)",
+    "antwort": "Ein früher Compiler wurde 1949 von der Mathematikerin Grace Hopper konzipiert. Bis zu diesem Zeitpunkt mussten Programmierer direkt Maschinencode erstellen. (Der erste Assembler wurde zwischen 1948 und 1950 von Nathaniel Rochester für eine IBM 701 geschrieben. ) Um diesen Prozess zu vereinfachen, entwickelte Grace Hopper eine Methode, die es ermöglichte, Programme und ihre Unterprogramme in einer mehr an der menschlichen als der maschinellen Sprache orientierten Weise auszudrücken. Am 3."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 14)",
+    "antwort": "Mai 1952 stellte Hopper den ersten Compiler A-0 vor, der Algorithmen aus einem Katalog abrief, Code umschrieb, in passender Reihenfolge zusammenstellte, Speicherplatz reservierte und die Zuteilung von Speicheradressen organisierte. Anfang 1955 präsentierte Hopper bereits einen Prototyp des Compilers B-0, der nach englischen, französischen oder deutschen Anweisungen Programme erzeugte. Hopper nannte ihren Vortrag zum ersten Compiler „The Education of a Computer“ („Die Erziehung eines Computers“)."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 15)",
+    "antwort": "Die Geschichte des Compilerbaus wurde von den jeweils aktuellen Programmiersprachen (vgl. Zeittafel der Programmiersprachen) und Hardwarearchitekturen geprägt. Weitere frühe Meilensteine sind 1957 der erste Fortran-Compiler und 1960 der erste COBOL-Compiler. Viele Architekturmerkmale heutiger Compiler wurden aber erst in den 1960er Jahren entwickelt."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 16)",
+    "antwort": "Früher wurden teilweise auch Programme als Compiler bezeichnet, die Unterprogramme zusammenfügen. Dies geht an der heutigen Kernaufgabe eines Compilers vorbei, weil Unterprogramme heutzutage mit anderen Mitteln eingefügt werden können: Entweder im Quelltext selbst, beispielsweise von einem Präprozessor (siehe auch Precompiler) oder bei übersetzten Komponenten von einem eigenständigen Linker."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 17)",
+    "antwort": "Die prinzipiellen Schritte bei der Übersetzung eines Quellcodes in einen Zielcode lauten:"
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 18)",
+    "antwort": "Es wird geprüft, ob der Quellcode ein gültiges Programm darstellt, also der Syntax der Quellsprache entspricht. Festgestellte Fehler werden protokolliert. Ergebnis ist eine Zwischendarstellung des Quellcodes."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 19)",
+    "antwort": "Die Zwischendarstellung wird analysiert und optimiert. Dieser Schritt variiert im Umfang je nach Compiler und Benutzereinstellung stark. Er reicht von einfacheren Effizienzoptimierungen bis hin zu Programmanalyse."
+  },
+  {
+    "frage": "Was erfährt man über Compiler? (Textabschnitt 20)",
+    "antwort": "Die optimierte Zwischendarstellung wird in entsprechende Befehle der Zielsprache übersetzt. Hierbei können weitere, zielsprachenspezifische Optimierungen vorgenommen werden."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 1)",
+    "antwort": "Als Interpreter wird ein Computerprogramm bezeichnet, das eine Abfolge von Anweisungen anscheinend direkt ausführt, wobei das Format der Anweisungen vorgegeben ist. Der Interpreter liest dazu eine oder mehrere Quelldateien ein, analysiert diese und führt sie anschließend Anweisung für Anweisung aus, indem er den dafür vorgesehenen Programmcode (eventuell über Zwischenschritte schließlich als Maschinencode für das jeweilige Computersystem) direkt ausführt. Interpreter sind deutlich langsamer als Compiler, bieten im Allgemeinen jedoch eine bessere Fehleranalyse."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 2)",
+    "antwort": "Interpreter werden sowohl bei Programmiersprachen als auch Kommandozeileninterpretern verwendet."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 3)",
+    "antwort": "Bei der Programmierung ist ein Interpreter fast immer ein Bestandteil der Softwareentwicklung."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 4)",
+    "antwort": "In ihrer Reinform übersetzen Compiler – im Unterschied zu Interpretern – die Anweisungen aus den Quelldateien in einem oder mehreren Durchläufen in Maschinencode für ein vorher festgelegtes Zielsystem und erstellen so ein ausführbares Computerprogramm. Jedoch gibt es bereits hier die Unterscheidung zwischen Compiler-Compiler und Interpreter-Compiler, genauso wie es auch Interpreter-Interpreter und Compiler-Interpreter gibt."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 5)",
+    "antwort": "Ist die letzte Stufe ein Interpreter, so erfolgt die Übersetzung der Quelldatei zur Laufzeit des Programms."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 6)",
+    "antwort": "Programmiersprachen, die Quelltext nicht kompilieren, sondern eine Eingabe oder eine Quelldatei stets interpretieren, werden auch als „Interpretersprache“ oder Skriptsprache bezeichnet. Klassische Interpretersprachen sind z. B. Tcl, JavaScript oder einige BASIC-Varianten."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 7)",
+    "antwort": "Bei einigen Programmiersprachen kann zwischen Interpreter und Compiler gewählt werden. So befand sich im ROM der meisten 8-Bit-Computer wie dem C64 für eine flüssige Programmentwicklung ohne Kompilierphasen ein BASIC-Interpreter; zur Beschleunigung fertig entwickelter Programme konnte ein kompatibler Compiler (z. B. BASIC BOSS) extern geladen werden. Auch die meisten Versionen von MS-DOS enthielten einen BASIC-Interpreter (z. B. GW-BASIC), zu dem ein kompatibler Compiler (hier BASCOM) erworben werden konnte."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 8)",
+    "antwort": "Bei einigen Programmiersprachen wird auch ein Bytecode als Zwischencode erzeugt, der bereits optimiert ist, jedoch zur Ausführung abermals einen Interpreter auf dem Zielsystem benötigt."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 9)",
+    "antwort": "Skripte für Kommandozeileninterpreter, etwa Stapelverarbeitungsdateien oder Unix-Shell-Skripte, werden ebenfalls von einem Interpreter ausgeführt. Damit das Skript nicht als Kommandozeilen-Parameter angegeben werden muss, gibt es auf Unix-artigen Systemen und Shells das sogenannte Shebang – das Skript ruft sich damit den passenden Interpreter – mithilfe der Shell – sozusagen selbst auf."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 10)",
+    "antwort": "Bei Computerprogrammen spricht man ebenfalls von Interpretern, sobald der Code nicht direkt vom Computersystem ausgeführt werden kann oder soll. Dies ist u. a. bei Emulatoren ebenfalls der Fall, die Maschinencode für andere Computersysteme analysieren, umschreiben und für das Computersystem, auf dem sie gerade laufen, interpretiert ausführen. Virtuelle Maschinen zählen jedoch nicht dazu, da diese große Teile des Maschinencodes des Gastsystems auf dem Hostsystem uninterpretiert direkt ausführen."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 11)",
+    "antwort": "Auch Game-Engines können Interpreter sein, wenn sie die eigentlichen Spieledaten, meist als Bytecode, auf der jeweiligen Plattform interpretiert ausführen."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 12)",
+    "antwort": "Interpreter liegen zumeist in Maschinensprache des Zielprozessors vor, können aber auch selbst wieder in einer Interpretersprache vorliegen. Der größte Nachteil ist dabei die gegenüber einem Compiler geringere Ausführungsgeschwindigkeit. Diese ist der Tatsache geschuldet, dass der Compiler sich während des Kompilierungsprozesses die Zeit nehmen kann, den Code zu optimieren, der somit auf dem jeweiligen Zielsystem schneller ausgeführt wird."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 13)",
+    "antwort": "Derlei Optimierungen sind jedoch zeitaufwendig, sodass ein Interpreter meist eine direkte Umsetzung auf Maschinencode durchführt, was jedoch in Summe wieder langsamer ist als der optimierte Code durch den Compiler."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 14)",
+    "antwort": "Interpretierter Code ist in etwa fünf bis 20 Mal langsamer als kompilierter Code."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 15)",
+    "antwort": "Zu den Vorteilen von interpretiertem Code zählt, neben der besseren Fehleranalyse, die Unabhängigkeit von einer vorher festgelegten Rechnerarchitektur – denn interpretierter Code läuft auf jedem System, auf dem es einen Interpreter dafür gibt."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 16)",
+    "antwort": "Eine Kompromisslösung ist ein Just-in-time-Compiler (JIT-Compiler), bei dem das Programm erst zur Laufzeit, jedoch direkt in Maschinencode übersetzt wird. Danach wird der übersetzte Code direkt vom Prozessor ausgeführt. Durch Zwischenspeicherung des Maschinencodes müssen mehrfach durchlaufene Programmteile nur einmal übersetzt werden. Auch ermöglicht der JIT-Compiler eine stärkere Optimierung des Binärcodes. JIT-Compiler sind allerdings nur auf einer bestimmten Rechnerarchitektur lauffähig, weil sie Maschinencode für diese Architektur erzeugen, und benötigen weit mehr Arbeitsspeicher als reine Interpreter."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 17)",
+    "antwort": "Eine weitere Zwischenstufe sind Bytecode-Interpreter. Dabei wird der Quelltext (vorab oder zur Laufzeit) in einen einfachen Zwischencode übersetzt, der dann von einem Interpreter – auch häufig als virtuelle Maschine bezeichnet – ausgeführt wird. Dies ist z. B. bei Java durch die Java Virtual Machine (JVM) der Fall. Es entspricht dem Konzept Compiler-Interpreter, da der Zwischencode bereits in Teilen optimiert kompiliert wurde (Quelltext → Compiler → Zwischencode als Bytecode → Interpreter → Ausführung auf dem Zielsystem)."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 18)",
+    "antwort": "Besonders in den 1980er Jahren benutzte man die Zwischenstufe, Befehle zum Eingabezeitpunkt in leichter dekodierbare Tokens umzuwandeln, die bei der (List-)Ausgabe wieder in Klartext umgewandelt wurden. Neben der Geschwindigkeitssteigerung war die Kompression des Quelltextes ein gewichtiges Argument. Prinzipiell war es damit auch möglich, jeweils muttersprachliche Schlüsselwörter zu verwenden, wenn man den Datenaustausch auf Basis des tokenisierten Quellprogramms durchführte."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 19)",
+    "antwort": "Da JIT-Code nicht automatisch schneller ist als interpretierter Code, verwenden manche Laufzeitumgebungen eine Mischform. Ein Beispiel dafür ist die JVM. Dabei wird der JIT-Compiler parallel mit dem Interpreter verwendet, wobei der jeweils schnellere Ausführungspfad „gewinnt“."
+  },
+  {
+    "frage": "Was erfährt man über Interpreter? (Textabschnitt 20)",
+    "antwort": "Als Interpretersprachen werden häufig Programmiersprachen bezeichnet, deren Haupt- oder Erstimplementierung ein Interpreter ist, als Gegenteil zu einer Programmiersprache, die einen Compiler verwendet (Compilersprache). Grundsätzlich ist eine Programmiersprache nicht an eine Art der Implementierung gebunden und es existieren Mischformen aus den beiden Ansätzen."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 1)",
+    "antwort": "Ein Algorithmus (benannt nach dem Mathematiker und Universalgelehrten al-Chwarizmi, von arabisch: الخوارزمی al-Ḫwārizmī, deutsch ‚der Choresmier‘) ist eine eindeutige Handlungsvorschrift zur Lösung eines Problems oder einer Klasse von Problemen. Algorithmen bestehen aus endlich vielen, wohldefinierten Einzelschritten. Damit können sie zur Ausführung in ein Computerprogramm implementiert, aber auch in menschlicher Sprache formuliert werden. Bei der Problemlösung wird eine bestimmte Eingabe in eine bestimmte Ausgabe überführt."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 2)",
+    "antwort": "Ein Algorithmus ist eine klare, endliche Abfolge von Anweisungen, die ein Problem löst oder eine Aufgabe ausführt. Um dies jedoch mit mathematischer Strenge zu definieren, benötigt man ein mathematisches Modell, welches beschreibt, wie mathematische Funktionen eine Eingabe in eine Ausgabe umwandeln, sogenannte Berechenbarkeitsmodelle. Das Referenz-Modell ist die Turingmaschine."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 3)",
+    "antwort": "Der Mangel an mathematischer Genauigkeit des Begriffs Algorithmus störte viele Mathematiker und Logiker des 19. und 20. Jahrhunderts, weswegen in der ersten Hälfte des 20. Jahrhunderts eine ganze Reihe von Ansätzen entwickelt wurde, die zu einer genauen Definition führen sollten. Eine zentrale Rolle nimmt hier der Begriff der Turingmaschine von Alan Turing ein. Weitere Formalisierungen des Berechenbarkeitsbegriffs sind die Registermaschinen, der Lambda-Kalkül (Alonzo Church), rekursive Funktionen, Chomsky-Grammatiken (siehe Chomsky-Hierarchie) und Markow-Algorithmen."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 4)",
+    "antwort": "Es wurde – unter maßgeblicher Beteiligung von Alan Turing selbst – gezeigt, dass all diese Methoden die gleiche Berechnungsstärke besitzen (gleich mächtig sind). Sie können durch eine Turingmaschine emuliert werden, und sie können umgekehrt eine Turingmaschine emulieren."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 5)",
+    "antwort": "Mit Hilfe des Begriffs der Turingmaschine kann folgende formale Definition des Begriffs formuliert werden:"
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 6)",
+    "antwort": "„Eine Berechnungsvorschrift zur Lösung eines Problems heißt genau dann Algorithmus, wenn eine zu dieser Berechnungsvorschrift äquivalente Turingmaschine existiert, die für jede Eingabe, die eine Lösung besitzt, stoppt.“"
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 7)",
+    "antwort": "Aus dieser Definition sind folgende Eigenschaften eines Algorithmus ableitbar:"
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 8)",
+    "antwort": "Das Verfahren muss in einem endlichen Text eindeutig beschreibbar sein (Finitheit)."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 9)",
+    "antwort": "Jeder Schritt des Verfahrens muss tatsächlich ausführbar sein (Ausführbarkeit)."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 10)",
+    "antwort": "Das Verfahren darf zu jedem Zeitpunkt nur endlich viel Speicherplatz benötigen (Dynamische Finitheit, siehe Platzkomplexität)."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 11)",
+    "antwort": "Das Verfahren darf nur endlich viele Schritte benötigen (Terminierung, siehe auch Zeitkomplexität)."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 12)",
+    "antwort": "Darüber hinaus wird der Begriff Algorithmus in praktischen Bereichen oft auf die folgenden Eigenschaften eingeschränkt:"
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 13)",
+    "antwort": "Der Algorithmus muss bei denselben Voraussetzungen das gleiche Ergebnis liefern (Determiniertheit)."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 14)",
+    "antwort": "Die nächste anzuwendende Regel im Verfahren ist zu jedem Zeitpunkt eindeutig definiert (Determinismus)."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 15)",
+    "antwort": "Die Church-Turing-These besagt, dass jedes intuitiv berechenbare Problem durch eine Turingmaschine gelöst werden kann. Als formales Kriterium für einen Algorithmus zieht man die Implementierbarkeit in einem beliebigen, zu einer Turingmaschine äquivalenten Formalismus heran, insbesondere die Implementierbarkeit in einer Programmiersprache – die von Church verlangte Terminiertheit ist dadurch allerdings noch nicht gegeben."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 16)",
+    "antwort": "Der Begriff der Berechenbarkeit ist dadurch dann so definiert, dass ein Problem genau dann berechenbar ist, wenn es einen (terminierenden) Algorithmus zu dem Problem gibt, das heißt, wenn eine entsprechend programmierte Turingmaschine das Problem in endlicher Zeit lösen könnte."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 17)",
+    "antwort": "Es sei bemerkt, dass die Ambiguität des Begriffs „intuitiv berechenbares Problem“ den mathematischen Beweis dieser These unmöglich macht. Es ist also theoretisch denkbar, dass intuitiv berechenbare Probleme existieren, die nach dieser Definition nicht als „berechenbar“ gelten. Bis heute wurde jedoch noch kein solches Problem gefunden."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 18)",
+    "antwort": "Turingmaschinen harmonieren gut mit den ebenfalls abstrakt-mathematischen berechenbaren Funktionen, reale Probleme sind jedoch ungleich komplexer, daher wurden andere Maschinen vorgeschlagen."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 19)",
+    "antwort": "Diese Maschinen weichen etwa in der Mächtigkeit der Befehle ab; statt der einfachen Operationen der Turingmaschine können sie teilweise mächtige Operationen, wie etwa Fourier-Transformationen, in einem Rechenschritt ausführen."
+  },
+  {
+    "frage": "Was erfährt man über Algorithmus? (Textabschnitt 20)",
+    "antwort": "Oder sie beschränken sich nicht auf eine Operation pro Rechenschritt, sondern ermöglichen parallele Operationen, wie etwa die Addition zweier Vektoren in einem Schritt."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 1)",
+    "antwort": "In der Informatik und Softwaretechnik ist eine Datenstruktur ein Objekt, welches zur Speicherung und Organisation von Daten dient. Es handelt sich um eine Struktur, weil die Daten in einer bestimmten Art und Weise angeordnet und verknüpft werden, um den Zugriff auf sie und ihre Verwaltung effizient zu ermöglichen."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 2)",
+    "antwort": "Datenstrukturen sind nicht nur durch die enthaltenen Daten charakterisiert, sondern vor allem durch die Operationen auf diesen Daten, die Zugriff und Verwaltung ermöglichen und realisieren."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 3)",
+    "antwort": "Die Festlegung (Definition) von Datenstrukturen erfolgt im Allgemeinen durch eine exakte Beschreibung (Spezifikation) zur Datenhaltung und der dazu nötigen Operationen. Diese konkrete Spezifikation legt das allgemeine Verhalten der Operationen fest und abstrahiert damit von der konkreten Implementierung der Datenstruktur."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 4)",
+    "antwort": "Wird der Schwerpunkt der Betrachtung nicht auf die konkrete Implementierung der Operationen verschoben, so wird anstelle des Begriffs Datenstruktur auch häufig von einem abstrakten Datentyp gesprochen. Der Übergang von der Datenstruktur zu einem abstrakten Datentyp ist dabei nicht klar definiert, sondern hängt einzig von der Betrachtungsweise ab. Mit Blick auf den oft veränderlichen Speicherbedarf vieler Datenstrukturen wird dann auch von dynamischen Datentypen gesprochen, denen technisch eine dynamische Speicherverwaltung zugrunde liegt."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 5)",
+    "antwort": "Von den meisten Datenstrukturen gibt es neben ihrer Grundform viele Spezialisierungen, die eigens für die Erfüllung einer bestimmten Aufgabe spezifiziert wurden. So sind beispielsweise B-Bäume als Spezialisierung der Datenstruktur Baum besonders gut für Implementierungen von Datenbanken geeignet."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 6)",
+    "antwort": "Bei vielen Algorithmen hängt der Ressourcenbedarf, also sowohl die benötigte Laufzeit als auch der Speicherplatzbedarf, von der Verwendung geeigneter Datenstrukturen ab."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 7)",
+    "antwort": "Die folgenden Datenstrukturen sind in der Regel für die klassische imperative Programmierung entwickelt und optimiert worden. Andere Programmierparadigmen wie die funktionale Programmierung können durchaus andere Datenstrukturen erfordern."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 8)",
+    "antwort": "Datensätze (auch 'Tupel') sind die einfachsten Datenstrukturen. Sie verkörpern üblicherweise in einer fest definierten Anzahl und Folge Werte, die andere Werte enthalten. Datensätze identifizieren sich meist durch eines oder mehrere der in ihnen enthaltenen Elemente, oft Datenfeld genannt."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 9)",
+    "antwort": "Das Array (auch Feld) ist die einfachste verwendete Datenstruktur. Es werden hierbei mehrere Variablen vom selben Basisdatentyp gespeichert. Ein Zugriff auf die einzelnen Elemente wird über einen Index möglich. Technisch gesehen entspricht dieser dem Wert, der zu der Startadresse des Arrays im Speicher addiert wird, um die Adresse des Objektes zu erhalten. Die einzigen notwendigen Operationen sind das indizierte Speichern und das indizierte Lesen, die auf jedes Element des Arrays direkt zugreifen können. Im eindimensionalen Fall wird das Array häufig als Vektor und im zweidimensionalen Fall als Tabelle oder Matrix bezeichnet."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 10)",
+    "antwort": "Arrays sind aber keinesfalls nur auf zwei Dimensionen beschränkt, sondern werden beliebig mehrdimensional verwendet. Wegen ihrer Einfachheit und grundlegenden Bedeutung bieten die allermeisten Programmiersprachen eine konkrete Umsetzung dieser Datenstruktur als zusammengesetzten Datentyp Array im Grundsprachumfang an."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 11)",
+    "antwort": "Ein Beispiel für die Verwendung von Arrays ist die Speicherung von Noten in einem Notenheft. Angenommen, wir haben ein Notenbuch mit Platz für 10 Noten. Wir können Arrays verwenden, um diese Noten effizient zu speichern. Jede Note wird anhand ihres Index im Array gespeichert."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 12)",
+    "antwort": "Einen Sonderfall bildet die Zuordnungstabelle (auch assoziatives Array oder Schlüssel-Wert-Paar), bei dem nicht über einen numerischen Index, sondern über einen Schlüssel auf die gespeicherten Daten zugegriffen wird. Eine mögliche Art, ein assoziatives Array zu implementieren, ist die Hashtabelle."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 13)",
+    "antwort": "Einen weiteren Sonderfall bildet die Menge. Sie ist ungeordnet. Es kann nicht mittels Index oder Schlüssel auf konkrete Werte zugegriffen werden. Die Menge entspricht einer Zuordnungstabelle mit Schlüsseln, die nur einmalig vorkommen können, aber ohne Werte."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 14)",
+    "antwort": "Ein Verbund (oder englisch Record) ist ein Datentyp, der aus einem oder mehreren Datentypen zusammengesetzt wurde."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 15)",
+    "antwort": "Die (verkettete) Liste ist eine Datenstruktur zur dynamischen Speicherung von beliebig vielen Objekten. Dabei beinhaltet jedes Listenelement einer verketteten Liste als Besonderheit einen Verweis auf das nächste Element, wodurch die Gesamtheit der Objekte zu einer Verkettung von Objekten wird. Die zu einer Liste gehörenden Operationen sind relativ unspezifiziert. Sie werden oft in komplizierteren Datenstrukturen verwendet und statt über Operationen wird dort aus Effizienzgründen meist direkt auf ihre Elemente zugegriffen."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 16)",
+    "antwort": "Die in Programmbibliotheken angebotenen Listen sind in ihrer zugrunde liegenden Datenstruktur meist viel komplexer und stellen nicht selten gar keine echten Listen dar, geben sich nach außen aber als solche aus. Listen sind stets lineare Strukturen. Werden Vorgänger und Nachfolger bidirektional verkettet, so spricht man von einer doppelt-verketteten Liste."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 17)",
+    "antwort": "In einer Warteschlange (englisch queue) kann eine beliebige Anzahl von Objekten gespeichert werden, jedoch können die gespeicherten Objekte nur in der gleichen Reihenfolge wieder gelesen werden, wie sie gespeichert wurden. Dies entspricht dem FIFO-Prinzip."
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 18)",
+    "antwort": "Für die Definition und damit die Spezifikation der Queue ist es unerheblich, welche Objekte in ihr gespeichert werden. Zu einer Queue gehören zumindest die Operationen"
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 19)",
+    "antwort": "enqueue, um ein Objekt in der Warteschlange zu speichern und"
+  },
+  {
+    "frage": "Was erfährt man über Datenstruktur? (Textabschnitt 20)",
+    "antwort": "dequeue, um das zuerst gespeicherte Objekt wieder zu lesen und aus der Warteschlange zu entfernen."
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 1)",
+    "antwort": "Der Pseudocode ist ein Programmcode, der nicht zur maschinellen Interpretation, sondern lediglich zur Veranschaulichung eines Paradigmas oder Algorithmus dient. Meistens ähnelt er höheren Programmiersprachen, gemischt mit natürlicher Sprache und mathematischer Notation. Mit Pseudocode kann ein Programmablauf unabhängig von zugrunde liegender Technologie beschrieben werden. Er ist damit oft kompakter und leichter verständlich als realer Programmcode. Andererseits ist er formaler und damit klarer und weniger missverständlich als eine Beschreibung in natürlicher Sprache."
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 2)",
+    "antwort": "Um einen Algorithmus zu verstehen, kann man ihn als Programm untersuchen. Das wird aber erschwert durch die Eigenheiten der Programmiersprache, vor allem ihrer Syntax. Zudem haben verschiedene Programmiersprachen unterschiedliche Syntaxen. Jede Formulierung als Programm in einer bestimmten Programmiersprache schließt alle Leser aus, die dieser Sprache nicht mächtig sind. Deshalb formuliert man den Algorithmus zwar ähnlich einem Programm, aber ohne auf eine bestimmte Programmiersprache einzugehen: in Pseudocode."
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 3)",
+    "antwort": "Pseudocode wird dann eingesetzt, wenn die Funktionsweise eines Algorithmus erklärt werden soll und Einzelheiten der Umsetzung in eine Programmiersprache stören würden. Ein typisches Beispiel sind die Felder, die etwa in Pascal von Eins an indiziert werden, in anderen Sprachen wie Java dagegen von Null an. In Lehrbüchern werden deshalb Algorithmen gelegentlich in Pseudocode wiedergegeben."
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 4)",
+    "antwort": "Man kann ein Programm durch Pseudocode spezifizieren. Das sollte allerdings eher vermieden werden, denn die Formulierung als Pseudocode ist bereits eine Programmiertätigkeit, die von der Konzentration auf die Anforderungen ablenkt."
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 5)",
+    "antwort": "Auch bei der Entwicklung von Algorithmen und der Umformung von Programmen (Programmtransformation, Refactoring) wird Pseudocode eingesetzt."
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 6)",
+    "antwort": "Pseudocode hat den Anspruch, intuitiv klar zu sein. Geeignete Metaphern aus der Umgangssprache geben einen Verfahrensschritt prägnant wieder, ohne dass dazu eine Erklärung nötig ist, zum Beispiel „durchlaufe das Feld a mit Index i“ oder „vertausche die Inhalte der Variablen x und y“. Solche Stilmittel verbessern die Übersicht."
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 7)",
+    "antwort": "Pseudocode kann sich in seinem Stil an eine bestimmte höhere Programmiersprache anlehnen, zum Beispiel an Pascal oder an C. Ein an die Programmiersprache Java angelehnter Pseudo-Code nennt sich Jana. Im Pascal-Stil werden Schlüsselwörter wie begin, end, then, do, repeat, until benutzt. Im C-Stil werden stattdessen geschweifte Klammern {,} gesetzt und das Schlüsselwort then wird ausgelassen. Dieser Stil wird oft von Programmierern benutzt, die solche Sprachen verwenden. Beide Stile findet man in Lehrbüchern."
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 8)",
+    "antwort": "Die Blockstruktur wird gelegentlich auch nur durch Einrücken wiedergegeben."
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 9)",
+    "antwort": "Eine Liste häufig verwendeter Schlüsselwörter:"
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 10)",
+    "antwort": "program Programmname ... end Programmname"
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 11)",
+    "antwort": "falls ... dann ... falls_nicht ... falls_ende"
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 12)",
+    "antwort": "wiederhole ... solange/bis ... wiederhole_ende"
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 13)",
+    "antwort": "for ... to ... step Schrittweite ... next"
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 14)",
+    "antwort": "Pseudocode im Buch Algorithmen – Eine Einführung"
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 15)",
+    "antwort": "Im Buch Algorithmen – Eine Einführung (englischer Originaltitel Introduction to Algorithms, übersetzt von Paul Molitor) werden Konventionen für einen Pseudocode definiert. Dabei werden keine Fehlerbehandlungen und andere Ausnahmen behandelt. Das folgende Beispiel (angelehnt an das erwähnte Buch) zeigt den Insertionsort-Algorithmus in dieser Pseudocode-Variante."
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 16)",
+    "antwort": "Es gelten in dieser Pseudocode-Variante folgende Konventionen:"
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 17)",
+    "antwort": "Einrückungen kennzeichnen die Blockstruktur. So werden im Beispiel die Zeilen 2 bis 9 der Prozedur INSERTION-SORT zugeordnet, die Zeilen 3 bis 9 der for-Schleife und die Zeilen 7 und 8 der while-Schleife."
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 18)",
+    "antwort": "Feldelemente werden mit 1 beginnend durchnummeriert."
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 19)",
+    "antwort": "Die Laufvariable einer for-Schleife behält ihren Wert auch nach dem Durchlauf der Schleife. Sie enthält dann den Wert des letzten Schleifendurchlaufs. Bei for-Schleifen wird das Schlüsselwort to verwendet, wenn die Laufvariable in jedem Schleifendurchlauf um delta bzw. eins erhöht wird, oder das Schlüsselwort downto, wenn die Laufvariable bei jedem Durchlauf um delta bzw. eins verringert wird."
+  },
+  {
+    "frage": "Was erfährt man über Pseudocode? (Textabschnitt 20)",
+    "antwort": "repeat-until-Schleife mit folgender Syntax:"
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 1)",
+    "antwort": "Ein Programmablaufplan (PAP) ist ein Ablaufdiagramm für ein Computerprogramm, das auch als Flussdiagramm (engl. flowchart) oder Programmstrukturplan bezeichnet wird. Es ist eine grafische Darstellung zur Umsetzung eines Algorithmus in einem Programm und beschreibt die Folge von Operationen zur Lösung einer Aufgabe."
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 2)",
+    "antwort": "Die Symbole für Programmablaufpläne sind nach der DIN 66001 genormt. Dort werden auch Symbole für Datenflusspläne definiert. Programmablaufpläne werden oft unabhängig von Computerprogrammen auch zur Darstellung von Prozessen und Tätigkeiten eingesetzt (z. B. als Beschreibung des Arbeitsablaufs bei der Angebotserstellung in einem Handelsunternehmen). Im Bereich der Softwareerstellung werden sie nur noch selten verwendet. Pseudocode bietet einen ähnlichen Abstraktionsgrad, ist jedoch einfacher zu erstellen und in der Regel sehr viel einfacher zu verändern als ein Ablaufdiagramm."
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 3)",
+    "antwort": "Das Konzept der Programmablaufpläne stammt, ebenso wie das etwas jüngere Nassi-Shneiderman-Diagramm (Struktogramm), aus der Zeit des imperativen Programmierparadigmas. Bei der Abbildung objektorientierter Programmkonzepte durch UML finden erweiterte Programmablaufpläne (Aktivitätsdiagramme) Anwendung."
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 4)",
+    "antwort": "Hauptsächlich werden die folgenden Elemente verwendet:"
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 5)",
+    "antwort": "6.4.1: Kreis; Oval / Rechteck mit gerundeten Ecken: Terminator"
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 6)",
+    "antwort": "6.3.1: Pfeil, Linie: Verbindung zum nächstfolgenden Element"
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 7)",
+    "antwort": "7.2.4: Rechteck mit doppelten, vertikalen Linien: Unterprogramm ausführen"
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 8)",
+    "antwort": "6.1.3: Raute: Verzweigung / Entscheidungen"
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 9)",
+    "antwort": "6.2.1: Parallelogramm: Ein- und Ausgabe (ist in der DIN 66001 von 1982 zwar definiert, soll jedoch nicht für PA verwendet werden)"
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 10)",
+    "antwort": "Die nebenstehende Abbildung zeigt eine Zählschleife."
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 11)",
+    "antwort": "Die Zählvariable i wird vor Beginn der Schleife auf ihren Startwert i=1 gesetzt. Danach wird die erste Anweisung der Schleife, das Ausgeben der Variable i, ausgeführt. Die nachfolgende zweite Anweisung ist eine Auswahl, die prüft, ob i den Wert 39 besitzt. Wenn dies der Fall ist, wird i auf den Wert 61 gesetzt und die Schleife beginnt mit dem nächsten Durchlauf. Falls i nicht 39 ist, wird i in der nachfolgenden Anweisung um eins erhöht und anschließend geprüft, ob die Schleifenfortsetzungsbedingung i≤100 gültig ist. Falls ja, erfolgt ein nochmaliger Schleifendurchlauf."
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 12)",
+    "antwort": "Ausgegeben würden alle natürlichen Zahlen von 1 bis 39 sowie 61 bis 100 (jeweils einschließlich). Falls nein, endet die Schleife."
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 13)",
+    "antwort": "Programmablaufpläne wurden anfangs manuell erstellt, alsbald unterstützt durch spezielle Zeichenschablonen."
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 14)",
+    "antwort": "Mittlerweile bieten viele Grafik- und Büro-Programme Vorlagen zum vereinfachten Erstellen von Programmablaufplänen, unterstützende Funktionen oder spezielle Module. Spezielle Programme bieten oft zusätzliche Fähigkeiten wie zum Beispiel automatisches Entflechten („kreuzungsfrei machen“) von Pfeilen und Verknüpfungslinien, oder das Prüfen auf Korrektheit entsprechend der DIN. Mitunter können Ablaufpläne aus Pseudocode oder aus Quellcode einer bestimmten Programmiersprache automatisch generiert werden, oder es kann umgekehrt aus einem Programmablaufplan der zugehörige Quellcode in einer bestimmten Programmiersprache erstellt werden."
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 15)",
+    "antwort": "Datenfluss- und Programmablaufpläne nach TGL 22451"
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 16)",
+    "antwort": "In der DDR waren Datenfluss- und Programmablaufpläne nach TGL 22451 genormt. Dabei orientierten sich die definierten Sinnbilder im Wesentlichen an der DIN 66001. Abweichungen gab es vor allem in der Vorgabe der Sinnbildgrößen, des Rasters (inklusive Koordinatensystem zum besseren Auffinden von Sprungstellen) eines Programmablaufplans auf einer Dokumentenseite, sowie in speziellen Flusslinien für die Parallelverarbeitung."
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 17)",
+    "antwort": "Sinnvoll war die Festlegung, dass bei einer Zusammenführung die Richtung über eine zusätzliche Pfeilspitze anzugeben ist."
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 18)",
+    "antwort": "Neben dem Datenfluss- und Programmablaufdiagramm definierte die TGL 22451 auch eine Kurzschreibweise für die Darstellung eines Programms mit Hilfe der Programmlinienmethode."
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 19)",
+    "antwort": "Für das Anfertigen von Diagrammen nach TGL 22451 gab es spezielle Papiervordrucke, auf denen das Raster für die Anordnung der Sinnbilder (Blockfelder) vorgedruckt wurde."
+  },
+  {
+    "frage": "Was erfährt man über Programmablaufplan? (Textabschnitt 20)",
+    "antwort": "Norbert von Bertoldi, Jutta Bayer: Programmablaufpläne (PAPs) und Struktogramme professionell erstellen: kaufmännische Prüfungsaufgaben erfolgreich lösen. IWT-Verlag, Vaterstetten 1993, ISBN 3-88322-448-0."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 1)",
+    "antwort": "Die Softwaretechnik bzw. Softwaretechnologie oder das Software-Engineering (SE) beschäftigt sich mit der Herstellung oder Entwicklung von Software, der Organisation und Modellierung der zugehörigen Datenstrukturen und dem Betrieb von Softwaresystemen. Eine Definition von Helmut Balzert beschreibt das Gebiet als"
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 2)",
+    "antwort": "Softwaretechnik umfasst eine Vielzahl von Teilgebieten, die in ihrer Gesamtheit die Softwareentwicklung begleiten. Wichtig ist auch die experimentelle Untersuchung von Softwaretechnik, um ihren praktischen Nutzen zu messen und zu verbessern. Zur Beschreibung des „Standes der Technik“ des Fachgebiets gibt es verschiedene Ansätze, unter anderem den Guide to the Software Engineering Body of Knowledge (SWEBOK) der IEEE Computer Society."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 3)",
+    "antwort": "Die IT-Disziplin Softwaretechnik wird im Sprachgebrauch und als Synonym mit „Softwareentwicklung“ bezeichnet; im sprachlich engeren Sinn steht „Softwareentwicklung“ jedoch für die Tätigkeiten, die innerhalb der Disziplin Softwaretechnik ausgeführt werden."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 4)",
+    "antwort": "In erweitertem Sinn versteht man unter Softwaretechnik – neben dem Entwickeln – auch das Betreiben von Software unter Nutzung der Informationstechnik und/oder die technischen Geräte und die Systemsoftware, die dazu oder zur Softwareentwicklung verwendet werden."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 5)",
+    "antwort": "Aufgrund des hohen Aufwandes zur Erstellung und Wartung komplexer Software erfolgt die Entwicklung durch Softwareentwickler anhand eines strukturierten (Projekt-)Planes. Dieser Plan (das Vorgehensmodell) unterteilt den Entwicklungsprozess in überschaubare, zeitlich und inhaltlich begrenzte Phasen. Die Software wird somit Schritt für Schritt fertiggestellt. Die Phasen sind während des ganzen Entwicklungsprozesses eng miteinander verzahnt."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 6)",
+    "antwort": "In der Praxis werden auch Verfahren eingesetzt, welche die Mehrstufigkeit von Systemanalyse, Systemdesign/Konzept und anschließender Implementierung und Testen aufgeben, beispielsweise unter Prototyping, Agile Softwareentwicklung."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 7)",
+    "antwort": "Die Softwaretechnik umfasst den gesamten Prozess von der Identifizierung des Bedarfs bis hin zur Inbetriebnahme einer konkreten IT-Lösung, zum Teil auch darüber hinaus. Hauptgegenstand ist die Bereitstellung und Einführung einer Anwendungssoftware, teilweise zuzüglich der benötigten Hardware und Netzwerke."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 8)",
+    "antwort": "Die zu implementierende Software kann entweder eine Individualsoftware oder eine Kombination und Konfiguration von Standardsoftware sein."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 9)",
+    "antwort": "Projekte werden oftmals von oder mit externen Dienstleistungsunternehmen, häufig aber auch als Eigenentwicklung geleistet. Dementsprechend vielfältig, auch abhängig von der Projektart, sind auch die Vorgehensweisen bei der Projektentwicklung: Von einer sehr strukturierten Herangehensweise, siehe Wasserfallmodell, über verschiedene Mischformen bis hin zu sehr flexiblen, offenen Methoden wie der Agilen Softwareentwicklung. Entsprechend wird auch zwischen Top-Down- und Bottom-Up-Ansätzen unterschieden."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 10)",
+    "antwort": "Im Folgenden werden einige wichtige Aspekte und typische Stufen/Phasen der Projektentwicklung beschrieben, die in der Praxis mehr oder weniger ausgeprägt zum Tragen kommen."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 11)",
+    "antwort": "Die Phasen und ihre Aufgabenstellungen sind in der folgenden Tabelle aufgeführt:"
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 12)",
+    "antwort": "Die oben genannten Teilschritte der Softwareentwicklung werden nicht zwangsläufig bei jedem Projekt komplett durchlaufen. Vielmehr werden einzelne Prozesse spezifisch für die jeweilige Anforderung gewählt. Dies ist aus Sicht der Kosten- und Verwaltungsreduzierung notwendig."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 13)",
+    "antwort": "Der gesamte Prozess einer Projektentwicklung unterliegt meist einem mehr oder weniger stark ausgeprägten Projektmanagement. Im Falle der Realisierung durch einen IT-Dienstleister wird meist sowohl auf Auftraggeber- als auch auf Auftragnehmer-Seite ein jeweils eigenständiges Projektmanagement betrieben. Um Konflikte zwischen den beiden Projektleitern aufzulösen, wird dem übergeordnet oftmals noch ein aus dem Management von Auftraggeber und Auftragnehmer zusammengesetztes Kontrollgremium (Lenkungsausschuss) eingesetzt."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 14)",
+    "antwort": "Typischerweise wird für größere Projekte auch ein größerer Projektmanagement-Aufwand betrieben, während mittlere oder kleinere Projekte häufig „nebenbei“ abgewickelt werden."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 15)",
+    "antwort": "Oft werden externe IT-Berater zur Ergänzung und Unterstützung der an der Projektabwicklung beteiligten Personen herangezogen."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 16)",
+    "antwort": "Das Qualitätsmanagement innerhalb des Projekts wird als Teilbereich des Projektmanagements verstanden. Es umfasst die Teilgebiete:"
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 17)",
+    "antwort": "Qualitätsplanung, das heißt Identifizierung der für das Projekt relevanten Qualitätskriterien und der Methoden, mit denen sie erfüllt werden können."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 18)",
+    "antwort": "Qualitätssicherung, das heißt regelmäßige und regelgerechte Bewertung der Projektleistung, damit das Projekt die Qualitätsstandards erfüllt."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 19)",
+    "antwort": "Qualitätslenkung, das heißt Überwachen der Projektergebnisse, um festzustellen, ob die Qualitätsstandards erfüllt werden, und um die Ursachen unzureichender Leistungen zu beseitigen."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretechnik? (Textabschnitt 20)",
+    "antwort": "Das Qualitätsmanagement im Projekt muss sowohl die Leistung des Projekts als auch die Qualität des Projektprodukts ansprechen. Modernes Qualitätsmanagement und modernes Produktmanagement ergänzen sich. Beide Disziplinen erkennen die Bedeutung von"
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 1)",
+    "antwort": "Ein Debugger (von engl. de- (Präfix; dt. ent-, aus-) im Sinne von entfernen und engl. bug im Sinne von Programmfehler) ist ein Werkzeug zum Diagnostizieren und Auffinden von Fehlern in Computersystemen, dabei vor allem in Programmen, aber auch in der für die Ausführung benötigten Hardware. Debugging bezeichnet die Tätigkeit, solche Fehler zu diagnostizieren und aufzufinden, sei es unter Verwendung eines Debuggers oder anderer Methoden."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 2)",
+    "antwort": "Der Begriff „debugging“ (zu deutsch entwanzen) wird häufig Grace Hopper zugeschrieben, eine Legende, die sie selber gerne erzählte, welche allerdings nicht ganz korrekt ist. 1947 hatte während der Arbeiten am Mark II eine Motte für den Ausfall eines Relais dieses Computers gesorgt. Das Team von Grace Hopper fand die Motte und klebte sie in das Logbuch zusammen mit dem Satz „First actual case of bug being found. “ („Das erste Mal, dass tatsächlich ein Bug gefunden wurde. “). Daraufhin soll sich die Bezeichnung „debugging“ für „Fehlersuche“ im Team eingebürgert haben."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 3)",
+    "antwort": "Der Begriff „Bug“ (für Insekt, Käfer, Schädling) war allerdings im Englischen unter Ingenieuren bereits seit dem 19. Jahrhundert als Bezeichnung für Fehlfunktionen in Gebrauch und wurde entsprechend bereits 1937 im Webster’s New International Dictionary als Slang erwähnt. Mit Bugfix (engl. fix für reparieren, ausbessern) wird die Behebung eines Programmfehlers bezeichnet."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 4)",
+    "antwort": "die Steuerung des Programmablaufs, insbesondere durch Haltepunkte und die Einzelschritt-Verarbeitung von Befehlen"
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 5)",
+    "antwort": "das Inspizieren von Daten, z. B. die Register, den aktuellen Programmcode als Assembler oder Hochsprachenquelltext, den allgemeinen Daten in festen und flüchtigen Speichern, der Erzeugung von fortgeschrittenen Daten-Interpretationen etwa durch eine Aufrufstapel-Funktionalität oder das Anzeigen von Ein-/Ausgabe-Registern, Tabellen und Hochsprachen-Strukturen"
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 6)",
+    "antwort": "das Modifizieren von Speichern, z. B. des Hauptspeichers, der externen Ein-/Ausgabe-Zustände und der Register des Prozessorkerns"
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 7)",
+    "antwort": "Je nach Debugger und Beschaffenheit der Hardware ist es auch möglich, Rückmeldungen und Fehlerzustände (Exceptions) des Zielsystems aufzufangen. Hier sind vor allem Speicherzugriffsfehler interessant, ungültige Opcodes und Befehlsfolgen, bei denen Eingangs- oder Ausgangsgrößen fraglich sind, etwa eine versuchte Division durch Null."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 8)",
+    "antwort": "Man unterscheidet grundsätzlich zwischen Remote-Debugging von entfernten Systemen und Debugging, das innerhalb des zu untersuchenden Prozessorsystems mit Bord-Mitteln vorgenommen wird. Eine Spezialversion ist das Remote-Debugging mittels einer Simulation des Zielsystems durch eine Prozessor-Simulation und weitere Elemente. Das Debuggen einer virtuellen Maschine stellt eine Zwischenform zwischen den beiden Typen dar, wobei die virtuelle Maschine prinzipiell sowohl den Charakter einer lokalen Anwendung wie auch eines eigenständigen Systems hat. Die Überwindung der Prozessor-Architektur stellt zumindest grundsätzlich einen gewissen Aufwand dar."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 9)",
+    "antwort": "Je nach Konzeption sind beim Debugging sogar taktgenaue Bestimmungen des Laufzeitverhaltens möglich, wobei z. B. eine Simulation dabei nicht zwangsweise in Echtzeit ablaufen muss. Bei Simulationen von Halbleitern der Kategorie ASIC, FPGA oder PLC sind sowohl Hardware- wie auch Software-Simulationen gängige Hilfsmittel, die über einen entsprechend speziellen Debugger für den Entwickler zugänglich sind."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 10)",
+    "antwort": "Einfache Fehlersuche auf Assembler-Ebene ist bei einem dafür ausgelegten System jederzeit möglich. Manche Hochsprachen, wie etwa Skripte oder diverse BASIC-Varianten, lassen sich dagegen oft nur zeilenbasiert auf Quelltextebene untersuchen. Erweiterte Funktionalitäten, z. B. das Auflösen von Symbolen, Strukturen und Funktionsnamen werden mit dem Vorhandensein von Symbol-Informationen in einer speziellen Datei oder eingebettet in einem Binärprogramm (z. B. DWARF-Debug-Information) möglich. Fortgeschrittene Debugger- und Entwicklungssysteme können weiterhin z. B."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 11)",
+    "antwort": "im laufenden Betrieb Daten mitschneiden, Leistungsanalysen anfertigen und nebenläufige Vorgänge visualisieren."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 12)",
+    "antwort": "Ein Debugger ist systematisch am ehesten vergleichbar mit dem, was in der Elektrotechnik und Elektronik durch die typischen Messgeräte und Hilfsmittel, z. B. einen Logik-Tester, ein Multimeter, ein Oszilloskop oder einen Signalgenerator, an Möglichkeiten für die Inbetriebnahme und Überwachung von entsprechenden Systemen zur Verfügung steht."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 13)",
+    "antwort": "Moderne Debugger haben die Möglichkeit, Änderungen am Quelltext während der Programmausführung direkt zu übersetzen und anschließend das Programm fortzusetzen. Diese Technik wird auch als just in time debugging bezeichnet. Ein Debugger ist oft Bestandteil einer Programm-Entwicklungsumgebung."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 14)",
+    "antwort": "Darüber hinaus kann ein Debugger beim Reverse Engineering auch dazu eingesetzt werden, um mit der Ablaufverfolgung und dem Untersuchen von Variablen Fremdprogramme besser und schneller zu verstehen."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 15)",
+    "antwort": "In objektorientierten Laufzeitsystemen, bei der parallelen Programmierung oder in verteilten Systemen ist es sehr schwierig oder in der Praxis sogar unmöglich, eine genaue Programmabfolge zu definieren. Einige Entwicklungssysteme verzichten daher auf den Einsatz von Laufzeit-Debuggern, lassen aber in der Regel die Definition von Haltepunkten zu, an dem der Zustand aller Variablen nach dem Programmstopp analysiert werden kann. Auch bei der Ausnahmebehandlung, also nach Programmunterbrechungen, die zum Beispiel durch einen Fehler erzwungen werden, werden sogenannte Post-Mortem-Debugger in diesem Sinne eingesetzt."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 16)",
+    "antwort": "Die wichtigste Fähigkeit eines Debuggers besteht darin, Haltepunkte zu setzen. Diese ermöglichen es, an beliebiger Stelle eines Programms dessen Ausführung zu unterbrechen und so die Untersuchung der Register und des Speichers zu ermöglichen."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 17)",
+    "antwort": "Am häufigsten werden Software-Haltepunkte genutzt, welche ein Byte im zu untersuchenden Programm temporär verändern. Dieses Byte ist die Anweisung, einen Breakpoint Interrupt auszulösen, die Programmausführung beim veränderten Byte anzuhalten."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 18)",
+    "antwort": "Diese Möglichkeit beinhaltet allerdings die Einschränkung, dass das zu untersuchende Programm sich selbst nicht auf Integrität prüfen darf (zum Beispiel durch Überprüfung einer Prüfsumme, siehe dazu auch Zyklische Redundanzprüfung). Diese Schwäche der weichen Haltepunkte nutzen Malwareprogrammierer zum Beispiel aus, um die Analyse eines Schadprogramms zu erschweren oder sogar zu verhindern."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 19)",
+    "antwort": "Dieser Einschränkung unterliegen die Hardware-Haltepunkte nicht, da diese das zu untersuchende Programm nicht verändern. Hardware-Haltepunkte sind direkt im Prozessor realisiert; allerdings besitzt dieser nur begrenzte Ressourcen dafür, so dass nur eine begrenzte Anzahl dieser Haltepunkte zur Verfügung steht."
+  },
+  {
+    "frage": "Was erfährt man über Debugger? (Textabschnitt 20)",
+    "antwort": "Viele Debugger erlauben es dem Programmierer, bedingte Haltepunkte zu setzen. Dabei gibt der Programmierer neben der Anweisung, wo die Programmausführung angehalten werden soll, den Befehl für einen booleschen Ausdruck an. Der Debugger unterbricht die Programmausführung nur dann, wenn die angegebene Codezeile erreicht wurde und gleichzeitig der boolesche Ausdruck wahr ist."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 1)",
+    "antwort": "Ein Softwaretest prüft und bewertet Software auf Erfüllung der für ihren Einsatz definierten Anforderungen und misst ihre Qualität. Die gewonnenen Erkenntnisse werden zur Erkennung und Behebung von Softwarefehlern genutzt. Tests während der Softwareentwicklung dienen dazu, die Software möglichst fehlerfrei in Betrieb zu nehmen."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 2)",
+    "antwort": "Diese für eine einzelne Testmaßnahme verwendete Bezeichnung wird auch – im Sinn von „Testprozess“ – für mehrere oder die Gesamtheit von Maßnahmen zur Überprüfung der Softwarequalität (inkl. Planung, Vorbereitung, Steuerung, Durchführung, Dokumentation usw.) verwendet; siehe auch Definitionen."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 3)",
+    "antwort": "Den Nachweis, dass keine Fehler (mehr) vorhanden sind, kann das Softwaretesten nicht erbringen. Es kann lediglich fallibilistisch feststellen, dass bestimmte Testfälle erfolgreich waren. Edsger W. Dijkstra schrieb hierzu: „Program testing can be used to show the presence of bugs, but never to show their absence! “ (Das Testen von Programmen kann die Existenz von Fehlern zeigen, aber niemals deren Nichtvorhandensein). Der Grund ist, dass alle Programmfunktionen und auch alle möglichen Werte in den Eingabedaten in allen ihren Kombinationen getestet werden müssten – was (außer bei sehr einfachen Testobjekten) praktisch nicht möglich ist."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 4)",
+    "antwort": "Aus diesem Grund beschäftigen sich verschiedene Teststrategien und -konzepte mit der Frage, wie mit einer möglichst geringen Anzahl von Testfällen eine große Testabdeckung zu erreichen ist."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 5)",
+    "antwort": "Pol, Koomen, Spillner erläutern 'Testen' wie folgt: „Tests sind nicht die einzige Maßnahme im Qualitätsmanagement der Softwareentwicklung, aber oft die letztmögliche. Je später Fehler entdeckt werden, desto aufwändiger ist ihre Behebung, woraus sich der Umkehrschluss ableitet: Qualität muss (im ganzen Projektverlauf) implementiert und kann nicht 'eingetestet' werden. “ Und: „Beim Testen in der Softwareentwicklung wird i. d. R. eine mehr oder minder große Fehleranzahl als 'normal' unterstellt oder akzeptiert."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 6)",
+    "antwort": "Hier herrscht ein erheblicher Unterschied zur Industrie: Dort werden im Prozessabschnitt 'Qualitätskontrolle' oft nur noch in Extremsituationen Fehler erwartet. “"
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 7)",
+    "antwort": "Es gibt unterschiedliche Definitionen für den Softwaretest:"
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 8)",
+    "antwort": "Nach ANSI/IEEE Std. 610.12-1990 ist das Testen (engl. ‚Testing‘) „the process of operating a system or component under specified conditions, observing or recording the results and making an evaluation of some aspects of the system or component.“"
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 9)",
+    "antwort": "Eine andere Definition liefert Ernst Denert, wonach der „Test […] der überprüfbare und jederzeit wiederholbare Nachweis der Korrektheit eines Softwarebausteines relativ zu vorher festgelegten Anforderungen“ ist."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 10)",
+    "antwort": "Eine weitergehende Definition verwenden Pol, Koomen und Spillner: Unter Testen versteht man den Prozess des Planens, der Vorbereitung und der Messung, mit dem Ziel, die Eigenschaften eines IT-Systems festzustellen und den Unterschied zwischen dem tatsächlichen und dem erforderlichen Zustand aufzuzeigen. Bemerkenswert hierbei: Als Messgröße gilt 'der erforderliche Zustand', nicht nur die (möglicherweise fehlerhafte) Spezifikation."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 11)",
+    "antwort": "'Testen' ist ein wesentlicher Teil im Qualitätsmanagement von Projekten der Softwareentwicklung."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 12)",
+    "antwort": "Im September 2013 wurde die Norm ISO/IEC/IEEE 29119 Software Testing veröffentlicht, die international erstmals viele (ältere) nationale Normen des Softwaretestens, wie z. B. die IEEE 829, zusammenfasst und ersetzt. Die Normreihe ISO/IEC 25000 ergänzt die Seite des Software-Engineering als Leitfaden für (die gemeinsamen) Qualitätskriterien und ersetzt die Norm ISO/IEC 9126."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 13)",
+    "antwort": "„Kein umfangreiches System ist fehlerfrei.“ Jedes Softwaresystem von genügender Komplexität weist Fehler auf. Diesen können neben vielen anderen Fehlergründen zum Beispiel nicht bedachte Ausnahmesituationen oder nicht berücksichtigte Randbedingungen zugrunde liegen."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 14)",
+    "antwort": "In der Softwareentwicklung wird der Test verwendet, um den Verlust von Geld, Zeit, Menschenleben oder anderen materiellen oder immateriellen Gütern, die durch mangelhafte Qualität eines Softwaresystems verursacht werden, zu minimieren. Durch das systematische Testen einer Software während der Entwicklung können Fehler früh festgestellt werden, was deren Fehlerkosten nach der Rule of ten minimiert."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 15)",
+    "antwort": "Globales Ziel des Softwaretestens ist das Messen der Qualität des Softwaresystems. Dabei dienen definierte Anforderungen als Prüfreferenz, mittels derer ggf. vorhandene Fehler aufgedeckt werden. ISTQB: Der Wirkung von Fehlern (im produktiven Betrieb) wird damit vorgebeugt."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 16)",
+    "antwort": "Ein Rahmen für diese Anforderungen können die Qualitätsparameter gem. ISO/IEC 9126 sein, denen jeweils konkrete Detailanforderungen z. B. zur Funktionalität, Bedienbarkeit, Sicherheit usw. zugeordnet werden können. Im Besonderen ist auch die Erfüllung gesetzlicher und/oder vertraglicher Vorgaben nachzuweisen."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 17)",
+    "antwort": "Die Testergebnisse (die über verschiedene Testverfahren gewonnen werden) tragen zur Beurteilung der realen Qualität der Software bei – als Voraussetzung für deren Freigabe zum operativen Betrieb. Das Testen soll Vertrauen in die Qualität der Software schaffen."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 18)",
+    "antwort": "Individuelle Testziele: Da das Softwaretesten aus zahlreichen Einzelmaßnahmen besteht, die i. d. R. über mehrere Teststufen hinweg und an vielen Testobjekten ausgeführt werden, ergeben sich individuelle Testziele für jeden einzelnen Testfall und für jede Teststufe – wie z. B. Rechenfunktion X in Programm Y getestet, Schnittstellentest erfolgreich, Wiederinbetriebnahme getestet, Lasttest erfolgreich, Programm XYZ getestet usw."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 19)",
+    "antwort": "Die Einordnung der Teststufen (zum Teil auch Testzyklen genannt) folgt gemäß V-Modell dem Entwicklungsstand des Systems. Ihr Inhalt orientiert sich dabei an den Entwicklungsstufen von Projekten. Dabei wird in jeder Teststufe (rechte Seite im 'V') gegen die Systementwürfe und Spezifikationen der zugehörigen Entwicklungsstufe (linke Seite) getestet, d. h., die Testziele und Testfälle basieren auf den jeweiligen Entwicklungsergebnissen. Dieses Vorgehensprinzip ist allerdings nur anwendbar, wenn evtl. in späteren Entwicklungsstufen vorgenommene Änderungen in den älteren Spezifikationen nachgeführt wurden."
+  },
+  {
+    "frage": "Was erfährt man über Softwaretest? (Textabschnitt 20)",
+    "antwort": "In der Realität werden diese Ausprägungen, abhängig von der Größe und Komplexität des Software-Produkts, weiter untergliedert. So könnten beispielsweise die Tests für die Entwicklung von sicherheitsrelevanten Systemen in der Transportsicherungstechnik folgendermaßen untergliedert sein: Komponententest auf dem Entwicklungsrechner, Komponententest auf der Ziel-Hardware, Produkt-Integrationstests, Produkttest, Produkt-Validierungstests, System-Integrationstest, Systemtest, System-Validierungstests, Feldtests und Akzeptanztest."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 1)",
+    "antwort": "Ein Modultest (auch von englisch unit test als Unittest oder als Komponententest bezeichnet) ist ein Softwaretest, mit dem einzelne, abgrenzbare Teile von Computerprogrammen (z. B. ausgewählte Codeabschnitte, Module, Unterprogramme, Units oder Klassen) überprüft werden. Testziel dieser häufig durch den Softwareentwickler selbst durchgeführten Softwaretests ist, deren technische Lauffähigkeit und die Korrektheit ihrer fachlichen (Teil-)Ergebnisse nachzuweisen."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 2)",
+    "antwort": "Der Ausdruck Modultest wird auch als eine frühe Teststufe verstanden, in der die inneren, detailliertesten Komponenten der Software getestet werden. Siehe dazu auch die Grafik Stufen des V-Modells im Vorgehensmodell (nach Barry Boehm). Gemäß Software Validation & Verification Plan sind Modultests nur für Module mit geringer Kritikalität (die bei Fehlern den Benutzern nur geringe Unannehmlichkeiten bereiten) nicht notwendig."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 3)",
+    "antwort": "Da Algorithmen auf Unitebene meist nur eine begrenzte Komplexität aufweisen und über klar definierte Schnittstellen aktiviert werden, können sie mit relativ wenigen Testfällen weitgehend vollständig getestet werden. Dies gilt als Voraussetzung für die anschließende Teststufe Integrationstest, um dort die Testfälle auf das integrierte Zusammenwirken größerer Funktionsteile oder der gesamten Anwendung ausrichten zu können; die modulspezifischen Detailkonstellationen lassen sich damit dort auf Stichproben beschränken, was die Anzahl der erforderlichen Testfälle drastisch reduziert."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 4)",
+    "antwort": "Zum Vergleich: Ein Gerät wird erst dann als Ganzes getestet, wenn die Funktionsfähigkeit seiner Einzelteile als gesichert gilt."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 5)",
+    "antwort": "Modultests zählen zu den White-Box-Tests. Das heißt, dass bei der Definition der Testfälle der zu testende Quellcode bekannt ist. Die Spezifikation der Software wird lediglich für die Bestimmung der Soll-Ergebnisse benutzt. Prinzipiell müssen alle Quellcode-Teile mindestens einmal ausgeführt werden. Anweisungsüberdeckung, Zweigüberdeckung oder Pfadüberdeckung können dabei helfen festzustellen, welche Testfälle hierzu in der Theorie mindestens erforderlich sind (siehe dazu Kontrollflussorientierte Testverfahren)."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 6)",
+    "antwort": "In der Praxis versucht man in aller Regel, das gesetzte Überdeckungsziel mit möglichst wenigen Testfällen zu erreichen, da alle Modultests auch laufend gepflegt werden müssen."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 7)",
+    "antwort": "Üblicherweise orientieren sich alle Modultests an einem einheitlichen Grundaufbau. Dabei wird zunächst (1) ein Ausgangszustand initialisiert, hierauf (2) die zu testende Operation ausgeführt und zuletzt (3) das Ist-Ergebnis mit einem aus der Spezifikation abgeleiteten Sollwert verglichen. Für diese Vergleiche stellen die Test-Frameworks assert-Methoden (deutsch etwa: feststellen, versichern) zur Verfügung."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 8)",
+    "antwort": "Modultests testen ein Modul isoliert, d. h. weitgehend ohne Interaktion mit anderen Modulen. Deshalb müssen oder können bei Modultests andere Module beziehungsweise externe Komponenten wie etwa eine Datenbank, Dateien, Backendsysteme oder Unterprogramme durch Hilfsobjekte simuliert werden, soweit das zu testende Modul (Prüfling oder Testobjekt) dies erfordert."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 9)",
+    "antwort": "Dazu einsetzbare Hilfsobjekte lassen sich im Wesentlichen danach unterscheiden,"
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 10)",
+    "antwort": "ob sie ein aufzurufendes Modul ersetzen (Prüfling ist das aufrufende Modul; das Ersatzobjekt wird ‚Stub‘ genannt),"
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 11)",
+    "antwort": "ob sie den Aufruf (die Umgebung) eines zu testenden Moduls/Unterprogramms ersetzen (Prüfling ist die Unterroutine, die den Aufruf simulierende Routine wird ‚Driver‘ genannt)."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 12)",
+    "antwort": "Wie vollständig die Hilfsroutine das Verhalten des Originals abbildet, etwa bei Plausibilitätsprüfungen oder bei der Rückgabe von Antwortcodes, ist durch entsprechendes Testfalldesign zu berücksichtigen. Besonders in objektorientierten Programmiersprachen lassen sich diesbezüglich weitere, detailliertere Kategorien von Hilfsobjekten unterscheiden, siehe Mock-Objekt."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 13)",
+    "antwort": "Derartige Hilfsobjekte werden z. B. als Stellvertreter implementiert und mittels Inversion of Control bereitgestellt. Ein Modul kann so meist einfacher getestet werden, als wenn alle Module bereits integriert sind, da in diesem Fall die Abhängigkeit der Einzelmodule mit in Betracht gezogen und im Testhandling berücksichtigt werden müsste. Auch sind derart isolierte Modultests schon möglich, wenn andere, eigentlich benötigte Komponenten für den Test noch nicht verfügbar sind."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 14)",
+    "antwort": "Vollständige Tests mit allen Komponenten in ihrer Originalversion sind Gegenstand der später stattfindenden Integrations- und Systemtests – wobei ggf. im Modultest nicht erkannte Fehler (z. B. wegen identischer Falschannahmen für das Testobjekt und die Hilfsroutine) entdeckt werden sollten."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 15)",
+    "antwort": "Test des Vertrages und nicht der Algorithmen"
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 16)",
+    "antwort": "Modultests testen gemäß dem Design-by-contract-Prinzip möglichst nicht die Interna einer Methode, sondern nur ihre externen Auswirkungen (Rückgabewerte, Ausgaben, Zustandsänderungen, Zusicherungen). Werden die internen Details der Methode geprüft (dies wird als White-Box-Testing bezeichnet), könnte der Test fehlschlagen, obwohl sich die externen Auswirkungen nicht geändert haben. Daher wird in der Regel das sogenannte Black-Box-Testing empfohlen, bei dem man sich auf das Prüfen der externen Auswirkungen beschränkt."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 17)",
+    "antwort": "Mit der Verbreitung von agilen Softwareentwicklungsmethoden und insbesondere testgetriebener Entwicklung ist es üblich geworden, Modultests möglichst automatisiert auszuführen. Dazu werden üblicherweise mit Hilfe von Test Frameworks wie beispielsweise JUnit Testprogramme geschrieben. Über die Test Frameworks werden die einzelnen Testklassen aufgerufen und deren Komponententests ausgeführt. Die meisten Test Frameworks geben eine grafische Zusammenfassung der Testergebnisse aus."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 18)",
+    "antwort": "Automatisierte Modultests haben den Vorteil, dass sie einfach und kostengünstig ausgeführt und dass neue Programmfehler schnell gefunden werden können."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 19)",
+    "antwort": "Mittels automatisierter Unittests können im Schnitt 30 % der Fehler erkannt werden. Bei der Verwendung von testgetriebener Entwicklung können im Schnitt 45 % und im besten Fall 85 % der Fehler vermieden werden."
+  },
+  {
+    "frage": "Was erfährt man über Modultest? (Textabschnitt 20)",
+    "antwort": "Fehler werden durch Modultests bereits während der Entwicklung erkannt. Die durch Unittests vermiedenen Fehlerkosten sind daher gemäß der Rule of Ten um ein Vielfaches höher als bei späteren Teststufen, was Unittests zur effizientesten Teststufe machen."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 1)",
+    "antwort": "Eine Versionsverwaltung ist ein System, das zur Erfassung von Änderungen an Dokumenten oder Dateien verwendet wird. Alle Versionen werden in einem Archiv mit Zeitstempel und Benutzerkennung gesichert und können später wiederhergestellt werden. Versionsverwaltungssysteme werden typischerweise in der Softwareentwicklung eingesetzt, um Quelltexte zu verwalten. Versionsverwaltung kommt auch bei Büroanwendungen oder Content-Management-Systemen zum Einsatz."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 2)",
+    "antwort": "Ein Beispiel ist die Protokollierung in vielen Wikis, etwa in Wikipedia: Hier erzeugt die Software nach jeder Änderung eines Artikels eine neue Version. Alle Versionen bilden eine Kette, in der die jeweils letzte Version gültig ist; es sind meist keine Varianten vorgesehen. Da zu jedem Versionswechsel die grundlegenden Angaben wie Verfasser und Uhrzeit festgehalten werden, kann genau nachvollzogen werden, wer wann was geändert hat. Bei Bedarf – beispielsweise bei versehentlichen Änderungen – kann man zu einer früheren Version zurückkehren."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 3)",
+    "antwort": "Die Versionsverwaltung ist eine Form des Variantenmanagements; dort sind verschiedene Sprachvarianten oder modal auch anders bestimmte Varianten möglich. Für Versionsverwaltungssysteme ist die Abkürzung VCS (Version Control System) gebräuchlich."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 4)",
+    "antwort": "Protokollierungen der Änderungen: Es kann jederzeit nachvollzogen werden, wer wann was geändert hat."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 5)",
+    "antwort": "Wiederherstellung von alten Ständen einzelner Dateien: Somit können versehentliche Änderungen jederzeit wieder rückgängig gemacht werden."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 6)",
+    "antwort": "Archivierung der einzelnen Stände eines Projektes: Dadurch ist es jederzeit möglich, auf alle Versionen zuzugreifen."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 7)",
+    "antwort": "Koordinierung des gemeinsamen Zugriffs von mehreren Entwicklern auf die Dateien."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 8)",
+    "antwort": "Gleichzeitige Entwicklung mehrerer Entwicklungszweige (engl. Branch) eines Projektes, was nicht mit der Abspaltung eines anderen Projekts (engl. Fork) verwechselt werden darf."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 9)",
+    "antwort": "Ein Branch, zu Deutsch Zweig, ist eine Verzweigung zu einer neuen Version, so dass unterschiedliche Versionen parallel im selben Projekt weiterentwickelt werden können. Änderungen können dabei von einem Branch auch wieder in einen anderen einfließen, was als Merging, zu deutsch verschmelzen, bezeichnet wird. Oft wird der Hauptentwicklungszweig als Trunk (z. B. bei Subversion) oder Main (ehemals Master) (z. B. bei Git) bezeichnet. Branches können zum Beispiel für neue Hauptversionen einer Software erstellt werden oder für Entwicklungszweige für unterschiedliche Betriebssysteme oder aber auch, um experimentelle Versionen zu erproben."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 10)",
+    "antwort": "Wird ein Zweig in einer neuen, unabhängigen Versionsverwaltung erstellt, spricht man von einem Fork. Ein bestimmter Stand kann auch mit einem Tag (einem frei wählbaren Bezeichner) gekennzeichnet werden."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 11)",
+    "antwort": "Damit die eingesetzten Programme wie z. B. Texteditoren oder Compiler mit den im Repository (engl. Behälter, Aufbewahrungsort) abgelegten Dateien arbeiten können, ist es erforderlich, dass jeder Entwickler sich den aktuellen (oder einen älteren) Stand des Projektes in Form eines Verzeichnisbaumes aus herkömmlichen Dateien erzeugen kann. Ein solcher Verzeichnisbaum wird als Arbeitskopie bezeichnet. Ein wichtiger Teil des Versionsverwaltungssystems ist ein Programm, das in der Lage ist, diese Arbeitskopie mit den Daten des Repositorys zu synchronisieren."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 12)",
+    "antwort": "Das Übertragen einer Version aus dem Repository in die Arbeitskopie wird als Checkout, Aus-Checken oder Aktualisieren bezeichnet, während die umgekehrte Übertragung Check-in, Einchecken oder Commit genannt wird. Solche Programme werden entweder kommandozeilenorientiert, mit grafischer Benutzeroberfläche oder als Plugin für integrierte Softwareentwicklungsumgebungen ausgeführt. Häufig werden mehrere dieser verschiedenen Zugriffsmöglichkeiten wahlweise bereitgestellt."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 13)",
+    "antwort": "Es gibt drei Arten der Versionsverwaltung, die älteste funktioniert lokal, also nur auf einem Computer, die nächste Generation funktionierte mit einem zentralen Archiv und die neueste Generation arbeitet verteilt, also ohne zentrales Archiv. Allen gemein ist, dass die Versionsverwaltungssoftware dabei üblicherweise nur die Unterschiede zwischen zwei Versionen speichert, um Speicherplatz zu sparen. Die meisten Systeme verwenden hierfür ein eigenes Dateiformat oder eine Datenbank. Dadurch kann eine große Zahl von Versionen archiviert werden."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 14)",
+    "antwort": "Durch dieses Speicherformat kann jedoch nur mit der Software des Versionsverwaltungssystems auf die Daten zugegriffen werden, die die gewünschte Version bei einem Abruf unmittelbar aus den archivierten Versionen rekonstruiert."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 15)",
+    "antwort": "Bei der lokalen Versionsverwaltung wird oft nur eine einzige Datei versioniert, diese Variante wurde mit Werkzeugen wie SCCS und RCS umgesetzt. Sie findet auch heute noch Verwendung in Büroanwendungen, die Versionen eines Dokumentes in der Datei des Dokuments selbst speichern. Auch in technischen Zeichnungen werden Versionen zum Beispiel durch einen Änderungsindex verwaltet."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 16)",
+    "antwort": "Diese Art ist als Client-Server-System aufgebaut, sodass der Zugriff auf ein Repository auch über Netzwerk erfolgen kann. Durch eine Rechteverwaltung wird dafür gesorgt, dass nur berechtigte Personen neue Versionen in das Archiv legen können. Die Versionsgeschichte ist hierbei nur im Repository vorhanden. Dieses Konzept wurde vom Open-Source-Projekt Concurrent Versions System (CVS) populär gemacht, mit Subversion (SVN) neu implementiert und von vielen kommerziellen Anbietern verwendet."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 17)",
+    "antwort": "Die verteilte Versionsverwaltung (DVCS, distributed VCS) verwendet kein zentrales Repository mehr. Jeder, der an dem verwalteten Projekt arbeitet, hat sein eigenes Repository und kann dieses mit jedem beliebigen anderen Repository abgleichen. Die Versionsgeschichte ist dadurch genauso verteilt. Änderungen können lokal verfolgt werden, ohne eine Verbindung zu einem Server aufbauen zu müssen."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 18)",
+    "antwort": "Im Gegensatz zur zentralen Versionsverwaltung kommt es nicht zu einem Konflikt, wenn mehrere Benutzer dieselbe Version einer Datei ändern. Die sich widersprechenden Versionen existieren zunächst parallel und können weiter geändert werden. Sie können später in eine neue Version zusammengeführt werden. Dadurch entsteht ein gerichteter azyklischer Graph (Polyhierarchie) anstatt einer Kette von Versionen."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 19)",
+    "antwort": "In der Praxis werden bei der Verwendung in der Softwareentwicklung meist einzelne Features oder Gruppen von Features in separaten Versionen entwickelt und diese bei größeren Projekten von Personen mit einer Integrator-Rolle überprüft und zusammengeführt."
+  },
+  {
+    "frage": "Was erfährt man über Versionsverwaltung? (Textabschnitt 20)",
+    "antwort": "Systembedingt bieten verteilte Versionsverwaltungen keine Locks. Da wegen der höheren Zugriffsgeschwindigkeit die Granularität der gespeicherten Änderungen viel kleiner sein kann, können sie sehr leistungsfähige, weitgehend automatische Merge-Mechanismen zur Verfügung stellen."
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 1)",
+    "antwort": "Git [ɡɪt] ist eine freie Software zur verteilten Versionsverwaltung von Dateien, die durch Linus Torvalds initiiert wurde."
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 2)",
+    "antwort": "Durch eine Lizenzänderung des bis dahin genutzten proprietären BitKeeper-Systems konnten die Linux-Kernel-Entwickler dieses nicht mehr kostenlos verwenden, und somit blieb vielen Entwicklern der Zugang verwehrt. Daher begann Torvalds im April 2005 mit der Entwicklung einer neuen Quellcode-Management-Software und präsentierte bereits wenige Tage nach deren Ankündigung eine erste Version."
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 3)",
+    "antwort": "Torvalds wünschte sich ein verteiltes System, das wie BitKeeper genutzt werden kann und die folgenden Anforderungen erfüllt:"
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 4)",
+    "antwort": "Unterstützung verteilter, BitKeeper-ähnlicher Arbeitsabläufe"
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 5)",
+    "antwort": "Sehr hohe Sicherheit gegen sowohl unbeabsichtigte als auch böswillige Verfälschung"
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 6)",
+    "antwort": "Ein bereits existierendes Projekt namens Monotone entsprach den ersten beiden Anforderungen, das dritte Kriterium wurde jedoch von keinem bestehenden System erfüllt."
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 7)",
+    "antwort": "Torvalds entschied sich dagegen, Monotone an seine Anforderungen anzupassen und begann stattdessen, ein eigenes System zu entwickeln. Einer der Hauptgründe für diesen Schritt war die Arbeitsweise, für die Monotone nach Torvalds Ansicht optimiert ist. Torvalds argumentierte, dass einzelne Revisionen von einem anderen Entwickler in den eigenen Entwicklungszweig zu importieren zu Rosinenpickerei und unordentlichen Repositorien führen würde. Wenn hingegen immer ganze Zweige importiert werden, wären Entwickler gezwungen, diese aufzuräumen. Dazu sei es notwendig, auch die Möglichkeit von Wegwerf-Zweigen anzubieten."
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 8)",
+    "antwort": "Gits Gestaltung verwendet einige Ideen aus Monotone sowie BitKeeper, aber keinen Quellcode daraus. Es sollte ausdrücklich ein eigenständiges Versionsverwaltungssystem sein."
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 9)",
+    "antwort": "Derzeitiger Maintainer von Git ist Junio Hamano."
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 10)",
+    "antwort": "Der Name „Git“ bedeutet in der britischen Umgangssprache so viel wie „Blödmann“. Linus Torvalds erklärte seine Wahl des ungewöhnlichen Namens mit einem Witz sowie damit, dass das Wort praktikabel und in der Softwarewelt noch weitgehend unbenutzt war:"
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 11)",
+    "antwort": "Der Name Linux wurde anfangs nicht von Torvalds selbst propagiert und nur widerwillig akzeptiert."
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 12)",
+    "antwort": "Git ist ein verteiltes Versionsverwaltungssystem, das sich in einigen Eigenschaften von typischen Versionsverwaltungssystemen unterscheidet:"
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 13)",
+    "antwort": "Sowohl das Erstellen neuer Entwicklungszweige (branching) als auch das Verschmelzen zweier oder mehrerer Zweige (merging) sind integrale Bestandteile der Arbeit mit Git und fest in die Git-Werkzeuge eingebaut. Git enthält Programme, mit deren Hilfe sich die nicht-lineare Geschichte eines Projektes einfach visualisieren lässt und mit deren Hilfe man in dieser Geschichte navigieren kann. Verzweigungen („branches“) in Git sind (im Gegensatz zu anderen SCMs) sehr effektiv implementiert: Ein Branch stellt nur eine Reference, kurz ref, eine Textdatei mit einer Commit-ID, dar, die in einem Repository im Verzeichnis . git/refs/heads (z. B. ."
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 14)",
+    "antwort": "git/refs/heads/master für den master-Branch) liegt und auf einen bestimmten Commit verweist. Über dessen Parental Commits, also Eltern-Commits, lässt sich die Branch-Struktur rekonstruieren. Durch diese Eigenschaften lassen sich weiterhin sehr große und effiziente Entwicklungsstrukturen wie bei Git selbst oder dem Linux-Kernel realisieren, bei denen jedes Feature und jeder Entwickler einen Branch oder ein eigenes Repository haben, aus dem der Projektverantwortliche („maintainer“) dann Commits über Merge oder Cherry-pick (Nutzen einzelner Commits) in den Hauptzweig des Projekts (master) übernehmen kann."
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 15)",
+    "antwort": "Jeder Benutzer besitzt eine lokale Kopie des gesamten Repositorys inklusive der Versionsgeschichte (history). So können die meisten Aktionen lokal und ohne Netzwerkzugriff ausgeführt werden. Es wird nicht zwischen lokalen Entwicklungszweigen und Entwicklungszweigen entfernter Repositorien unterschieden."
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 16)",
+    "antwort": "Obwohl es keinen technischen Unterschied zwischen verschiedenen Repositorien gibt (außer dem zwischen normalen und bare-Repositories auf Servern, bei denen kein Working-Tree, also die echten Dateien existiert), gilt die Kopie, auf die von einer Projekt-Homepage aus verwiesen wird, häufig als das offizielle Repositorium, in das die Revisionen der Entwickler übertragen werden. Es existieren spezielle Remote-tracking branches. Das sind Referenzen (siehe Nicht-lineare Entwicklung), die auf den Stand eines anderen Repositoriums zeigen."
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 17)",
+    "antwort": "Daten können neben dem Übertragen auf Dateisystemebene (file://) mit unterschiedlichen Netzwerkprotokollen zwischen Repositories übertragen werden. Git hat ein eigenes, sehr effizientes Protokoll, das den TCP-Port 9418 nutzt (git://), welcher allerdings nur zum Fetchen und Clonen genutzt werden kann, also dem Lesen eines Repositorys. Ebenso kann der Transfer über SSH (ssh://, das gängigste Protokoll für Schreiboperationen), HTTP (http://), HTTPS (https://) oder über (weniger effizient) FTP (ftp://) oder rsync (rsync://) erfolgen."
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 18)",
+    "antwort": "Die Übertragung in das offizielle Repository eines Projekts erfolgt häufig in Form von Patches, die via E-Mail an den Entwickler oder eine Entwicklungs-Mailing-Liste geschickt werden. Alternativ kann auch ein Review-System wie Gerrit verwendet werden. Für Projekte, die auf Websites wie GitHub oder Bitbucket gespeichert („hosting“) werden, kann eine Änderung einfach durch das Pushen eines Branches vorgeschlagen werden, der dann bei Bedarf durch ein Merge in das Projekt integriert wird."
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 19)",
+    "antwort": "Kryptographische Sicherheit der Projekthistorie"
+  },
+  {
+    "frage": "Was erfährt man über Git? (Textabschnitt 20)",
+    "antwort": "Die Historie eines Projektes wird so gespeichert, dass der Hash-Wert einer beliebigen Revision (commit) auf der vollständigen Historie basiert, die zu dieser Revision geführt hat. Dadurch ist es nicht möglich, die Versionsgeschichte nachträglich zu manipulieren, ohne dass sich der Hash-Wert der Revision ändert. In der Kryptographie nennt man dies einen Hash-Baum. Einzelne Revisionen können zusätzlich markiert (tagging) und optional mit GPG digital signiert werden (signed tag), beispielsweise um den Zustand zum Zeitpunkt der Veröffentlichung einer neuen Version der Software zu kennzeichnen."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 1)",
+    "antwort": "GitHub ist eine öffentliche Softwareentwicklungsplattform, die Versionsverwaltung über Git anbietet und 2018 von Microsoft gekauft wurde. GitHub war im Jahr 2011 bei Open-Source-Software der populärste Dienst seiner Art, gemessen an der Anzahl der Codebeiträge („Commits“). Der Dienst hat über 83 Millionen registrierte Nutzer und verwaltet über 200 Millionen Repositories (Stand: August 2022)."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 2)",
+    "antwort": "Neben vielen sehr kleinen oder oft nur vom Besitzer genutzten Projekten gibt es mehrere bekannte größere Open-Source-Projekte, die bei der Versionsverwaltung ihres Quelltextes GitHub verwenden. Das Unternehmen GitHub Inc. hat seinen Sitz in San Francisco in den USA und gehört zu Microsoft."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 3)",
+    "antwort": "GitHub nutzt das von Linus Torvalds 2005 geschriebene Versionsverwaltungssystem Git; Torvalds hat auch das Betriebssystem Linux geschrieben."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 4)",
+    "antwort": "GitHub wurde von Chris Wanstrath, P. J. Hyett, Scott Chacon und Tom Preston-Werner mittels des Webframeworks Ruby on Rails und der Programmiersprache Erlang entwickelt und im Februar 2008 gestartet. Das Unternehmen GitHub, Inc. besteht seit 2007 und hat seinen Sitz in San Francisco."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 5)",
+    "antwort": "Im Juli 2012 erhielt GitHub eine Investition von 100 Millionen US-Dollar vom Risikokapitalgeber Andreessen Horowitz,"
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 6)",
+    "antwort": "drei Jahre später in einer weiteren Finanzierungsrunde 250 Millionen US-Dollar von Sequoia Capital, Andreessen Horowitz, Thrive Capital und anderen Venture-Capital-Fonds."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 7)",
+    "antwort": "Seit Mitte 2012 ist es möglich, auf GitHub auch komplette Websites als GitHub Pages bereitzustellen."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 8)",
+    "antwort": "Im Oktober 2018 wurde die Übernahme von GitHub durch Microsoft für 7,5 Milliarden Dollar von der EU-Kommission ohne Auflagen genehmigt"
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 9)",
+    "antwort": "und im Dezember 2018 abgeschlossen. Ein Teil der Software-Entwickler sah diesen Kauf sehr kritisch und befürchtete eine nachteilige Entwicklung. Microsoft zufolge soll GitHub eine unabhängige Plattform bleiben."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 10)",
+    "antwort": "GitHub übernahm 2018 die Firma Spectrum (..) und 2019 Dependabot, Pull Panda und Semmle (..)."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 11)",
+    "antwort": "CEO von GitHub ist der gebürtige Berliner Thomas Dohmke, der am 15. November 2021 die Leitung des Unternehmens von Nat Friedman übernahm. Im August 2025 kündigte Dohmke seinen Rückzug an."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 12)",
+    "antwort": "Alle öffentlichen auf der Plattform vorhandenen Code-Repositories mit Stand zum 2. Februar 2020 werden als Teil des Arctic World Archive (AWA) in einer früheren Kohlemine auf Spitzbergen archiviert. Dafür wurden etwa 21 Terabyte Daten mit mehr als 100 Millionen Repositories auf 188 Mikrofilmrollen gespeichert. Das Archiv wird als Arctic Code Vault bezeichnet."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 13)",
+    "antwort": "Archiviert werden kollektive Arbeiten von fast vier Millionen Entwicklern für rund 1000 Jahre. Der Tresor enthält auch eine für Menschen lesbare Auswahl von Werken, die Software, Computer und ihre Technologien beschreiben, mit Volltextkopien von Wikipedia, Stack Overflow und anderen Datenquellen. Zweck der Archivierung ist es, Open-Source-Software – ein Eckpfeiler der Zivilisation – für künftige Generationen zu bewahren."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 14)",
+    "antwort": "2024 wurden Leaks bei GitHub bekannt. Betroffen waren 12 Millionen Konten. Hintergrund waren verschiedene Fehler, die den Nutzern unterlaufen waren."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 15)",
+    "antwort": "Im Mai 2026 wurden über einen Supply-Chain-Angriff Daten von rund 3.800 nicht-öffentlichen Repositories abgegriffen."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 16)",
+    "antwort": "Im Gegensatz zu anderen Dienstleistern zur Verwaltung quelloffener Software (englisch „open source hoster“) wie SourceForge steht auf GitHub nicht das Projekt als Sammlung von Quellcode im Zentrum, sondern der Nutzer mit seinen Quelltext-Datenbanken, den sogenannten Repositories (also Verzeichnissen, die mit der Versionsverwaltungssoftware Git verwaltet werden). Auch die Anlage (englisch „branch“) und Zusammenführung (englisch „merge“) von Abspaltungen (englisch „forks“) wird besonders hervorgehoben."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 17)",
+    "antwort": "Die Forks machen das Mitentwickeln bei fremden Projekten besonders einfach: Um dort einen Beitrag beizusteuern, wird das Repository zunächst abgespaltet, dann werden Änderungen zu der Abspaltungskopie hinzugefügt, und dann dem Besitzer des Originals eine „Anfrage“ (Pull Request) gestellt, die Änderungen zu übernehmen. Da alle Schritte auch über die Weboberfläche möglich sind, ist die Bedienung von GitHub im Vergleich zu anderen Entwicklerplattformen auch für Anfänger einfach."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 18)",
+    "antwort": "Damit wird unter Berücksichtigung der Besonderheiten verteilter Versionskontrollsysteme ein soziales Netzwerk geschaffen, was sich auch in den aus „echten“ sozialen Netzwerken bekannten Funktionen „Beobachten“ oder „Folgen“ zeigt."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 19)",
+    "antwort": "Sowohl das Erstellen öffentlich einsehbarer als auch privater — also nichtöffentlicher Repositories — ist nach einer gratis Registrierung möglich. Außerdem bietet GitHub größeren Unternehmen mit GitHub Enterprise an, eine eigene, abgetrennte GitHub-Installation zu liefern, um die Vorteile des sozialen Programmierens auch bei der unternehmensinternen Softwareentwicklung zu nutzen. GitHub Enterprise ist auch Teil von IBM Cloud."
+  },
+  {
+    "frage": "Was erfährt man über GitHub? (Textabschnitt 20)",
+    "antwort": "Nachdem das Design von GitHub über Jahre unverändert geblieben war, wurde im Juni 2013 eine neue Oberfläche vorgestellt. In dieser tritt der Quelltext der dort bereitgestellten Software stärker in den Vordergrund. Eine wesentliche Neuerung war eine visualisierte Statistik, welche die verwendeten Programmiersprachen und ihren Anteil am gesamten Projekt darstellt."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 1)",
+    "antwort": "Als Open Source (aus englisch open source, wörtlich offene Quelle) wird Software bezeichnet, deren Quelltext öffentlich ist und von Dritten eingesehen, geändert und genutzt werden kann. Open-Source-Software kann unter Einhaltung der Lizenzbedingungen kostenfrei genutzt und verteilt werden."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 2)",
+    "antwort": "Software kann sowohl von Einzelpersonen aus uneigennützigen Motiven zu Open-Source-Software gemacht werden als auch von Organisationen oder Unternehmen, um Entwicklungskosten zu teilen oder Marktanteile zu gewinnen. Befähigte Endbenutzer können die Software nach eigenen Bedürfnissen anpassen und eventuell als Abspaltung veröffentlichen, als auch mit „Pull Requests“ Verbesserungen beitragen."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 3)",
+    "antwort": "Open Source hat viele Ursprünge und Vorläufer, beispielsweise die Do-it-yourself-Bewegung, die Hacker-Bewegung der 1960/1970er und die Freie-Software-Bewegung der 1980er Jahre, die der unmittelbare Vorläufer wurde."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 4)",
+    "antwort": "Beeinflusst durch den 1997 publizierten Essay Die Kathedrale und der Basar von Eric S. Raymond, entschied Netscape im Jahr 1998, angesichts der wachsenden Dominanz von Microsoft am Browser-Markt, den Quelltext des wirtschaftlich nicht mehr verwertbaren Netscape Navigators freizugeben (aus dieser Freigabe entstand später das Mozilla-Projekt)."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 5)",
+    "antwort": "Kurz darauf befanden Raymond, der Informatiker Bruce Perens und Tim O’Reilly, Gründer und Vorstand des O’Reilly Verlags, dass die Freie-Software-Gemeinschaft ein besseres Marketing benötige. Um diese freie Software als frei von ethischen Werten und geschäftsfreundlich darstellen zu können, wurde beschlossen, einen neuen Marketing-Begriff für Freie Software einzuführen – der Begriff Open Source wurde von da an flächendeckend im Marketing genutzt und war auch der Namensgeber für die von Raymond, Perens und O’Reilly gegründete Open Source Initiative (OSI)."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 6)",
+    "antwort": "Es wurden angepasste Open-Source-Lizenzen geschaffen, die den Bedürfnissen des Open-Source-Umfelds genügen und auch für Wirtschaftsunternehmen attraktiv sein sollten (Permissive licenses). Eine der bekanntesten Lizenzen, die aus diesen Bestrebungen hervorging, ist die Mozilla Public License."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 7)",
+    "antwort": "Am 4. Dezember 2024 fand im Deutschen Bundestag eine öffentliche Anhörung des Digitalausschusses zum Thema „Open Source“ statt. Experten vom Fraunhofer-Institut, der Apache Software Foundation, der Open Source Business Alliance, der Sovereign Tech Agency, des Bundesverbands IT-Mittelstand, des Innovationsverbund öffentliche Gesundheit, der TU München und der Free Software Foundation Europe gaben im Vorfeld Stellungnahmen ab. Der Mehrheit der Experten zufolge ist das Engagement der aktuellen Bundesregierung hinter den Erwartungen zurückgeblieben."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 8)",
+    "antwort": "Die Open Source Initiative (OSI) wendet den Begriff Open Source auf all die Software an, deren Lizenzverträge den folgenden drei charakteristischen Merkmalen entsprechen und die zehn Punkte der Open Source Definition erfüllen:"
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 9)",
+    "antwort": "Die Software (d.h. der Quelltext) liegt in einer für den Menschen lesbaren und verständlichen Form vor: In der Regel handelt es sich bei dieser Form um die Quelltexte in einer höheren Programmiersprache. Vor dem eigentlichen Programmlauf oder Programmablauf ist es normalerweise notwendig, diesen Text durch einen Compiler in eine binäre Form zu bringen, damit das Computerprogramm vom Rechner ausgeführt werden kann. Binärprogramme sind für den Menschen im semantischen Sinne praktisch nicht lesbar."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 10)",
+    "antwort": "Die Software darf beliebig kopiert, verbreitet und genutzt werden: Für Open-Source-Software gibt es keine Nutzungsbeschränkungen, weder bezüglich der Anzahl der Benutzer noch bezüglich der Anzahl der Installationen. Mit der Vervielfältigung und der Verbreitung von Open-Source-Software sind auch keine Zahlungsverpflichtungen gegen einen Lizenzgeber verbunden. Es wird typischerweise nur die Weitergabe des Quelltextes gefordert."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 11)",
+    "antwort": "Die Software darf verändert und in der veränderten Form weitergegeben werden: Durch den offengelegten Quelltext ist Verändern ohne weiteren Aufwand für jeden möglich. Weitergabe der Software soll ohne Lizenzgebühren möglich sein. Open-Source-Software ist auf die aktive Beteiligung der Anwender an der Entwicklung geradezu angewiesen. So bietet sich Open-Source-Software zum Lernen, Mitmachen und Verbessern an."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 12)",
+    "antwort": "Open-Source bedeutet jedoch nicht, wie häufig angenommen, alles-ist-erlaubt; es sind Bedingungen an die Nutzung geknüpft. Völlig bedingungslose Nutzung existiert typischerweise nur bei gemeinfreier Software. Der erste BITKOM-Leitfaden zum Thema Open-Source-Software gibt folgende korrekte Beschreibung: „Die Verwertung, Vervielfältigung und Bearbeitung ist nicht vorbehaltlos gestattet, denn bei der Open Source Software wird vielfach die Einräumung von Nutzungsrechten von bestimmten Voraussetzungen abhängig gemacht. In dieser Weise kann Open Source Software abgegrenzt werden von Public Domain Software […]."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 13)",
+    "antwort": "Bei der Public Domain Software ist dem Nutzer die Vervielfältigung, Verbreitung und Veränderung uneingeschränkt und vorbehaltlos erlaubt. “"
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 14)",
+    "antwort": "Open-Source-Software (OSS) hat in der Praxis große Überschneidungen mit Freier Software, wie sie die FSF definiert. Beide Konzepte haben gemeinsam, dass der Quellcode von Software für Anwender verfügbar sein sollte. Es werden auch die gleichen Copyleft- und Freizügige-Softwarelizenzen, bis auf seltene Ausnahmen, von beiden Seiten als „Frei“ bzw. „Offen“ eingeordnet. Der primäre Unterschied liegt in der Terminologie und Sichtweise: Freie Software fokussiert auf den Aspekt der Nutzerkontrolle über Software und sieht Freie Software als wichtiges soziales, politisches und ethisches Anliegen."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 15)",
+    "antwort": "Die OSI vertritt die Sichtweise, dass der praktische Nutzen für die Allgemeinheit (Nutzer, Gesellschaft, Firmen etc. ) einer frei verfügbaren Softwareinfrastruktur, eines freien Softwaremarktes und einer kollaborativen Entwicklungsmethode der entscheidende Aspekt sind."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 16)",
+    "antwort": "Der Begriff Open Source beschränkt sich nicht ausschließlich auf Software, sondern wird auch auf Wissen und Information allgemein ausgedehnt. Darüber hat die Freie-Software-Bewegung in anderen Bereichen die Begründung vieler neuer „Open“-Bewegungen inspiriert, beispielsweise Open Content, Open-Source-Hardware und Open Access."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 17)",
+    "antwort": "Beispiele dafür sind Wikipedia und die Wikimedia Commons, in deren Zusammenhang von freien Inhalten (Open Content) gesprochen wird. Weitere bedeutende Beispiele für Open Content sind OpenStreetMap und Open Educational Resources. Eine Lizenzfamilie, die für solche freien Inhalte („free cultural works“) geschaffen wurde, sind die Creative Commons Lizenzen."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 18)",
+    "antwort": "Übertragen wurde die Idee des öffentlichen und freien Zugangs zu Information auch auf Entwicklungsprojekte. In diesem Zusammenhang wird oft von freier Hardware (Open Hardware) gesprochen, also freiem Zugang zu allen Informationen (Offener Standard, Offenes Format), um eine entsprechende Hardware herzustellen. Produktbeispiele auf Basis von offenen Standards und Rezepturen sind Vores Øl/Free Beer oder OpenCola."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 19)",
+    "antwort": "Auch als „Offen“ und der Open-Source- und Open-Hardware-Bewegung nahestehend verstehen sich die FabLabs, die freien Zugang zur (Produktions-)Hardware vermitteln wollen."
+  },
+  {
+    "frage": "Was erfährt man über Open Source? (Textabschnitt 20)",
+    "antwort": "Ein weiteres Beispiel ist die Open-Source Saatgut Lizenz, die das Prinzip auf die Pflanzenzüchtung zu übertragen versucht. Gemeinnützige Züchter können neue Sorten mit der viralen Lizenz (Copyleft) ausstatten, damit sich das genetische Material nicht mehr in ein Privatgut überführen lässt."
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 1)",
+    "antwort": "Eine integrierte Entwicklungsumgebung (IDE, von englisch integrated development environment) ist eine Sammlung von Computerprogrammen, mit denen die Aufgaben der Softwareentwicklung möglichst ohne Medienbrüche bearbeitet werden können."
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 2)",
+    "antwort": "IDEs stellen hilfreiche Werkzeuge bereit, die Softwareentwicklern häufig wiederkehrende Aufgaben abnehmen, einen schnellen Zugriff auf einzelne Funktionen bieten, mit denen die Arbeits(zwischen)ergebnisse verwaltet und in spätere Bearbeitungsfunktionen direkt überführt werden können. Entwickler werden dadurch von formalen Arbeiten entlastet und können ihre eigentliche Aufgabe, das Entwickeln/Programmieren von Software, mit Systemunterstützung effizient ausführen."
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 3)",
+    "antwort": "IDEs gibt es für nahezu alle Programmiersprachen und Plattformen. Oft wird damit nur eine Programmiersprache unterstützt. Es gibt aber auch Anwendungen, die mehrere spezielle IDEs unter einer gemeinsamen Benutzeroberfläche zusammenfassen. Auch gibt es sie für Konzepte, die darauf zielen, mehr oder weniger „programmierfrei“ Anwendungssoftware per Konfiguration zu erstellen (z. B. Universal Application), und die somit nicht auf eine bestimmte Programmiersprache ausgerichtet sind; siehe Deklarative Programmierung."
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 4)",
+    "antwort": "Synonym verwendete Bezeichnungen sind unter anderem: Softwareentwicklungsumgebung (SEU, englisch software engineering environment), Softwareproduktionsumgebung (SPU, englisch software production environment), software engineering environment system (SEES) und integrated design environment (für Teilaspekte). Auch bieten Entwicklungswerkzeuge, die als Software Development Kit (SDK), RAD-Tool (siehe Rapid Application Development), Low Code Development oder unter ähnlichen Bezeichnungen vertrieben werden, Funktionalitäten zur „Integrierten Softwareentwicklung“."
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 5)",
+    "antwort": "Abweichende Bedeutung: Der Ausdruck Entwicklungsumgebung wird als Abgrenzung zu anderen Systemumgebungen nicht zwangsläufig als Hardwareplattform verstanden, sondern in engerem Sinn als die zur Softwareentwicklung (integriert) benutzte Funktionalität, unabhängig von der technischen Systemarchitektur."
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 6)",
+    "antwort": "Den Überbegriff für jegliche Art von „rechnergestützte Softwareentwicklung“ (= „CASE“) gliederte Alfonso Fuggetta in drei Kategorien:"
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 7)",
+    "antwort": "„Tools“ (deutsch ‚Werkzeuge‘, für einzelne Aktivitäten im Software-Lebenszyklus),"
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 8)",
+    "antwort": "„Workbenches“ (deutsch ‚Werkbänke‘, sie umfassen mehrere Werkzeuge),"
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 9)",
+    "antwort": "„Environments“ (deutsch ‚Umgebungen‘, die Kombination mehrerer Workbenches und Werkzeuge zur Unterstützung des kompletten Software-Lebenszyklus)."
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 10)",
+    "antwort": "Als nicht integriert, trotzdem gelegentlich verallgemeinernd Entwicklungsumgebung genannt, gilt demnach der Einsatz nur einzelner Programmierwerkzeuge, zum Beispiel: Texteditor, Compiler bzw. Interpreter, Linker, evtl. ein Debugger. Die Entwickler müssen die einzelnen Arbeitsschritte gezielt anstoßen. Beispiel: a) Quelltext öffnen, ändern/editieren, speichern; b) Compiler aufrufen, Ergebnis prüfen; c) Aufrufen Linker, Ergebnis prüfen; d) Programm ausführen (z. B. zum Testen)."
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 11)",
+    "antwort": "Der Aspekt integriert erfordert dagegen mehr als einzelne getrennt operierende Werkzeuge. Eigenschaften/Funktionen einer IDE können beispielsweise folgende sein:"
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 12)",
+    "antwort": "Aufeinander abgestimmte Methoden mit ähnlicher Philosophie"
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 13)",
+    "antwort": "Die Prozesse der Softwareentwicklung oder auch des gesamten Software-Lebenszyklus werden begleitet und unterstützt."
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 14)",
+    "antwort": "Eine Entwicklungsdatenbank (siehe auch Repository und Data-Dictionary) speichert (Zwischen-)Ergebnisse und macht sie für die jeweils nächsten Werkzeuge verfügbar – die über eine einheitliche/gemeinsame Benutzeroberfläche aktiviert werden können."
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 15)",
+    "antwort": "Beispiel: Die für ein Formular oder einen Report per GUI definierten Datenfelder können so im Programmcode-Editor direkt referenziert/verwendet werden."
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 16)",
+    "antwort": "Unterstützung bei konzeptionellen Aspekten der Softwareentwicklung wie die sogenannten strukturierten Vorgehensweisen Strukturierte Analyse und Strukturiertes Design (SA/SD), die grafische Notationsweise UML oder Datenmodellierungsmethoden wie Entity-Relationship-Modellierung (ERM/SERM)."
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 17)",
+    "antwort": "Weitere zur Softwareentwicklung hilfreiche Komponenten können z. B. sein: Eine Versionsverwaltung, Anwendungen zur einfachen Erstellung von grafischen Benutzeroberflächen (auch GUI genannt), Quelltextformatierung, Unterstützung für das Projektmanagement, zum Testen oder bei der Produktivsetzung der Software (Release-/Deployment Management)."
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 18)",
+    "antwort": "Zur Bewertung einer IDE sind weitere „spezifische Kriterien für die Bewertung von integrierten Entwicklungsumgebungen“ nötig – wie besondere Komfortfunktionen von Texteditoren, automatisches Kompilieren und Debugging, das Einrichten von Bedienhilfen wie Tastenkombinationen oder Makros, Generierungsfunktionen und viele andere Funktionalitäten. Je nachdem, ob und in welchem Maß diese für ein konkretes Softwareentwicklungsprodukt zutreffen, lässt sich dieses als IDE bezeichnen – oder nicht. Die Grenzen sind jeweils fließend."
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 19)",
+    "antwort": "Integrierte Entwicklungsumgebungen kamen in der ersten Hälfte der 1980er Jahre auf und lösten die damals übliche Praxis ab, Editor, Compiler, Linker und Debugger als vier getrennte Produkte anzubieten, die jeweils getrennt ausgeführt wurden. Maestro I (ursprünglich Programm-Entwicklungs-Terminal-System, PET) von Softlab war weltweit die erste Integrierte Entwicklungsumgebung für Software."
+  },
+  {
+    "frage": "Was erfährt man über Integrierte Entwicklungsumgebung? (Textabschnitt 20)",
+    "antwort": "In den 1980er Jahren kamen neben den integrierten Entwicklungsumgebungen für Standardprogrammiersprachen der dritten Generation solche für 4GL-Programmiersprachen wie z. B. Natural auf, die zum Teil bis heute im Markt vertreten sind. Auch diese bieten neben der Programmiersprache in einer interaktiven integrierten Entwicklungsumgebung alle Werkzeuge wie Analyse- und Designwerkzeug, Texteditor, Maskeneditor, GUI Designer, Compiler bzw. Interpreter, Linker, Debugger, Quelltextformatierungsfunktion."
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 1)",
+    "antwort": "Formal bezeichnet ein Datentyp (vom englischen data type) oder eine Datenart in der Informatik die Zusammenfassung von Objektmengen mit den darauf definierten Operationen. Dabei werden durch den Datentyp des Datensatzes unter Verwendung einer sogenannten Signatur ausschließlich die Namen dieser Objekt- und Operationsmengen spezifiziert. Ein so spezifizierter Datentyp besitzt noch keine Semantik."
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 2)",
+    "antwort": "Die weitaus häufiger verwendete, aber speziellere Bedeutung des Begriffs Datentyp stammt aus dem Umfeld der Programmiersprachen und bezeichnet die Zusammenfassung konkreter Wertemengen und darauf definierter Operationen zu einer Einheit. Beispiele für Datentypen sind Ganzzahlen, Kommazahlen, Zeichenketten oder auch komplexere Typen wie Datum/Zeit oder Objekte. Zur Unterscheidung wird für diese Datentypen in der Literatur auch der Begriff Konkreter Datentyp verwendet. Für eine Diskussion, wie Programmiersprachen mit Datentypen umgehen, siehe Typisierung."
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 3)",
+    "antwort": "Der gedankliche Übergang von der formalen Definition zu der im Umfeld von Programmiersprachen verwendeten Definition konkreter Datentypen geschieht dabei über die sukzessive Einführung einer Semantik zu den formal spezifizierten Namen der Objekt- und Operationsmengen."
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 4)",
+    "antwort": "Die Konkretisierung der Operationsmenge führt zu Abstrakten Datentypen beziehungsweise Algebraischen Strukturen."
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 5)",
+    "antwort": "Mit der weiteren Konkretisierung der Objektmenge ergibt sich der Konkrete Datentyp."
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 6)",
+    "antwort": "Formale Definition eines Datentyps durch eine Signatur"
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 7)",
+    "antwort": "Eine Signatur ist ein Paar (Sorten, Operationen), wobei Sorten Namen für Objektmengen und Operationen Namen für Operationen auf diesen Mengen repräsentieren. Ein Beispiel soll dies für eine vereinfachte Version des bekannten und weiter unten genauer beschriebenen (konkreten) Datentyp Integer zeigen, der hier Simple Integer heiße:"
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 8)",
+    "antwort": "Dies ist eine Signatur für einen angenommenen Datentyp Simple Integer, auf dem nur zwei Operationen + und − (neben der \"Erzeuger-Operation\") erlaubt sind. Die einzige Sorte nennen wir int. Die Operation zero dient zur Erzeugung eines int-Elementes. Die Operationen + und − sind jeweils zweistellig und liefern jeweils wiederum ein Element der Sorte int. Wichtig ist, dass es sich hier um eine rein syntaktische Spezifikation handelt. Was ein int ist, wird nirgendwo definiert. Hierzu müsste noch eine Zuordnung des Sortennamens zu einer Menge erfolgen. Eine sinnvolle Zuordnung wäre in diesem Fall etwa die Menge der natürlichen Zahlen."
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 9)",
+    "antwort": "Auch über die Arbeitsweise der Operationen ist nichts weiter ausgesagt als ihre Stelligkeit und ihr Ergebnis. Ob das +-Symbol der Arbeitsweise der Summenoperation entspricht, wird hier nicht festgelegt – dies wäre auch völlig unmöglich, da nicht einmal bekannt ist, ob die Operation auf den natürlichen Zahlen arbeitet. Derartige Zuordnungen fallen in den Bereich der Semantik. Eine um die Semantik erweiterte Spezifikation könnte daher folgendermaßen aussehen:"
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 10)",
+    "antwort": "Damit wird allerdings der Bereich einer Signatur bereits überschritten. Diese Spezifikation würde man vielmehr als Algebra bezeichnen. Die Spezifikation kommt auf diese Weise jedoch dem programmiersprachlichen Verständnis des Begriffes Datentyp näher, dem sich ein Großteil des restlichen Artikels widmet."
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 11)",
+    "antwort": "Viele Programmiersprachen bieten eine eigene Menge an vordefinierten Datentypen, bei denen das Prinzip des jeweiligen Wertebereichs, wie beispielsweise Ganze Zahlen, Gleitkommazahlen oder Zeichenketten, gleich ist. Die tatsächlichen Namen dieser Datentypen und die genauen Definitionen der Wertebereiche und der dazugehörigen Operationen unterscheiden sich jedoch zum Teil stark, da jene von der verwendeten Programmiersprache, der verwendeten Plattform und anderen compilerabhängigen Faktoren abhängen."
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 12)",
+    "antwort": "Datentypen werden in der Programmierung verwendet, um Speicherbereichen eine konkrete Semantik zuzuweisen. Diese Speicherbereiche werden Variablen oder Konstanten genannt. Die Datentypen ermöglichen es einem Compiler oder einer Laufzeitumgebung, die Typverträglichkeit der vom Programmierer angegebenen Operationen zu überprüfen."
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 13)",
+    "antwort": "Unzulässige Operationen werden zum Teil bereits beim Kompilieren erkannt, so dass beispielsweise die Division einer Zeichenkette ‚HANS’ durch die Zahl ‚5’, was nicht sinnvoll und in üblichen Programmiersprachen undefiniert ist, verhindert wird."
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 14)",
+    "antwort": "Man unterscheidet elementare und zusammengesetzte Datentypen. Ein weiterer Ordnungsbegriff ist Ordinaler Datentyp."
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 15)",
+    "antwort": "Ordinale Datentypen sind dadurch gekennzeichnet, dass auf ihnen eine feste Ordnungsrelation definiert ist, die ihren Werten eine eindeutige Ordnungsnummer zuordnet. Dadurch ist die Reihenfolge der Werte festgelegt. Als Folge hat"
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 16)",
+    "antwort": "jeder Wert außer dem ersten genau einen direkten Vorgänger und"
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 17)",
+    "antwort": "jeder Wert außer dem letzten genau einen direkten Nachfolger."
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 18)",
+    "antwort": "Ob ein elementarer Datentyp auch ein ordinaler Datentyp ist, hängt von der Festlegung in der konkreten Programmiersprache ab."
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 19)",
+    "antwort": "Der Aufzählungstyp ist in PASCAL ein ordinaler Datentyp, da die Werte von links nach rechts geordnet sind; Nachfolger, Vorgänger sind über Standardfunktionen bestimmbar. In C ist das nicht der Fall."
+  },
+  {
+    "frage": "Was erfährt man über Datentyp? (Textabschnitt 20)",
+    "antwort": "Boolean ist ein spezieller Aufzählungstyp mit den beiden Werten „falsch“ (Ordnungswert 0) und „wahr“ (Ordnungswert 1), meist englisch „false“ und „true“ genannt."
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 1)",
+    "antwort": "Eine Zeichenkette, Zeichenfolge, Zeichenreihe oder ein String (aus dem Englischen) ist in der Informatik eine endliche Folge von Zeichen (z. B. Buchstaben, Ziffern, Sonderzeichen und Steuerzeichen) aus einem definierten Zeichensatz. Zeichen können sich in einer Zeichenkette wiederholen, die Reihenfolge der Zeichen ist definiert. Eine Zeichenkette kann auch leer sein, also kein Zeichen enthalten und die Länge 0 haben. Zeichenketten sind somit Sequenzen aus Symbolen mit endlicher Länge."
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 2)",
+    "antwort": "In der Programmierung ist eine Zeichenkette ein Datentyp, der eine Kette von Zeichen mit fester oder variabler Länge enthält. Damit werden hauptsächlich Wörter, Sätze und ganze Texte gespeichert. Fast jede Programmiersprache besitzt einen derartigen Datentyp und manche Programmiersprachen arbeiten ausschließlich mit diesem Datentyp. Beispiele dafür sind sed, awk und bash. Im Quelltext eines Computerprogramms stellen Zeichenketten Text dar, der nicht als Programmierbefehl aufgefasst wird, sondern Information enthält."
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 3)",
+    "antwort": "So können zum Beispiel Fehlermeldungen oder andere Ausgaben an den Benutzer als Zeichenkette im Quelltext festgehalten werden oder Benutzereingaben als Zeichenketten in Variablen abgespeichert werden."
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 4)",
+    "antwort": "Die Grundlagen von Programmiersprachen werden in der Theoretischen Informatik untersucht. Dort wird der gegebene Zeichensatz als Alphabet bezeichnet und die Zeichenketten werden „Wörter“ genannt. Die Theorie solcher Wörter sind ein Thema der formalen Sprachen. Im Zusammenhang mit Programmiersprachen stellen sich dagegen Fragen der Darstellung, der Speicherung und des Umgangs mit Zeichenketten."
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 5)",
+    "antwort": "Zeichenketten können auf verschiedenen Ebenen repräsentiert werden. Eine davon ist der Quelltext eines Programms, der vom Übersetzer gelesen und interpretiert wird. Eine andere ist, wie eine Zeichenkette zur Laufzeit eines Programms im Speicher abgelegt wird."
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 6)",
+    "antwort": "In nahezu allen Programmier- und Auszeichnungssprachen, die Zeichenketten-Literale unterstützen, wird eine literale Zeichenkette durch das einfache Aneinanderfügen von Zeichen zwischen einfachen oder doppelten Anführungsstriche repräsentiert:"
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 7)",
+    "antwort": "\"123\" (in den allermeisten Sprachen verschieden von der Zahl 123)."
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 8)",
+    "antwort": "\"\" (eine leere Zeichenkette, Leerstring)"
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 9)",
+    "antwort": "Das Ende der Zeichenkette wird durch das erste schließende Anführungszeichen markiert (nicht etwa das letzte in der Zeile). Daher ergibt sich die Frage, wie ein Anführungszeichen Teil der Zeichenfolge sein kann, wenn das gewollt ist."
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 10)",
+    "antwort": "Bietet eine Sprache zwei oder mehr Begrenzungszeichen an, kann auf andere Begrenzungszeichen ausgewichen werden:"
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 11)",
+    "antwort": "Falls alle Begrenzungszeichen vorkommen, kann in der Regel ein Begrenzungszeichen in der Zeichenfolge durch eine Escape-Sequenz oder durch Dopplung als Teil der Zeichenfolge angegeben werden."
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 12)",
+    "antwort": "\"Escape-Sequenz, um das Anführungszeichen \\\" als Teil der Zeichenkette aufzunehmen.\"(vorwiegend in C-artigen und vielen anderen modernen Sprachen)"
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 13)",
+    "antwort": "\"Dopplung, um ein \"\" aufzunehmen\"(Verdoppelung des Begrenzers, z. B. in Excel, Pascal, BASIC-Dialekten, CSV oder Rexx)"
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 14)",
+    "antwort": "Die beiden Ansätze sind inkompatibel: In Sprachen, die Verdopplung des Begrenzungszeichens verwenden, werden Escape-Sequenzen nicht als solche erkannt und beenden die Zeichenfolge, was meist zu Syntaxfehlern führt. In Sprachen, die Escape-Sequenzen verwenden, beendet ein verdoppeltes Begrenzungszeichen die Zeichenfolge und beginnt eine neue."
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 15)",
+    "antwort": "Für bestimmte Sprachen ist es möglich, dass die Unterschiede nur zu verschiedenen Ergebnissen, aber nicht zu Syntaxfehlern führen. Beispielsweise wird \"\\\"'\" von C für die Darstellung von \"' verwendet. In BASIC bedeutet diese Eingabe die Zeichenfolge \\ gefolgt von einem Kommentar. Umgekehrt werden in C nebeneinander stehende Zeichenfolgen-Literale automatisch zusammengefasst, was es so aussehen lässt, als würde ein doppeltes Anführungszeichen in einer Zeichenfolge verschwinden; in Wahrheit wird die Zeichenfolge beendet, eine neue begonnen und die beiden verbunden."
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 16)",
+    "antwort": "In Algol 60 werden Zeichenketten durch unterschiedliche Symbole begonnen und beendet; dadurch können Zeichenketten auch geschachtelt sein. Beispiele:"
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 17)",
+    "antwort": "'('Bei beschränktem Zeichenvorrat werden die '('Stringklammern')' durch '('Trigraphen')' dargestellt.')'"
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 18)",
+    "antwort": "String-Literale müssen in vielen älteren Sprachen in einer einzigen Zeile notiert werden, wobei für Zeilenumbrüche Escape-Sequenzen oder andere Lösungen zur Verfügung stehen. Moderne Programmiersprachen bieten in der Regel Möglichkeiten an, mehrzeilige Zeichenketten als solche in den Code einzugeben."
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 19)",
+    "antwort": "Es gibt mehrere Verfahren, um Zeichenketten effizient abzuspeichern. Zum Beispiel kann ein Zeichen aus dem verwendeten Zeichensatz als Abschlusszeichen definiert werden. Eine Zeichenkette hört dann vor dem ersten Vorkommen dieses Zeichens auf. Eine andere Möglichkeit ist, die Länge der Zeichenkette separat zu speichern."
+  },
+  {
+    "frage": "Was erfährt man über Zeichenkette? (Textabschnitt 20)",
+    "antwort": "In Programmiersprachen wie C werden die Zeichenketten fortlaufend im Speicher abgelegt und mit dem Nullzeichen (NUL in ASCII) abgeschlossen. Das Nullzeichen ist das Zeichen, dessen binäre Repräsentation den Zahlenwert 0 hat. (Die Ziffer 0 als Zeichen hat eine binäre Repräsentation ungleich 0.) Das folgende Beispiel zeigt, wie eine Zeichenkette mit 5 Zeichen in einem Puffer von 10 Byte Länge abgelegt werden könnte:"
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 1)",
+    "antwort": "Ein Array ([əˈɹeɪ], englisch für Areal, Bereich, Anordnung, Aufstellung u. a.) ist in der Informatik eine Datenstruktur-Variante, mit deren Verwendung „viele gleichartig strukturierte Daten […] verarbeitet werden sollen“. Der Zugriff auf bestimmte Inhalte des Arrays erfolgt mit Hilfe von Indizes."
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 2)",
+    "antwort": "Zum Teil wird für Arrays auch der Ausdruck Feld (aus englisch ‚field‘, eine weitere mögliche Bedeutung von ‚Array‘) verwendet."
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 3)",
+    "antwort": "Dieser Ausdruck (wie auch Datenfeld) gilt jedoch im Allgemeinen als elementares, Daten beschreibendes Konstrukt; es wird im Quelltext eines Computerprogramms zur Definition von oder Bezugnahme auf benannten Speicherplatz verwendet. Ein Feld in diesem Sinn ist kein Datentyp, sondern es hat einen Datentyp, und es ist unerheblich, ob es Teil eines Arrays oder einer übergeordneten Datenstruktur, z. B. Verbund oder Record ist oder ein singulär definierter Speicherbereich."
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 4)",
+    "antwort": "Diese beiden sich wesentlich unterscheidenden Bedeutungen von ‚Feld‘ sind und waren immer wieder Anlass zu zum Teil heftigen Diskussionen."
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 5)",
+    "antwort": "„Der englische und gängigere Begriff ist Array“."
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 6)",
+    "antwort": "Gleichbedeutende Synonyme für Array sind, im Wesentlichen geprägt aus dem Einsatz in verschiedenen Programmiersprachen, deren Terminologie und Entstehungsgeschichte oder durch Übersetzung aus dem Englischen: Tabelle (Table), Vektor, Reihe, Reihung, Aufstellung, Bereich, Gate Array, Matrix u. a."
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 7)",
+    "antwort": "Auch die verschiedenen Elemente eines Arrays werden mit unterschiedlichen Ausdrücken bezeichnet: Element, Komponente, Unterfeld, Feldelement, indizierte Variable – und zum Teil ebenfalls Feld oder Datenfeld. Dabei können als Untermenge des Arrays entweder die über einen bestimmten Indexwert adressierten Daten verstanden werden (oft als ‚vertikale‘ Dimension des Arrays bezeichnet) oder innerhalb einer solchen Struktur definierte Datenfelder (‚horizontale‘ Sicht)."
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 8)",
+    "antwort": "Zur Adressierung der Inhalte eines Arrays wird ein ‚Index‘ verwendet."
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 9)",
+    "antwort": "Der Index wird bei ‚Standard-Arrays‘ in höheren Programmiersprachen als Ganzzahl angegeben."
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 10)",
+    "antwort": "‚Assoziative Arrays‘ erlauben dagegen die Verwendung von beliebigen, nicht notwendigerweise numerischen, aber eindeutigen Schlüsselwerten als Indizes."
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 11)",
+    "antwort": "Bei mehrdimensionalen Arrays gibt es für jede Dimension einen unabhängigen Index und eine unabhängige Länge."
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 12)",
+    "antwort": "Bei streng strukturierten Programmiersprachen wird die Zulässigkeit eines Indexes zur Laufzeit geprüft, damit der Zugriff auf ungültige Speicherbereiche unterbunden wird."
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 13)",
+    "antwort": "Grundsätzlich können Arrays in den meisten Programmiersprachen angelegt und verarbeitet werden. Neben den unterschiedlichen Ausdrücken, die sich in einzelnen Sprachen entwickelt haben, werden Arrays von den Compilern der Programmiersprachen, zum Teil auch in verschiedenen Sprachversionen, unterschiedlich umgesetzt und unterstützt. Beispiele:"
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 14)",
+    "antwort": "Unterscheidung Standardarray / assoziatives Array / nur Listen durch den Compiler der Programmiersprache"
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 15)",
+    "antwort": "Anzahl der möglichen Dimensionen (in-sich mehrdimensionale Arrays, Array-in-Array)"
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 16)",
+    "antwort": "Adressierung der Elemente (ab 0, ab 1 oder ab einem beliebigen Index, gegebenenfalls auch beginnend mit einem negativen Index)"
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 17)",
+    "antwort": "Anzahl der Unterfelder: fix, dynamisch/variabel je Dimension"
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 18)",
+    "antwort": "Format und Länge der Elementarfelder: einheitlich im ganzen Array, einheitlich je Dimension/Variable, individuell"
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 19)",
+    "antwort": "Unterstützung für Operationen auf Datenmengen im Array: nur auf Elemente, beliebige Strukturen, ganze Dimension, ganzes Array"
+  },
+  {
+    "frage": "Was erfährt man über Array (Datentyp)? (Textabschnitt 20)",
+    "antwort": "Wertzuweisung für Array-Elemente: Per Deklaration, durch Zuweisungsbefehle"
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 1)",
+    "antwort": "Eine verkettete Liste ist eine dynamische Datenstruktur, in der Datenelemente geordnet gespeichert sind. Bei ihrer Erstellung braucht die maximale Anzahl der Elemente nicht festgelegt zu werden, und die Anzahl darf während der Laufzeit beliebig variieren."
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 2)",
+    "antwort": "der einfach verketteten Listen mit Elementen vom Typ"
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 3)",
+    "antwort": "{\\displaystyle L=\\operatorname {\\mathit {Nil}} \\mid [\\,A,L_{A}\\,]}"
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 4)",
+    "antwort": ". Die technische Realisierung erfolgt meistens durch einzelne Knoten, die aus den Nettodaten selbst und einem Verweis auf den Nachfolgeknoten bestehen. Im letzten Knoten ist als Nachfolgeknoten der sogenannte Null-Zeiger angegeben, der auch"
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 5)",
+    "antwort": "{\\displaystyle \\operatorname {\\mathit {Nil}} }"
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 6)",
+    "antwort": "Elementare Listenoperationen sind das Erweitern der Liste um einen Knoten am Anfang und das Entfernen des ersten Knotens, die in der Zeit"
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 7)",
+    "antwort": "Wenn das Suchen erledigt und der Einfügepunkt gefunden ist, ist der Aufwand für das Einfügen an jeder Stelle"
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 8)",
+    "antwort": "müssten hingegen Datensätze umkopiert werden."
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 9)",
+    "antwort": "Geringer zusätzlicher Speicherbedarf (1 Zeiger)."
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 10)",
+    "antwort": ", da ungünstigstenfalls über jeden Knoten iteriert werden muss."
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 11)",
+    "antwort": "Einfach verkettete Listen werden in hochdynamischen Umgebungen verwendet, in denen mit Arrays nicht mehr sinnvoll gearbeitet werden kann, da diese den Umgang mit syntaktischen Operationen enorm erschweren. So ist die einfach verkettete Liste mit Datentyp"
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 12)",
+    "antwort": "{\\displaystyle L_{U}=\\operatorname {\\mathit {Nil}} \\mid [\\,U,L_{U}\\,]}"
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 13)",
+    "antwort": "weitere elementare LISP-Datentypen bezeichnet, der zentrale Datentyp der Programmiersprache LISP. Sogar LISP-Programme sind selbst solche Listen."
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 14)",
+    "antwort": "Im Gegensatz zur einfach-verketteten Liste hat jedes Element sowohl einen Zeiger auf das nachfolgende als auch auf das vorhergehende Element."
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 15)",
+    "antwort": "Der Vorgänger-Zeiger des ersten und der Nachfolger-Zeiger des letzten Elementes zeigen auf den Wert NULL. Dieses besondere Element dient zum Feststellen des Anfangs und des Endes einer doppelt verketteten Liste."
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 16)",
+    "antwort": "Das Entfernen eines Elements aus der Liste kann in"
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 17)",
+    "antwort": "geschehen, auch wenn die Ankunft beim Element über keine der zwei Verkettungen geschah. In diesem Fall müsste bei der einfach verketteten Liste der Vorgänger gesucht werden."
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 18)",
+    "antwort": "Über die Liste kann von hinten nach vorne iteriert werden."
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 19)",
+    "antwort": "Höherer Speicherbedarf für die zusätzlichen Zeiger."
+  },
+  {
+    "frage": "Was erfährt man über Liste (Datenstruktur)? (Textabschnitt 20)",
+    "antwort": "Beim Löschen und Einfügen müssen auch die Vorgänger-Zeiger der nachfolgenden Listenelemente angepasst werden."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 1)",
+    "antwort": "In der Informatik bezeichnet eine Warteschlange (englisch queue [kju]) eine häufig eingesetzte Datenstruktur. Sie dient als Puffer zur Zwischenspeicherung von Objekten in einer Reihenfolge, bevor diese weiterverarbeitet werden."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 2)",
+    "antwort": "Eine Warteschlange kann, im Gegensatz zum später beschriebenen Ringpuffer, eine beliebige Menge von Objekten aufnehmen und gibt diese in der Reihenfolge ihres Einfügens wieder zurück. Dazu stellen Warteschlangen die Operationen"
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 3)",
+    "antwort": "enqueue zum Hinzufügen eines Objekts und"
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 4)",
+    "antwort": "dequeue zum Zurückholen und Entfernen eines Objektes bereit."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 5)",
+    "antwort": "Während die Warteschlange theoretisch unendlich viele Objekte aufnehmen kann, kann beim Ringpuffer bei Erschöpfung ein Überlauf eintreten, für den eine Bearbeitung vereinbart werden muss (siehe Abschnitt Implementierung als Ringpuffer)."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 6)",
+    "antwort": "Dabei wird nach dem Prinzip First In – First Out (kurz FIFO, wörtlich zuerst hinein – zuerst heraus) gearbeitet, das heißt, es wird von dequeue immer das Objekt aus der Warteschlange zurückgegeben, welches von den in der Warteschlange noch vorhandenen Objekten als erstes mit enqueue hineingelegt wurde."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 7)",
+    "antwort": "Man kann sich eine Warteschlange wie eine Warteschlange von Kunden an einer Kasse vorstellen. Der Letzte, der sich in die Schlange stellt, wird auch als letzter bedient. Umgekehrt wird derjenige, der sich als erstes angestellt hat, als erster bedient."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 8)",
+    "antwort": "Mit enter wird ein neuer Wert (3) der Schlange hinzugefügt, und mit leave das am längsten gespeicherte Element (37) herausgenommen. Der einzige lesende Zugriff erfolgt mit front"
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 9)",
+    "antwort": "und liefert das erste gespeicherte Element der Queue (hier im Beispiel 37, natürlich unter der Annahme, dass die Operation leave noch nicht ausgeführt wurde!)."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 10)",
+    "antwort": "Die zur Interprozesskommunikation verwendete Pipe ist eine der wichtigsten Anwendungen für Warteschlangen."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 11)",
+    "antwort": "Durch Warteschlangen werden auch langsame externe Geräte, z. B. Drucker, von der Programmabarbeitung entkoppelt. Nach dem Einstellen eines Druckauftrages in die Warteschlange wird dem Programm der Auftrag als „gedruckt“ signalisiert, tatsächlich wird der Auftrag jedoch erst später bei Verfügbarkeit des Gerätes ausgeführt."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 12)",
+    "antwort": "Warteschlangen werden außerdem häufig zur Datenübergabe zwischen asynchronen Prozessen in verteilten Systemen verwendet, wenn also Daten vor ihrer Weiterverarbeitung gepuffert werden müssen. Der Zugriff erfolgt dabei durch im Betriebssystem verankerte APIs. Die Größe der Warteschlange wird durch das Betriebssystem limitiert."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 13)",
+    "antwort": "Graphische Benutzeroberflächen puffern Ereignisse der Maus und Tastatur in einer sogenannten Message Queue nach dem FIFO-Prinzip, d. h. in der Reihenfolge ihres Auftretens. Anschließend leiten sie diese dann, abhängig von Position und Eingabefokus, an die korrekten Prozesse weiter."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 14)",
+    "antwort": "Eine Warteschlange kann auch für Parallele Programmierung verwendet werden. Dies kann man sich wie in einer Behörde vorstellen, bei dem es mehrere Schalter für eine Warteschlange gibt. So können Aufgaben eingestellt werden, die später parallel abgearbeitet werden."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 15)",
+    "antwort": "Warteschlangen sind häufig als Ringpuffer mit je einem Zeiger auf das Ende (In-Pointer) und den Anfang (Out-Pointer) der Warteschlange implementiert. Die Besonderheit des Ringpuffers ist, dass er eine feste Größe besitzt. Dabei zeigt der In-Pointer auf das erste freie Element im Array, das den Ringpuffer repräsentiert, und der Out-Pointer auf das erste belegte Element in dem Array. Im Unterschied zum Array werden die ältesten Inhalte überschrieben, wenn der Puffer voll ist, um weitere Elemente in den Ringpuffer ablegen zu können."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 16)",
+    "antwort": "Eine Implementierung des Ringpuffers sollte für den Fall, dass der Ringpuffer voll ist, entweder einen Pufferüberlauf signalisieren oder zusätzlichen Speicherplatz bereitstellen. In anderen Fällen kann das Überschreiben alter Elemente der Warteschlange und damit der Datenverlust gewollt sein."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 17)",
+    "antwort": "Implementierung als Verkettete Datenstruktur"
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 18)",
+    "antwort": "Eine wesentlich simplere und flexiblere, aber in den meisten Fällen weniger Overhead (EDV)-Effiziente Art der Implementierung einer Warteschlange ist mittels Verketteten Elementen. Dafür wird jedem Element, mittels Zeiger das jeweils nächste zugewiesen. Kennt man das erste und letzte Element, können die enqueue und dequeue Operationen in Konstanter asymptotischer Laufzeit durchgeführt werden. Ein großer Nachteil für diesen Ansatz ist, dass für jeden Eintrag weitere Metainformationen vermerkt werden müssen."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 19)",
+    "antwort": "Das geschieht üblicherweise, indem ein separates Objekt dynamisch alloziert wird, welches einen Zeiger zum Nächsten Eintrag und einen Zeiger oder eine Kopie des zu speichernden Elements hält. Da dynamische Speicherallozierung sehr aufwendig werden kann und dadurch die Daten nicht sequenziell vorliegen, wird oft viel Zeit mit Cache Misses und Systemaufrufen verloren. Deswegen werden größere Verkette Listen dieser Art in kritischer Software oft vermieden."
+  },
+  {
+    "frage": "Was erfährt man über Warteschlange (Datenstruktur)? (Textabschnitt 20)",
+    "antwort": "Ein Verbund-Datentyp, welcher Speziell für das Nutzen in einer Verketteten Liste angelegt wurde kann zumindest das Allozieren eines weiteren Objekts vermeiden. Dies ist oft für programmbibliotheksinterne Datentypen der Fall, welche in einer Warteschlange verwendet werden."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 1)",
+    "antwort": "In der Informatik bezeichnet man eine spezielle Indexstruktur als Hashtabelle (englisch hash table oder hash map) bzw. Streuwerttabelle. Sie wird verwendet, um Datenelemente in einer großen Datenmenge zu suchen bzw. aufzufinden (Hash- oder Streuspeicherverfahren)."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 2)",
+    "antwort": "Gegenüber alternativen Index-Datenstrukturen wie Baumstrukturen (z. B. ein B+-Baum) oder Skip-Listen zeichnen sich Hashtabellen üblicherweise durch einen konstanten Zeitaufwand bei Einfüge- bzw. Entfernen-Operationen aus."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 3)",
+    "antwort": "Das Hashverfahren ist ein Algorithmus zum Suchen von Datenobjekten in großen Datenmengen. Es basiert auf der Idee, dass eine mathematische Funktion, die Hashfunktion, die Position eines Objektes in einer Tabelle berechnet. Dadurch erübrigt sich das Durchsuchen vieler Datenobjekte, bis das Zielobjekt gefunden wurde."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 4)",
+    "antwort": "Beim Hashverfahren werden die Zieldaten in einer Hashtabelle gespeichert. Dabei dient nicht der Schlüssel, der das Datenobjekt eindeutig identifiziert, als Index, sondern der Hashwert, der von einer Hashfunktion aus dem Schlüssel berechnet wird. Der durch den Hashwert festgelegte Speicherort eines Datenobjektes in der Tabelle wird auch als Bucket bezeichnet (englisch Behälter)."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 5)",
+    "antwort": "Im Idealfall bekommt jedes Objekt einen eigenen Bucket (d. h. keine Kollisionen, s. u.)."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 6)",
+    "antwort": "In der Praxis wird die Tabelle als ein Array implementiert."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 7)",
+    "antwort": "Hashfunktionen sind im Allgemeinen nicht injektiv, d. h. zwei unterschiedliche Schlüssel können zum selben Hashwert, also zum selben Feld in der Tabelle, führen. Dieses Ereignis wird als Kollision bezeichnet. In diesem Fall muss die Hashtabelle mehrere Werte an derselben Stelle / in demselben Bucket aufnehmen."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 8)",
+    "antwort": "Eine Kollision benötigt bei der Suche eine spezielle Behandlung durch das Verfahren: Zunächst wird aus einem Suchschlüssel wieder ein Hashwert berechnet, der den Bucket des gesuchten Datenobjektes bestimmt; dann muss noch durch direkten Vergleich des Suchschlüssels mit den Objekten im Bucket das gesuchte Ziel bestimmt werden."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 9)",
+    "antwort": "Zur Behandlung von Kollisionen werden kollidierte Daten nach einer Ausweichstrategie in alternativen Feldern oder in einer Liste gespeichert. Schlimmstenfalls können Kollisionen zu einer Entartung der Hashtabelle führen, wenn wenige Hashwerte sehr vielen Objekten zugewiesen wurden, während andere Hashwerte unbenutzt bleiben."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 10)",
+    "antwort": "Um das Kollisions-Problem zu handhaben, gibt es diverse Kollisionsauflösungsstrategien."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 11)",
+    "antwort": "Geschlossenes Hashing mit offener Adressierung"
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 12)",
+    "antwort": "Eine Möglichkeit wird geschlossenes Hashing mit offener Adressierung genannt. Wenn dabei ein Eintrag an einer schon belegten Stelle in der Tabelle abgelegt werden soll, wird stattdessen eine andere freie Stelle genommen. Häufig werden drei Varianten unterschieden (vgl. #Algorithmen):"
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 13)",
+    "antwort": "es wird um ein konstantes Intervall verschoben nach einer freien Stelle gesucht. Meistens wird die Intervallgröße auf 1 festgelegt."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 14)",
+    "antwort": "Nach jedem erfolglosen Suchschritt wird das Intervall quadriert."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 15)",
+    "antwort": "eine weitere Hash-Funktion liefert das Intervall."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 16)",
+    "antwort": "Offenes Hashing mit geschlossener Adressierung"
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 17)",
+    "antwort": "Eine weitere Möglichkeit ist offenes Hashing mit geschlossener Adressierung. Anstelle der gesuchten Daten enthält die Hashtabelle hier Behälter (englisch Buckets), die alle Daten mit gleichem Hash-Wert aufnehmen. Bei einer Suche wird also zunächst der richtige Zielbehälter berechnet. Damit wird die Menge der möglichen Ziele erheblich eingeschränkt."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 18)",
+    "antwort": "Dennoch müssen abschließend die verbliebenen Elemente im Behälter durchsucht werden. Im schlimmsten Fall kann es passieren, dass alle Elemente gleiche Hash-Werte haben und damit im selben Bucket abgelegt werden. In der Praxis kann das aber durch die Wahl einer geeigneten Größe für die Hashtabelle sowie einer geeigneten Hash-Funktion vermieden werden."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 19)",
+    "antwort": "Oft wird die Verkettung durch eine lineare Liste pro Behälter realisiert."
+  },
+  {
+    "frage": "Was erfährt man über Hashtabelle? (Textabschnitt 20)",
+    "antwort": "Je nach Anwendungsfall hat eine Hashtabelle Vorteile sowohl in der Zugriffszeit (gegenüber anderen Baumindexstrukturen) als auch im benötigten Speicherplatz (gegenüber gewöhnlichen Arrays)."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 1)",
+    "antwort": "In der Informatik ist ein Baum (engl. tree) eine Datenstruktur und ein abstrakter Datentyp, mit dem sich hierarchische Strukturen abbilden lassen. Dadurch, dass einerseits viele kombinatorische Probleme auf Bäume zurückgeführt werden können oder (im Fall von Spannbäumen) die Ergebnisse von Graphenalgorithmen (wie der Breiten- oder Tiefensuche) sind, spielen Bäume in der Informatik eine besondere Rolle. Dabei können ausgehend von der Wurzel mehrere gleichartige Objekte miteinander verkettet werden, sodass die lineare Struktur der Liste aufgebrochen wird und eine Verzweigung stattfindet."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 2)",
+    "antwort": "Da Bäume zu den meist verwendeten Datenstrukturen in der Informatik gehören, gibt es viele Spezialisierungen."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 3)",
+    "antwort": "Bäume können auf verschiedene Weise definiert werden, z. B."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 4)",
+    "antwort": "Ein Baum besteht aus einer Menge von Knoten und einer Menge von Kanten, die jeweils zwei Knoten verbinden. Ein bestimmter Knoten des Baums wird als Wurzel bezeichnet. Jeder Knoten mit Ausnahme der Wurzel ist durch eine Kante mit genau einem anderen Knoten verbunden, wobei dieser Knoten der Elternteil von n ist. Ein eindeutiger Pfad verläuft von der Wurzel zu jedem Knoten. Wenn jeder Knoten im Baum maximal zwei untergeordnete Knoten (Kinder) hat, wird der Baum Binärbaum genannt."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 5)",
+    "antwort": "Ein Baum ist entweder leer oder besteht aus einer Wurzel und 0 oder mehr Teilbäumen, von denen jeder auch ein Baum ist. Die Wurzel jedes Teilbaums ist durch eine Kante mit der Wurzel des übergeordneten Baums verbunden. Dies ist eine rekursive Definition für Bäume."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 6)",
+    "antwort": "Der Vorteil von Bäumen gegenüber linearen Strukturen wie Felder oder Listen ist der effiziente Zugriff. So erfolgt beispielsweise eine Suche nur in logarithmischer Zeit gegenüber linearer Zeit bei Feldern (zu Details vergleiche Artikel Binärsuche). Der Vorteil von Bäumen als Datenstruktur gegenüber Netzwerkstrukturen ist die geringe Anzahl der Kanten (Verbindungen), die gespeichert bzw. berücksichtigt werden müssen. Die Anzahl der Kanten des vollständigen Graphen"
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 7)",
+    "antwort": "{\\displaystyle \\Delta _{n-1}={n \\choose 2}={\\frac {n(n-1)}{2}}}"
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 8)",
+    "antwort": ". Die Anzahl der Kanten in einem Baum mit der gleichen Anzahl von Knoten (Objekten) ist dagegen lediglich"
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 9)",
+    "antwort": "Bäume können wie andere Graphenstrukturen über eine Adjazenzliste oder -matrix bzw. über eine Inzidenzmatrix gespeichert werden."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 10)",
+    "antwort": "Allgemein werden alle denkbaren Begriffe der Graphentheorie entlehnt. Die durch die Hierarchie vorgegebenen Objekte nennt man Knoten. Typischerweise speichert jeder Knoten ausgehend von einem ersten Knoten, der Wurzel, eine Liste von Verweisen auf die ihnen untergeordneten Knoten. Diese Verweise heißen Kanten. Eine Kante verbindet zwei Knoten, um anzuzeigen, dass zwischen ihnen eine Beziehung besteht. Jeder Knoten außer der Wurzel ist durch genau eine eingehende Kante von einem anderen Knoten verbunden. Die Wurzel des Baums ist der einzige Knoten im Baum, der keine eingehenden Kanten hat. Jeder Knoten kann mehrere ausgehende Kanten haben."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 11)",
+    "antwort": "Es ist üblich, bei den untergeordneten Knoten von Kindern und bei dem verweisenden Knoten von einem Elternteil zu sprechen. Die Menge der Knoten, die eingehende Kanten von demselben Knoten haben, werden als Kinder dieses Knotens bezeichnet. Ein Knoten ist das Elternteil aller Knoten, mit denen er mit ausgehenden Kanten verbunden ist. Knoten im Baum, die Kinder desselben Elternteils sind, werden als Geschwister bezeichnet. Auch andere der Genealogie entlehnten Bezeichnungen werden verwendet. Hat ein Knoten selbst keine Kinder, nennt man ihn ein Blatt."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 12)",
+    "antwort": "Insbesondere sind die Begriffe der Wurzelbäume relevant: Bei diesen Bäumen ist die Wurzel eindeutig bestimmt. Hat man eine Wurzel festgehalten, lassen sich zusätzlich zu den Begriffen, die man bei graphentheoretischen Bäumen schon hat – Abstand, Teilbaum, Knotengrad, Isomorphie –, noch Folgendes definieren: Die Tiefe eines Knotens gibt an, wie viele Kanten er von der Wurzel entfernt ist. Die Wurzel hat die Tiefe 0. Die Knoten mit derselben Tiefe bilden zusammen eine Ebene oder ein Niveau. Die Höhe eines Baumes ist dann die maximale Tiefe eines Knotens."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 13)",
+    "antwort": "Ein Knoten ist ein grundlegender Bestandteil eines Baumes. Er kann einen Namen haben, der Schlüssel genannt wird. Ein Knoten kann auch zusätzliche Informationen enthalten. Diese zusätzlichen Informationen werden Nutzdaten genannt. Während die Nutzdateninformationen für viele Baumalgorithmen nicht von zentraler Bedeutung sind, sind sie in Anwendungen, die Bäume verwenden, häufig von entscheidender Bedeutung."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 14)",
+    "antwort": "Ein Pfad ist eine geordnete Liste von Knoten, die durch Kanten verbunden sind. Ein Teilbaum ist eine zusammenhängende Menge von Knoten und Kanten, die aus einem übergeordneten Knoten und allen Nachkommen dieses übergeordneten Knotens bestehen und selbst einen Baum bildet. Die Kinder jedes Knotens sind die Wurzeln eines Teilbaums."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 15)",
+    "antwort": "Ein wichtiger Spezialfall ist der Binärbaum, in welchem jeder Knoten nur höchstens zwei Kinder haben darf. So beträgt bei Binärbäumen die Anzahl der Kinder höchstens zwei und in höhen-balancierten Bäumen gilt zusätzlich, dass sich die Höhen des linken und rechten Teilbaums an jedem Knoten nicht zu sehr unterscheiden."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 16)",
+    "antwort": "Bei geordneten Bäumen, insbesondere Suchbäumen, sind die Elemente in der Baumstruktur geordnet abgelegt, sodass man schnell Elemente im Baum finden kann. Man unterscheidet hier weiter in binäre Suchbäume mit AVL-Bäumen als balancierte Version und B-Bäumen sowie einer Variante, den B*-Bäumen. Spezialisierungen von B-Bäumen sind wiederum 2-3-4-Bäume, welche oft als Rot-Schwarz-Bäume implementiert werden."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 17)",
+    "antwort": "Ein Spezialfall der AVL-Bäume sind Fibonacci-Bäume. Sie werden vor allem bei Effizienzüberlegungen zu höhen-balancierten Bäumen, insbesondere AVL-Bäumen, als Extremfälle und Vergleichsobjekte herangezogen."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 18)",
+    "antwort": "Nicht sortiert, aber „verschachtelt“ sind geometrische Baumstrukturen wie der R-Baum und seine Varianten. Hier werden nur diejenigen Teilbäume durchsucht, die sich mit dem angefragten Bereich überlappen."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 19)",
+    "antwort": "Bäume sind in ihrem Aufbau zwar mehrdimensional jedoch in der Verkettung der Objekte oft unidirektional. Die Verkettung der gespeicherten Objekte beginnt bei der Wurzel des Baums und von dort in Richtung der Knoten des Baums."
+  },
+  {
+    "frage": "Was erfährt man über Baum (Datenstruktur)? (Textabschnitt 20)",
+    "antwort": "Das folgende Beispiel in der Programmiersprache C# zeigt die Implementierung eines ungerichteten Graphen mit Adjazenzlisten. Der ungerichtete Graph wird als Klasse UndirectedGraph deklariert. Bei der Ausführung des Programms wird die Methode Main verwendet, die auf der Konsole ausgibt, ob der Graph ein Baum ist."
+  }
+]

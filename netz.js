@@ -4,17 +4,18 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const STOPWOERTER = new Set([
-  "der", "die", "das", "den", "dem", "des", "ein", "eine",
-  "einer", "eines", "einem", "und", "oder", "aber", "ist",
-  "sind", "war", "waren", "ich", "du", "er", "sie", "es",
-  "wir", "ihr", "was", "wie", "wer", "wo", "wann", "warum",
-  "wieso", "mit", "von", "für", "auf", "in", "im", "am", "an",
-  "zu", "zum", "zur", "auch", "nicht", "kein", "keine", "bitte",
-  "noch", "schon", "sehr", "hat", "haben", "kann", "können",
-  "sich", "mir", "mich", "mein", "meine", "dein", "deine"
+  "der", "die", "das", "den", "dem", "des", "ein", "eine", "einer",
+  "eines", "einem", "und", "oder", "aber", "ist", "sind", "war",
+  "waren", "ich", "du", "er", "sie", "es", "wir", "ihr", "was",
+  "wie", "wer", "wo", "wann", "warum", "wieso", "mit", "von", "für",
+  "auf", "in", "im", "am", "an", "zu", "zum", "zur", "auch", "nicht",
+  "kein", "keine", "bitte", "noch", "schon", "sehr", "hat", "haben",
+  "kann", "können", "sich", "mir", "mich", "mein", "meine", "dein",
+  "deine", "bin", "bist", "seid", "dass", "als", "bei", "nach",
+  "vor", "über", "unter", "aus", "einen", "einem", "einer", "dann"
 ]);
 
-const SPEZIAL_AUSGABE_VERBOTEN = new Set([
+const VERBOTENE_AUSGABE_TOKENS = new Set([
   "<PAD>",
   "<BOS>",
   "<UNK>",
@@ -30,8 +31,6 @@ class NeuronalesNetz {
       tokenizer = null;
     }
 
-    this.tokenizer = tokenizer;
-
     this.maxVokabular = Number.isInteger(optionen.maxVokabular)
       ? Math.max(16, optionen.maxVokabular)
       : 512;
@@ -40,13 +39,33 @@ class NeuronalesNetz {
       ? Math.max(2, optionen.embeddingGroesse)
       : 8;
 
-    this.versteckteNeuronen = Number.isInteger(optionen.versteckteNeuronen)
+    this.versteckteNeuronen = Number.isInteger(
+      optionen.versteckteNeuronen
+    )
       ? Math.max(8, optionen.versteckteNeuronen)
       : 120;
 
     this.kontextLaenge = Number.isInteger(optionen.kontextLaenge)
-      ? Math.max(2, optionen.kontextLaenge)
-      : 16;
+      ? Math.max(4, optionen.kontextLaenge)
+      : 20;
+
+    this.modellOrdner = path.resolve(
+      optionen.modellOrdner ||
+      process.env.KI_MODELL_ORDNER ||
+      path.join(__dirname, "modelle")
+    );
+
+    this.modellDatei = path.resolve(
+      optionen.modellDatei ||
+      path.join(this.modellOrdner, "netz.json")
+    );
+
+    this.tokenizerDatei = path.resolve(
+      optionen.tokenizerDatei ||
+      path.join(this.modellOrdner, "tokenizer.json")
+    );
+
+    this.tokenizer = tokenizer;
 
     this.vokabular = [];
     this.embeddings = null;
@@ -55,30 +74,51 @@ class NeuronalesNetz {
     this.gewichte2 = null;
     this.bias2 = null;
 
+    this.padId = 0;
     this.unkId = 1;
     this.bosId = 2;
     this.eosId = 3;
-    this.padId = 0;
 
     this.bereit = false;
     this.konversationsModus = false;
+
     this.trainingsBeispiele = 0;
     this.trainierteEpochen = 0;
+
     this.trainingsPaare = [];
+    this.trainingsTexte = [];
+
     this.letzteAntworten = [];
+    this.letzteAntwortAnalyse = null;
     this.letzterFehler = null;
+    this.zuletztGespeichert = null;
+
+    // Gespeicherte Gewichte und Daten automatisch laden.
+    this.ladeModell({ still: true });
   }
 
-  // -----------------------------------------------
-  // TEXT UND TRAININGSDATEN
-  // -----------------------------------------------
+  // =====================================================
+  // TEXTNORMALISIERUNG
+  // =====================================================
 
   normalisiereText(text) {
-    return text
+    return String(text ?? "")
       .normalize("NFC")
       .toLocaleLowerCase("de-DE")
+      .trim()
+      .replace(/\s+/g, " ");
+  }
+
+  normalisiereVergleich(text) {
+    return this.normalisiereText(text)
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .replace(/\s+/g, " ")
       .trim();
   }
+
+  // =====================================================
+  // TRAININGSDATEN AUS JSON UND TEXTEN LESEN
+  // =====================================================
 
   extrahiereTexte(daten, ergebnis = []) {
     if (typeof daten === "string") {
@@ -106,48 +146,41 @@ class NeuronalesNetz {
       return ergebnis;
     }
 
-    const keys = Object.keys(daten);
-    const nachKlein = Object.create(null);
+    const map = Object.create(null);
 
-    for (const key of keys) {
-      nachKlein[key.toLowerCase()] = key;
+    for (const key of Object.keys(daten)) {
+      map[key.toLowerCase()] = key;
     }
 
-    const frageFelder = [
+    const frageFeld = [
       "frage",
       "question",
       "prompt",
-      "input"
-    ];
+      "input",
+      "user"
+    ].find(key => map[key]);
 
-    const antwortFelder = [
+    const antwortFeld = [
       "antwort",
       "answer",
       "response",
       "completion",
-      "output"
-    ];
-
-    const frageFeld = frageFelder.find(
-      key => nachKlein[key]
-    );
-
-    const antwortFeld = antwortFelder.find(
-      key => nachKlein[key]
-    );
+      "output",
+      "assistant"
+    ].find(key => map[key]);
 
     if (
       frageFeld &&
       antwortFeld &&
-      typeof daten[nachKlein[frageFeld]] === "string" &&
-      typeof daten[nachKlein[antwortFeld]] === "string"
+      typeof daten[map[frageFeld]] === "string" &&
+      typeof daten[map[antwortFeld]] === "string"
     ) {
       const frage = this.normalisiereText(
-        daten[nachKlein[frageFeld]]
+        daten[map[frageFeld]]
       );
 
       const antwort = this.normalisiereText(
-        daten[nachKlein[antwortFeld]]
+        daten[map[antwortFeld]]
       );
 
       if (frage && antwort) {
@@ -172,6 +205,10 @@ class NeuronalesNetz {
     return ergebnis;
   }
 
+  // =====================================================
+  // TOKENIZER LADEN UND SYNCHRONISIEREN
+  // =====================================================
+
   ladeTokenizer() {
     if (this.tokenizer) {
       return this.tokenizer;
@@ -179,53 +216,65 @@ class NeuronalesNetz {
 
     const { Tokenizer } = require("./tokenizer.js");
 
-    const dateipfad = path.join(
-      __dirname,
-      "modelle",
-      "tokenizer.json"
-    );
-
-    this.tokenizer = fs.existsSync(dateipfad)
-      ? Tokenizer.laden(dateipfad)
+    this.tokenizer = fs.existsSync(this.tokenizerDatei)
+      ? Tokenizer.laden(this.tokenizerDatei)
       : new Tokenizer();
 
     return this.tokenizer;
   }
 
-  // -----------------------------------------------
-  // GEWICHTE INITIALISIEREN
-  // -----------------------------------------------
+  synchronisiereTokenizerMitVokabular() {
+    if (!this.tokenizer) {
+      return;
+    }
+
+    // Die gespeicherte Token-Reihenfolge muss exakt zu
+    // den geladenen neuronalen Gewichten passen.
+    this.tokenizer.idZuToken = this.vokabular.slice();
+    this.tokenizer.tokenZuId = new Map();
+
+    for (let i = 0; i < this.vokabular.length; i++) {
+      this.tokenizer.tokenZuId.set(
+        this.vokabular[i],
+        i
+      );
+    }
+  }
+
+  // =====================================================
+  // NEURONALE GEWICHTE INITIALISIEREN
+  // =====================================================
 
   initialisiereGewichte() {
-    const vokabularGroesse = this.vokabular.length;
+    const vocabSize = this.vokabular.length;
 
-    const eingabeGroesse =
+    const inputSize =
       this.kontextLaenge * this.embeddingGroesse;
 
-    const zufall = grenze =>
+    const random = grenze =>
       (Math.random() * 2 - 1) * grenze;
 
-    this.embeddings = Array.from(
-      { length: vokabularGroesse },
-      () => Array.from(
-        { length: this.embeddingGroesse },
-        () => zufall(0.1)
-      )
-    );
-
     const grenze1 = Math.sqrt(
-      2 / (eingabeGroesse + this.versteckteNeuronen)
+      2 / (inputSize + this.versteckteNeuronen)
     );
 
     const grenze2 = Math.sqrt(
-      2 / (this.versteckteNeuronen + vokabularGroesse)
+      2 / (this.versteckteNeuronen + vocabSize)
+    );
+
+    this.embeddings = Array.from(
+      { length: vocabSize },
+      () => Array.from(
+        { length: this.embeddingGroesse },
+        () => random(0.1)
+      )
     );
 
     this.gewichte1 = Array.from(
-      { length: eingabeGroesse },
+      { length: inputSize },
       () => Array.from(
         { length: this.versteckteNeuronen },
-        () => zufall(grenze1)
+        () => random(grenze1)
       )
     );
 
@@ -236,12 +285,12 @@ class NeuronalesNetz {
     this.gewichte2 = Array.from(
       { length: this.versteckteNeuronen },
       () => Array.from(
-        { length: vokabularGroesse },
-        () => zufall(grenze2)
+        { length: vocabSize },
+        () => random(grenze2)
       )
     );
 
-    this.bias2 = Array(vokabularGroesse).fill(0);
+    this.bias2 = Array(vocabSize).fill(0);
   }
 
   begrenze(wert, minimum, maximum) {
@@ -251,16 +300,22 @@ class NeuronalesNetz {
     );
   }
 
-  // -----------------------------------------------
+  // =====================================================
   // VORWÄRTSBERECHNUNG
-  // -----------------------------------------------
+  // =====================================================
 
   vorwaerts(kontext) {
+    if (!this.embeddings || !this.vokabular.length) {
+      throw new Error(
+        "Das neuronale Netz ist noch nicht initialisiert."
+      );
+    }
+
     const eingabe = new Array(
       this.kontextLaenge * this.embeddingGroesse
     );
 
-    let positionIndex = 0;
+    let p = 0;
 
     for (
       let position = 0;
@@ -277,14 +332,17 @@ class NeuronalesNetz {
         id = this.unkId;
       }
 
-      const embedding = this.embeddings[id];
+      const embedding =
+        this.embeddings[id] ||
+        this.embeddings[this.unkId] ||
+        this.embeddings[0];
 
       for (
         let d = 0;
         d < this.embeddingGroesse;
         d++
       ) {
-        eingabe[positionIndex++] = embedding[d];
+        eingabe[p++] = embedding[d] || 0;
       }
     }
 
@@ -322,20 +380,24 @@ class NeuronalesNetz {
         h < this.versteckteNeuronen;
         h++
       ) {
-        summe += versteckt[h] * this.gewichte2[h][v];
+        summe +=
+          versteckt[h] * this.gewichte2[h][v];
       }
 
       logits[v] = summe;
     }
 
+    // Numerisch stabile Softmax-Berechnung.
     let maximum = -Infinity;
 
     for (const wert of logits) {
-      if (wert > maximum) maximum = wert;
+      if (wert > maximum) {
+        maximum = wert;
+      }
     }
 
-    const exponenten = logits.map(
-      wert => Math.exp(Math.max(-60, wert - maximum))
+    const exponenten = logits.map(wert =>
+      Math.exp(Math.max(-60, wert - maximum))
     );
 
     const gesamt = exponenten.reduce(
@@ -355,9 +417,9 @@ class NeuronalesNetz {
     };
   }
 
-  // -----------------------------------------------
-  // RÜCKWÄRTSBERECHNUNG UND LERNEN
-  // -----------------------------------------------
+  // =====================================================
+  // RÜCKWÄRTSBERECHNUNG / LERNEN
+  // =====================================================
 
   trainiereBeispiel(kontext, ziel, lernrate) {
     const ergebnis = this.vorwaerts(kontext);
@@ -384,25 +446,27 @@ class NeuronalesNetz {
         v++
       ) {
         summe +=
-          this.gewichte2[h][v] * gradAusgabe[v];
+          this.gewichte2[h][v] *
+          gradAusgabe[v];
       }
 
       gradVersteckt[h] = summe;
     }
 
-    const gradVorAktivierung = gradVersteckt.map(
-      (wert, h) =>
+    const gradVorAktivierung =
+      gradVersteckt.map((wert, h) =>
         wert * (
           1 -
           ergebnis.versteckt[h] *
           ergebnis.versteckt[h]
         )
-    );
+      );
 
     const gradEingabe = new Array(
       ergebnis.eingabe.length
     ).fill(0);
 
+    // Gradient vor der Änderung der Gewichte berechnen.
     for (
       let i = 0;
       i < ergebnis.eingabe.length;
@@ -420,9 +484,14 @@ class NeuronalesNetz {
           gradVorAktivierung[h];
       }
 
-      gradEingabe[i] = this.begrenze(summe, -5, 5);
+      gradEingabe[i] = this.begrenze(
+        summe,
+        -5,
+        5
+      );
     }
 
+    // Ausgabeschicht aktualisieren.
     for (
       let v = 0;
       v < this.vokabular.length;
@@ -448,6 +517,7 @@ class NeuronalesNetz {
       }
     }
 
+    // Verborgene Schicht aktualisieren.
     for (
       let h = 0;
       h < this.versteckteNeuronen;
@@ -469,6 +539,7 @@ class NeuronalesNetz {
       }
     }
 
+    // Wort-Embeddings aktualisieren.
     for (
       let position = 0;
       position < this.kontextLaenge;
@@ -497,9 +568,83 @@ class NeuronalesNetz {
       }
     }
   }
-    // -----------------------------------------------
+
+  // =====================================================
+  // DOPPELTE TRAININGSDATEN ENTFERNEN
+  // =====================================================
+
+  eindeutigeTexte(texte) {
+    const gesehen = new Set();
+    const ausgabe = [];
+
+    for (const element of texte) {
+      if (
+        !element ||
+        typeof element.text !== "string" ||
+        !element.text.trim()
+      ) {
+        continue;
+      }
+
+      const text = this.normalisiereText(element.text);
+      const istKonversation = Boolean(
+        element.istKonversation
+      );
+
+      const key =
+        `${istKonversation ? "1" : "0"}\n${text}`;
+
+      if (gesehen.has(key)) {
+        continue;
+      }
+
+      gesehen.add(key);
+
+      ausgabe.push({
+        text,
+        istKonversation
+      });
+    }
+
+    return ausgabe;
+  }
+
+  eindeutigePaare(paare) {
+    const gesehen = new Set();
+    const ausgabe = [];
+
+    for (const paar of paare) {
+      if (
+        !paar ||
+        typeof paar.frage !== "string" ||
+        typeof paar.antwort !== "string"
+      ) {
+        continue;
+      }
+
+      const frage = this.normalisiereText(paar.frage);
+      const antwort = this.normalisiereText(paar.antwort);
+
+      if (!frage || !antwort) {
+        continue;
+      }
+
+      const key = `${frage}\n${antwort}`;
+
+      if (gesehen.has(key)) {
+        continue;
+      }
+
+      gesehen.add(key);
+      ausgabe.push({ frage, antwort });
+    }
+
+    return ausgabe;
+  }
+
+  // =====================================================
   // SPRACHMODELL TRAINIEREN
-  // -----------------------------------------------
+  // =====================================================
 
   trainiereTexte(daten, tokenizer = null, optionen = {}) {
     if (
@@ -510,74 +655,116 @@ class NeuronalesNetz {
       tokenizer = null;
     }
 
-    this.trainingsPaare = [];
     this.bereit = false;
     this.letzterFehler = null;
 
-    const texte = this.extrahiereTexte(daten);
+    const alteTexte = Array.isArray(this.trainingsTexte)
+      ? this.trainingsTexte.slice()
+      : [];
 
-    if (texte.length === 0) {
-      throw new Error("Keine Trainings-Texte gefunden.");
+    const altePaare = Array.isArray(this.trainingsPaare)
+      ? this.trainingsPaare.slice()
+      : [];
+
+    this.trainingsPaare = [];
+
+    const neueTexte = this.extrahiereTexte(daten, []);
+    const neuePaare = this.trainingsPaare.slice();
+
+    // Standardmäßig bleibt das bisherige Wissen erhalten.
+    if (optionen.ersetzeVorwissen) {
+      this.trainingsTexte =
+        this.eindeutigeTexte(neueTexte);
+
+      this.trainingsPaare =
+        this.eindeutigePaare(neuePaare);
+    } else {
+      this.trainingsTexte = this.eindeutigeTexte([
+        ...alteTexte,
+        ...neueTexte
+      ]);
+
+      this.trainingsPaare = this.eindeutigePaare([
+        ...altePaare,
+        ...neuePaare
+      ]);
     }
 
-    this.tokenizer = tokenizer || this.ladeTokenizer();
+    if (this.trainingsTexte.length === 0) {
+      this.trainingsPaare = altePaare;
+      this.trainingsTexte = alteTexte;
+
+      throw new Error(
+        "Keine Trainings-Texte gefunden."
+      );
+    }
+
+    this.tokenizer =
+      tokenizer ||
+      this.tokenizer ||
+      this.ladeTokenizer();
 
     this.tokenizer.lerneTexte(
-      texte.map(element => element.text)
+      this.trainingsTexte.map(element => element.text)
     );
 
-    this.konversationsModus = texte.some(
-      element => element.istKonversation
-    );
+    this.konversationsModus =
+      this.trainingsTexte.some(
+        element => element.istKonversation
+      );
 
-    this.vokabular = this.tokenizer.idZuToken.slice(
-      0,
-      this.maxVokabular
-    );
+    this.vokabular =
+      this.tokenizer.idZuToken.slice(
+        0,
+        this.maxVokabular
+      );
 
     if (this.vokabular.length < 5) {
       throw new Error("Das Vokabular ist zu klein.");
     }
 
-    const findeId = (token, fallback) => {
+    const idVon = (token, fallback) => {
       const id = this.vokabular.indexOf(token);
       return id >= 0 ? id : fallback;
     };
 
-    this.padId = findeId("<PAD>", 0);
-    this.unkId = findeId("<UNK>", 1);
-    this.bosId = findeId("<BOS>", 2);
-    this.eosId = findeId("<EOS>", 3);
+    this.padId = idVon("<PAD>", 0);
+    this.unkId = idVon("<UNK>", 1);
+    this.bosId = idVon("<BOS>", 2);
+    this.eosId = idVon("<EOS>", 3);
 
     this.initialisiereGewichte();
 
     const sequenzen = [];
 
-    for (const element of texte) {
-      const tokens = this.tokenizer.zerlege(element.text);
+    for (const element of this.trainingsTexte) {
+      const ids = this.tokenizer
+        .zerlege(element.text)
+        .map(token => {
+          const id = this.tokenizer.tokenZuId.get(token);
 
-      const ids = tokens.map(token => {
-        const id = this.tokenizer.tokenZuId.get(token);
-
-        return Number.isInteger(id) &&
-          id < this.vokabular.length
-          ? id
-          : this.unkId;
-      });
+          return Number.isInteger(id) &&
+            id >= 0 &&
+            id < this.vokabular.length
+            ? id
+            : this.unkId;
+        });
 
       if (ids.length > 0) {
         sequenzen.push([...ids, this.eosId]);
       }
     }
 
+    const maxBeispiele = Math.max(
+      50,
+      Math.floor(
+        optionen.maxTrainingsBeispiele || 1200
+      )
+    );
+
     const anzahlZiele = sequenzen.reduce(
       (summe, sequenz) => summe + sequenz.length,
       0
-    );
-
-    const maxBeispiele = Math.max(
-      1,
-      Math.floor(optionen.maxTrainingsBeispiele || 700)
     );
 
     const schritt = Math.max(
@@ -589,7 +776,9 @@ class NeuronalesNetz {
     let globalePosition = 0;
 
     for (const sequenz of sequenzen) {
-      let kontext = Array(this.kontextLaenge).fill(this.bosId);
+      let kontext = Array(
+        this.kontextLaenge
+      ).fill(this.bosId);
 
       for (const ziel of sequenz) {
         if (globalePosition % schritt === 0) {
@@ -605,24 +794,46 @@ class NeuronalesNetz {
     }
 
     if (beispiele.length === 0) {
-      throw new Error("Keine Trainingsbeispiele erstellt.");
+      throw new Error(
+        "Keine Trainingsbeispiele erstellt."
+      );
     }
 
     const epochen = Math.max(
       1,
-      Math.min(30, Math.floor(optionen.epochen || 4))
+      Math.min(
+        30,
+        Math.floor(optionen.epochen || 5)
+      )
     );
 
     const lernrate = Number.isFinite(optionen.lernrate)
-      ? optionen.lernrate
-      : 0.015;
+      ? this.begrenze(optionen.lernrate, 0.0001, 0.1)
+      : 0.012;
 
-    for (let epoche = 0; epoche < epochen; epoche++) {
-      for (let i = beispiele.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+    for (
+      let epoche = 0;
+      epoche < epochen;
+      epoche++
+    ) {
+      // Beispiele mischen, damit nicht immer in
+      // der identischen Reihenfolge trainiert wird.
+      for (
+        let i = beispiele.length - 1;
+        i > 0;
+        i--
+      ) {
+        const j = Math.floor(
+          Math.random() * (i + 1)
+        );
 
-        [beispiele[i], beispiele[j]] =
-          [beispiele[j], beispiele[i]];
+        [
+          beispiele[i],
+          beispiele[j]
+        ] = [
+          beispiele[j],
+          beispiele[i]
+        ];
       }
 
       for (const beispiel of beispiele) {
@@ -642,120 +853,308 @@ class NeuronalesNetz {
     this.trainierteEpochen = epochen;
     this.bereit = true;
 
-    if (typeof this.tokenizer.speichern === "function") {
-      const datei = path.join(
-        __dirname,
-        "modelle",
-        "tokenizer.json"
-      );
-
-      try {
-        this.tokenizer.speichern(datei);
-      } catch (fehler) {
-        console.warn(
-          "Tokenizer konnte nicht gespeichert werden:",
-          fehler.message
-        );
-      }
-    }
+    // Wichtig: Gewichte UND Trainingswissen speichern.
+    this.speichereTokenizer();
+    this.speichernModell();
 
     return this.status();
   }
 
-  // -----------------------------------------------
-  // ANTWORTPLANUNG UND RELEVANTE WÖRTER
-  // -----------------------------------------------
+  // =====================================================
+  // FRAGEÄHNLICHKEIT UND ANTWORTPLANUNG
+  // =====================================================
 
   wichtigeWoerter(text) {
+    const tokens = this.tokenizer
+      ? this.tokenizer.zerlege(
+          this.normalisiereVergleich(text)
+        )
+      : (
+          this.normalisiereVergleich(text)
+            .match(/[\p{L}\p{N}]+/gu) || []
+        );
+
+    const wichtig = tokens.filter(token =>
+      /[\p{L}\p{N}]/u.test(token) &&
+      !token.startsWith("<") &&
+      !STOPWOERTER.has(token) &&
+      (token.length > 2 || /^\d+$/u.test(token))
+    );
+
     return new Set(
-      this.tokenizer.zerlege(text).filter(token =>
-        /[\p{L}\p{N}]/u.test(token) &&
-        token.length > 2 &&
-        !STOPWOERTER.has(token) &&
-        !token.startsWith("<")
-      )
+      wichtig.length
+        ? wichtig
+        : tokens.filter(token => !token.startsWith("<"))
     );
   }
 
   aehnlichkeit(textA, textB) {
-    const a = this.wichtigeWoerter(textA);
-    const b = this.wichtigeWoerter(textB);
+    const normA = this.normalisiereVergleich(textA);
+    const normB = this.normalisiereVergleich(textB);
 
-    if (a.size === 0 || b.size === 0) {
+    if (!normA || !normB) {
+      return 0;
+    }
+
+    if (normA === normB) {
+      return 1;
+    }
+
+    const a = this.wichtigeWoerter(normA);
+    const b = this.wichtigeWoerter(normB);
+
+    if (!a.size || !b.size) {
       return 0;
     }
 
     let gemeinsam = 0;
 
     for (const wort of a) {
-      if (b.has(wort)) gemeinsam++;
-    }
-
-    const vereinigt = new Set([...a, ...b]).size;
-    const jaccard = gemeinsam / Math.max(1, vereinigt);
-    const abdeckung = gemeinsam / Math.max(1, a.size);
-
-    return 0.6 * jaccard + 0.4 * abdeckung;
-  }
-
-  findePassendesBeispiel(frage) {
-    let bestesPaar = null;
-    let bestePunktzahl = 0;
-
-    const normalisiert = this.normalisiereText(frage);
-
-    for (const paar of this.trainingsPaare) {
-      const punktzahl = normalisiert === paar.frage
-        ? 1
-        : this.aehnlichkeit(normalisiert, paar.frage);
-
-      if (punktzahl > bestePunktzahl) {
-        bestePunktzahl = punktzahl;
-        bestesPaar = paar;
+      if (b.has(wort)) {
+        gemeinsam++;
       }
     }
 
-    return {
-      paar: bestesPaar,
-      punktzahl: bestePunktzahl
-    };
+    const jaccard =
+      gemeinsam / new Set([...a, ...b]).size;
+
+    const abdeckung = gemeinsam / a.size;
+
+    return Math.min(
+      1,
+      0.6 * jaccard + 0.4 * abdeckung
+    );
+  }
+
+  findePassendeBeispiele(frage, grenze = 0) {
+    const treffer = [];
+    const normalisiert =
+      this.normalisiereVergleich(frage);
+
+    for (const paar of this.trainingsPaare) {
+      const punktzahl =
+        normalisiert ===
+        this.normalisiereVergleich(paar.frage)
+          ? 1
+          : this.aehnlichkeit(frage, paar.frage);
+
+      if (punktzahl >= grenze) {
+        treffer.push({
+          paar,
+          punktzahl
+        });
+      }
+    }
+
+    return treffer.sort(
+      (a, b) => b.punktzahl - a.punktzahl
+    );
+  }
+
+  findePassendesBeispiel(frage) {
+    const treffer =
+      this.findePassendeBeispiele(frage, 0);
+
+    return treffer.length
+      ? {
+          paar: treffer[0].paar,
+          punktzahl: treffer[0].punktzahl
+        }
+      : {
+          paar: null,
+          punktzahl: 0
+        };
   }
 
   planeAntwort(prompt) {
-    const treffer = this.findePassendesBeispiel(prompt);
+    const treffer =
+      this.findePassendesBeispiel(prompt);
+
     const kernbegriffe = new Set(
       this.wichtigeWoerter(prompt)
     );
 
-    if (treffer.paar && treffer.punktzahl >= 0.3) {
-      for (
-        const wort of this.wichtigeWoerter(
-          treffer.paar.antwort
-        )
-      ) {
+    if (
+      treffer.paar &&
+      treffer.punktzahl >= 0.25
+    ) {
+      for (const wort of this.wichtigeWoerter(
+        treffer.paar.antwort
+      )) {
         kernbegriffe.add(wort);
       }
     }
 
     return {
       eingabe: prompt,
-      ziel: "Eine zusammenhängende Antwort erzeugen.",
+      ziel: "Eine passende gelernte Antwort auswählen oder Tokens berechnen.",
       kernbegriffe: [...kernbegriffe],
       beispielAntwort:
-        treffer.paar && treffer.punktzahl >= 0.3
+        treffer.paar && treffer.punktzahl >= 0.25
           ? treffer.paar.antwort
           : null,
       beispielFrage:
-        treffer.paar && treffer.punktzahl >= 0.3
+        treffer.paar && treffer.punktzahl >= 0.25
           ? treffer.paar.frage
           : null,
       relevanz: treffer.punktzahl
     };
   }
 
-  // -----------------------------------------------
+  // =====================================================
+  // TEXT IN TOKEN-KONTEXT UMWANDELN
+  // =====================================================
+
+  kontextAusText(text) {
+    let kontext = Array(
+      this.kontextLaenge
+    ).fill(this.bosId);
+
+    for (const token of this.tokenizer.zerlege(text)) {
+      const gefunden =
+        this.tokenizer.tokenZuId.get(token);
+
+      const id =
+        Number.isInteger(gefunden) &&
+        gefunden >= 0 &&
+        gefunden < this.vokabular.length
+          ? gefunden
+          : this.unkId;
+
+      kontext = kontext.slice(1).concat(id);
+    }
+
+    return kontext;
+  }
+
+  idFuerToken(token) {
+    const id = this.tokenizer.tokenZuId.get(token);
+
+    return Number.isInteger(id) &&
+      id >= 0 &&
+      id < this.vokabular.length
+      ? id
+      : this.unkId;
+  }
+
+  // =====================================================
+  // WAHRSCHEINLICHKEIT EINER GANZEN ANTWORT
+  // =====================================================
+
+  berechneAntwortWahrscheinlichkeit(frage, antwort) {
+    if (
+      !this.bereit ||
+      !this.embeddings ||
+      !this.tokenizer
+    ) {
+      return {
+        wahrscheinlichkeit: 0,
+        logWahrscheinlichkeit: -Infinity,
+        durchschnittlicheTokenWahrscheinlichkeit: 0,
+        tokenAnzahl: 0
+      };
+    }
+
+    const eingabe = this.konversationsModus
+      ? `<benutzer> ${this.normalisiereText(frage)} <ki>`
+      : this.normalisiereText(frage);
+
+    let kontext = this.kontextAusText(eingabe);
+
+    const antwortTokens = this.tokenizer.zerlege(
+      this.normalisiereText(antwort)
+    );
+
+    let logWahrscheinlichkeit = 0;
+    let tokenAnzahl = 0;
+
+    for (const token of antwortTokens) {
+      const id = this.idFuerToken(token);
+      const ergebnis = this.vorwaerts(kontext);
+
+      const p = Math.max(
+        1e-12,
+        ergebnis.wahrscheinlichkeiten[id] || 0
+      );
+
+      logWahrscheinlichkeit += Math.log(p);
+      tokenAnzahl++;
+
+      kontext = kontext.slice(1).concat(id);
+    }
+
+    // Auch die Wahrscheinlichkeit für das Ende
+    // des Antwortsatzes in die Rechnung einbeziehen.
+    const ende = this.vorwaerts(kontext);
+
+    const pEnde = Math.max(
+      1e-12,
+      ende.wahrscheinlichkeiten[this.eosId] || 0
+    );
+
+    logWahrscheinlichkeit += Math.log(pEnde);
+    tokenAnzahl++;
+
+    const durchschnitt = Math.exp(
+      logWahrscheinlichkeit /
+      Math.max(1, tokenAnzahl)
+    );
+
+    return {
+      wahrscheinlichkeit:
+        logWahrscheinlichkeit < -745
+          ? 0
+          : Math.exp(logWahrscheinlichkeit),
+
+      logWahrscheinlichkeit,
+
+      durchschnittlicheTokenWahrscheinlichkeit:
+        durchschnitt,
+
+      tokenAnzahl
+    };
+  }
+
+  wahrscheinlichsteNaechsteWoerter(
+    frage,
+    anzahl = 10
+  ) {
+    if (!this.bereit || !this.tokenizer) {
+      return [];
+    }
+
+    const eingabe = this.konversationsModus
+      ? `<benutzer> ${this.normalisiereText(frage)} <ki>`
+      : this.normalisiereText(frage);
+
+    const ergebnis = this.vorwaerts(
+      this.kontextAusText(eingabe)
+    );
+
+    return ergebnis.wahrscheinlichkeiten
+      .map((p, id) => ({
+        wort: this.vokabular[id],
+        wahrscheinlichkeit: p,
+        id
+      }))
+      .filter(element =>
+        element.wort &&
+        !VERBOTENE_AUSGABE_TOKENS.has(element.wort) &&
+        element.wort !== "<EOS>"
+      )
+      .sort(
+        (a, b) =>
+          b.wahrscheinlichkeit - a.wahrscheinlichkeit
+      )
+      .slice(
+        0,
+        Math.max(1, Math.min(50, Math.floor(anzahl)))
+      );
+  }
+
+  // =====================================================
   // NÄCHSTES TOKEN AUSWÄHLEN
-  // -----------------------------------------------
+  // =====================================================
 
   waehleNaechstesToken(
     kontext,
@@ -764,9 +1163,10 @@ class NeuronalesNetz {
   ) {
     const ergebnis = this.vorwaerts(kontext);
 
-    const temp = Math.max(
+    const temp = this.begrenze(
+      Number(temperatur) || 0.65,
       0.1,
-      Math.min(2, temperatur)
+      2
     );
 
     const kandidaten = ergebnis.logits
@@ -776,19 +1176,27 @@ class NeuronalesNetz {
         token: this.vokabular[id]
       }))
       .filter(element =>
-        !SPEZIAL_AUSGABE_VERBOTEN.has(element.token)
+        element.token &&
+        !VERBOTENE_AUSGABE_TOKENS.has(element.token)
       )
-      .sort((a, b) => b.wert - a.wert)
-      .slice(0, Math.max(1, Math.floor(topK)));
+      .sort(
+        (a, b) => b.wert - a.wert
+      )
+      .slice(
+        0,
+        Math.max(1, Math.floor(topK || 5))
+      );
 
-    if (kandidaten.length === 0) {
+    if (!kandidaten.length) {
       return this.eosId;
     }
 
     const maximum = kandidaten[0].wert;
 
     const gewichte = kandidaten.map(element =>
-      Math.exp(Math.max(-60, element.wert - maximum))
+      Math.exp(
+        Math.max(-60, element.wert - maximum)
+      )
     );
 
     const gesamt = gewichte.reduce(
@@ -809,14 +1217,12 @@ class NeuronalesNetz {
     return kandidaten[0].id;
   }
 
-  // -----------------------------------------------
-  // TEXTE AUS TOKEN-FOLGEN FORMATIEREN
-  // -----------------------------------------------
+  // =====================================================
+  // TOKENFOLGE FORMATIEREN
+  // =====================================================
 
   formatiere(tokens) {
-    let text = tokens.join(" ");
-
-    text = text
+    let text = tokens.join(" ")
       .replace(/\s+([.,!?;:%)\]}»])/g, "$1")
       .replace(/([([{«])\s+/g, "$1")
       .replace(/\s+/g, " ")
@@ -831,221 +1237,188 @@ class NeuronalesNetz {
     return text;
   }
 
-  // -----------------------------------------------
-  // MEHRERE GANZE ANTWORTKANDIDATEN GENERIEREN
-  // -----------------------------------------------
+  // =====================================================
+  // FREIE TOKEN-GENERIERUNG
+  // =====================================================
 
-  generiereKandidaten(prompt, plan, optionen = {}) {
-    const anzahl = Math.max(
-      1,
-      Math.min(
-        6,
-        Math.floor(optionen.anzahlKandidaten || 4)
-      )
-    );
-
+  generiereAusNetz(prompt, optionen = {}) {
     const maxTokens = Math.max(
       1,
       Math.min(
         80,
-        Math.floor(optionen.maxTokens || 35)
+        Math.floor(optionen.maxTokens || 30)
       )
     );
 
-    const temperatur = Number.isFinite(optionen.temperatur)
+    const temperatur = Number.isFinite(
+      optionen.temperatur
+    )
       ? optionen.temperatur
-      : 0.65;
+      : 0.55;
 
     const topK = Number.isFinite(optionen.topK)
       ? optionen.topK
-      : 5;
+      : 4;
 
-    const eingabetext = this.konversationsModus
+    const eingabe = this.konversationsModus
       ? `<benutzer> ${this.normalisiereText(prompt)} <ki>`
       : this.normalisiereText(prompt);
 
-    const tokenStrings = this.tokenizer.zerlege(eingabetext);
+    let kontext = this.kontextAusText(eingabe);
 
-    let startKontext = Array(this.kontextLaenge).fill(this.bosId);
+    const erzeugte = [];
+    const woerter = new Map();
 
-    for (const token of tokenStrings) {
-      const originalId = this.tokenizer.tokenZuId.get(token);
+    for (let i = 0; i < maxTokens; i++) {
+      const id = this.waehleNaechstesToken(
+        kontext,
+        temperatur,
+        topK
+      );
 
-      const id =
-        Number.isInteger(originalId) &&
-        originalId < this.vokabular.length
-          ? originalId
-          : this.unkId;
+      if (id === this.eosId) {
+        break;
+      }
 
-      startKontext = startKontext.slice(1).concat(id);
-    }
+      const token = this.vokabular[id];
 
-    const kandidaten = [];
+      if (
+        !token ||
+        VERBOTENE_AUSGABE_TOKENS.has(token) ||
+        token === "<EOS>"
+      ) {
+        break;
+      }
 
-    for (let versuch = 0; versuch < anzahl; versuch++) {
-      let kontext = startKontext.slice();
-      const erzeugteTokens = [];
+      const klein = token.toLocaleLowerCase("de-DE");
+      const anzahl = woerter.get(klein) || 0;
 
-      for (let i = 0; i < maxTokens; i++) {
-        const naechsteId = this.waehleNaechstesToken(
-          kontext,
-          temperatur,
-          topK
-        );
+      if (
+        anzahl >= 2 &&
+        /[\p{L}\p{N}]/u.test(token)
+      ) {
+        kontext = kontext.slice(1).concat(id);
 
-        if (naechsteId === this.eosId) {
+        if (anzahl >= 3) {
           break;
         }
 
-        const token = this.vokabular[naechsteId];
-
-        if (
-          token &&
-          !SPEZIAL_AUSGABE_VERBOTEN.has(token) &&
-          token !== "<EOS>"
-        ) {
-          erzeugteTokens.push(token);
-        }
-
-        kontext = kontext.slice(1).concat(naechsteId);
+        woerter.set(klein, anzahl + 1);
+        continue;
       }
 
-      const text = this.formatiere(erzeugteTokens);
+      erzeugte.push(token);
 
-      kandidaten.push({
-        text,
-        bewertung: this.bewerteAntwort(text, plan)
-      });
+      if (/[\p{L}\p{N}]/u.test(token)) {
+        woerter.set(klein, anzahl + 1);
+      }
+
+      kontext = kontext.slice(1).concat(id);
     }
 
-    return kandidaten;
+    return this.formatiere(erzeugte);
   }
-    // -----------------------------------------------
-  // GANZE ANTWORTEN BEWERTEN
-  // -----------------------------------------------
 
-  bewerteAntwort(text, plan) {
-    const tokens = this.tokenizer.zerlege(text);
+  qualitaetAntwort(text, prompt) {
+    const tokens = this.tokenizer
+      .zerlege(text)
+      .filter(token =>
+        /[\p{L}\p{N}]/u.test(token) &&
+        !token.startsWith("<")
+      );
 
-    const woerter = tokens.filter(token =>
-      /[\p{L}\p{N}]/u.test(token) &&
-      !token.startsWith("<")
-    );
-
-    if (woerter.length === 0) {
-      return -100;
+    if (tokens.length < 3) {
+      return -10;
     }
 
-    const vielfalt =
-      new Set(woerter).size / woerter.length;
+    const verschieden =
+      new Set(tokens).size / tokens.length;
 
-    let score = vielfalt * 2;
+    let wiederholung = 0;
 
-    if (woerter.length < 3) {
-      score -= 2;
-    } else if (woerter.length >= 5 && woerter.length <= 24) {
-      score += 1;
-    } else if (woerter.length > 35) {
-      score -= 1.5;
-    }
-
-    const zaehler = new Map();
-
-    for (const wort of woerter) {
-      zaehler.set(wort, (zaehler.get(wort) || 0) + 1);
-    }
-
-    for (const anzahl of zaehler.values()) {
-      if (anzahl > 1) {
-        score -= (anzahl - 1) * 0.7;
+    for (let i = 1; i < tokens.length; i++) {
+      if (tokens[i] === tokens[i - 1]) {
+        wiederholung++;
       }
     }
 
-    const paare = new Set();
-
-    for (let i = 1; i < woerter.length; i++) {
-      const paar = `${woerter[i - 1]}|${woerter[i]}`;
-
-      if (paare.has(paar)) {
-        score -= 1.5;
-      }
-
-      paare.add(paar);
-    }
-
-    const antwortWoerter = this.wichtigeWoerter(text);
-    const planWoerter = new Set(plan.kernbegriffe);
+    const relevante = this.wichtigeWoerter(text);
+    const frageWoerter = this.wichtigeWoerter(prompt);
 
     let gemeinsam = 0;
 
-    for (const wort of antwortWoerter) {
-      if (planWoerter.has(wort)) gemeinsam++;
+    for (const wort of relevante) {
+      if (frageWoerter.has(wort)) {
+        gemeinsam++;
+      }
     }
 
-    score += Math.min(2, gemeinsam * 0.35);
-
-    if (plan.beispielAntwort) {
-      score += 2.5 * this.aehnlichkeit(
-        text,
-        plan.beispielAntwort
-      );
-    }
-
-    if (text.includes("<benutzer>") || text.includes("<ki>")) {
-      score -= 10;
-    }
-
-    return score;
+    return verschieden * 2 -
+      wiederholung * 0.8 +
+      Math.min(1, gemeinsam * 0.2);
   }
 
-  // -----------------------------------------------
-  // ÄLTERE ANTWORTMETHODE
-  // -----------------------------------------------
-
-  antwortGenerierenAlt(prompt, optionen = {}) {
-    if (!this.bereit) {
-      return (
-        "Mein neuronales Sprachmodell ist noch nicht trainiert. " +
-        "Bitte überprüfe deine Trainingsdaten."
-      );
-    }
-
-    if (typeof prompt !== "string" || !prompt.trim()) {
-      return "Bitte gib eine Nachricht ein.";
-    }
-
-    const plan = this.planeAntwort(prompt);
-
-    if (plan.beispielAntwort && plan.relevanz >= 0.999) {
-      return plan.beispielAntwort;
-    }
-
-    const kandidaten = this.generiereKandidaten(
-      prompt,
-      plan,
-      optionen
+  generiereKandidaten(
+    prompt,
+    plan = this.planeAntwort(prompt),
+    optionen = {}
+  ) {
+    const anzahl = Math.max(
+      1,
+      Math.min(
+        6,
+        Math.floor(optionen.anzahlKandidaten || 3)
+      )
     );
 
-    kandidaten.sort((a, b) => b.bewertung - a.bewertung);
+    const kandidaten = [];
 
-    const beste = kandidaten[0];
+    for (let i = 0; i < anzahl; i++) {
+      const text = this.generiereAusNetz(
+        prompt,
+        {
+          temperatur:
+            (optionen.temperatur ?? 0.55) +
+            i * 0.08,
+          topK: optionen.topK ?? 4,
+          maxTokens: optionen.maxTokens ?? 30
+        }
+      );
 
-    if (
-      plan.beispielAntwort &&
-      plan.relevanz >= 0.55 &&
-      (!beste || beste.bewertung < 1)
-    ) {
-      return plan.beispielAntwort;
+      if (!text) {
+        continue;
+      }
+
+      const p = this.berechneAntwortWahrscheinlichkeit(
+        prompt,
+        text
+      );
+
+      kandidaten.push({
+        text,
+
+        bewertung:
+          this.qualitaetAntwort(text, prompt) +
+          0.15 * Math.log(
+            Math.max(
+              1e-12,
+              p.durchschnittlicheTokenWahrscheinlichkeit
+            )
+          ),
+
+        logWahrscheinlichkeit:
+          p.logWahrscheinlichkeit
+      });
     }
 
-    return beste && beste.text
-      ? beste.text
-      : "Ich konnte noch keine zusammenhängende Antwort erzeugen.";
+    return kandidaten.sort(
+      (a, b) => b.bewertung - a.bewertung
+    );
   }
 
-  // -----------------------------------------------
-  // WAHRSCHEINLICHSTE ANTWORT BERECHNEN
-  // -----------------------------------------------
+  // =====================================================
+  // ANTWORT BERECHNEN
+  // =====================================================
 
   antwortGenerieren(prompt, optionen = {}) {
     if (!this.bereit) {
@@ -1055,178 +1428,501 @@ class NeuronalesNetz {
       );
     }
 
-    if (typeof prompt !== "string" || !prompt.trim()) {
+    if (
+      typeof prompt !== "string" ||
+      !prompt.trim()
+    ) {
       return "Bitte gib eine Nachricht ein.";
     }
 
-    const frage = this.normalisiereText(prompt);
-    const kandidaten = [];
+    const normFrage =
+      this.normalisiereVergleich(prompt);
 
-    // Jede gespeicherte Frage mit der Eingabe vergleichen.
-    for (const paar of this.trainingsPaare) {
-      const exakt = frage === this.normalisiereText(paar.frage);
-      const aehnlichkeit = exakt
-        ? 1
-        : this.aehnlichkeit(frage, paar.frage);
+    const treffer =
+      this.findePassendeBeispiele(prompt, 0.20);
 
-      kandidaten.push({
-        frage: paar.frage,
-        antwort: paar.antwort,
-        exakt,
-        wahrscheinlichkeit: aehnlichkeit
-      });
-    }
+    const exakte = treffer.filter(element =>
+      this.normalisiereVergleich(
+        element.paar.frage
+      ) === normFrage
+    );
 
-    // Bei exakt gleicher Frage die häufigste Antwort nehmen.
-    const exakteTreffer = kandidaten.filter(k => k.exakt);
-
-    if (exakteTreffer.length > 0) {
-      const haeufigkeiten = new Map();
-
-      for (const kandidat of exakteTreffer) {
-        const antwort = kandidat.antwort;
-
-        haeufigkeiten.set(
-          antwort,
-          (haeufigkeiten.get(antwort) || 0) + 1
+    let kandidatenTreffer = exakte.length
+      ? exakte
+      : treffer.filter(element =>
+          element.punktzahl >=
+          (optionen.minRelevanz ?? 0.30)
         );
-      }
 
-      let besteAntwort = exakteTreffer[0].antwort;
-      let besteHaeufigkeit = 0;
+    if (kandidatenTreffer.length) {
+      const antwortMap = new Map();
 
-      for (const [antwort, anzahl] of haeufigkeiten) {
-        if (anzahl > besteHaeufigkeit) {
-          besteAntwort = antwort;
-          besteHaeufigkeit = anzahl;
+      // Doppelte Antworten zusammenfassen.
+      for (const trefferElement of kandidatenTreffer) {
+        const antwort = trefferElement.paar.antwort;
+        const key = this.normalisiereVergleich(antwort);
+        const alt = antwortMap.get(key);
+
+        if (
+          !alt ||
+          trefferElement.punktzahl > alt.relevanz
+        ) {
+          antwortMap.set(key, {
+            text: antwort,
+            relevanz: trefferElement.punktzahl,
+            frage: trefferElement.paar.frage
+          });
         }
       }
 
-      return besteAntwort;
+      const auswahl = [...antwortMap.values()];
+
+      // Jede Antwort anhand der tatsächlichen
+      // Tokenwahrscheinlichkeiten bewerten.
+      for (const kandidat of auswahl) {
+        const p = this.berechneAntwortWahrscheinlichkeit(
+          prompt,
+          kandidat.text
+        );
+
+        kandidat.wahrscheinlichkeit =
+          p.wahrscheinlichkeit;
+
+        kandidat.logWahrscheinlichkeit =
+          p.logWahrscheinlichkeit;
+
+        kandidat.tokenQualitaet = Math.log(
+          Math.max(
+            1e-12,
+            p.durchschnittlicheTokenWahrscheinlichkeit
+          )
+        );
+
+        kandidat.bewertung =
+          2.2 * kandidat.relevanz +
+          0.15 * kandidat.tokenQualitaet;
+      }
+
+      auswahl.sort(
+        (a, b) => b.bewertung - a.bewertung
+      );
+
+      const beste = auswahl[0];
+
+      this.letzteAntwortAnalyse = {
+        modus: exakte.length
+          ? "exakter_trainingsfund"
+          : "aehnliche_trainingsfrage",
+        frage: prompt,
+        antwort: beste.text,
+        relevanz: beste.relevanz,
+        bewertung: beste.bewertung,
+        wahrscheinlichkeit: beste.wahrscheinlichkeit,
+        logWahrscheinlichkeit: beste.logWahrscheinlichkeit,
+        anzahlKandidaten: auswahl.length
+      };
+
+      return beste.text;
     }
 
-    // Bei ähnlichen Fragen den besten Treffer auswählen.
-    kandidaten.sort(
-      (a, b) => b.wahrscheinlichkeit - a.wahrscheinlichkeit
-    );
-
-    const besterTreffer = kandidaten[0];
-
+    // Wenn es Trainingspaare gibt, aber keines passt,
+    // lieber Wissenslücken zugeben als Zufall als Wissen auszugeben.
     if (
-      besterTreffer &&
-      besterTreffer.wahrscheinlichkeit >= 0.3
+      this.trainingsPaare.length &&
+      optionen.erlaubeFreieGenerierung !== true
     ) {
-      return besterTreffer.antwort;
-    }
+      this.letzteAntwortAnalyse = {
+        modus: "keine_passende_trainingsfrage",
+        frage: prompt,
+        antwort: null,
+        anzahlKandidaten: 0
+      };
 
-    // Unbekannte Frage: jeweils das wahrscheinlichste Token wählen.
-    const maxTokens = Math.max(
-      1,
-      Math.min(80, Math.floor(optionen.maxTokens || 35))
-    );
-
-    const eingabetext = this.konversationsModus
-      ? `<benutzer> ${frage} <ki>`
-      : frage;
-
-    const tokenStrings = this.tokenizer.zerlege(eingabetext);
-
-    let kontext = Array(this.kontextLaenge).fill(this.bosId);
-
-    for (const token of tokenStrings) {
-      const originalId = this.tokenizer.tokenZuId.get(token);
-
-      const id =
-        Number.isInteger(originalId) &&
-        originalId >= 0 &&
-        originalId < this.vokabular.length
-          ? originalId
-          : this.unkId;
-
-      kontext = kontext.slice(1).concat(id);
-    }
-
-    const erzeugteTokens = [];
-
-    for (let i = 0; i < maxTokens; i++) {
-      const ergebnis = this.vorwaerts(kontext);
-
-      let besteId = -1;
-      let besteWahrscheinlichkeit = -Infinity;
-
-      for (
-        let id = 0;
-        id < ergebnis.wahrscheinlichkeiten.length;
-        id++
-      ) {
-        const token = this.vokabular[id];
-
-        if (!token || SPEZIAL_AUSGABE_VERBOTEN.has(token)) {
-          continue;
-        }
-
-        const wahrscheinlichkeit =
-          ergebnis.wahrscheinlichkeiten[id];
-
-        if (wahrscheinlichkeit > besteWahrscheinlichkeit) {
-          besteWahrscheinlichkeit = wahrscheinlichkeit;
-          besteId = id;
-        }
-      }
-
-      if (besteId < 0 || besteId === this.eosId) {
-        break;
-      }
-
-      const token = this.vokabular[besteId];
-
-      if (token && token !== "<EOS>") {
-        erzeugteTokens.push(token);
-      }
-
-      kontext = kontext.slice(1).concat(besteId);
-    }
-
-    const antwort = this.formatiere(erzeugteTokens);
-
-    if (!antwort.trim()) {
       return (
-        "Dazu kenne ich noch keine passende Antwort. " +
-        "Ich muss mehr Trainingsbeispiele lernen."
+        "Dazu habe ich noch keine passende Trainingsantwort gelernt. " +
+        "Bringe mir dieses Thema mit einem Frage-Antwort-Beispiel bei."
       );
     }
 
-    return antwort;
+    const kandidaten = this.generiereKandidaten(
+      prompt,
+      this.planeAntwort(prompt),
+      optionen
+    );
+
+    const beste = kandidaten[0];
+
+    if (!beste) {
+      return "Ich konnte noch keine zusammenhängende Antwort berechnen.";
+    }
+
+    this.letzteAntwortAnalyse = {
+      modus: "freie_token_generierung",
+      frage: prompt,
+      antwort: beste.text,
+      bewertung: beste.bewertung,
+      logWahrscheinlichkeit: beste.logWahrscheinlichkeit,
+      anzahlKandidaten: kandidaten.length
+    };
+
+    return beste.text;
+  }
+
+  antwortGenerierenAlt(prompt, optionen = {}) {
+    return this.antwortGenerieren(prompt, optionen);
   }
 
   generiere(prompt, optionen = {}) {
     return this.antwortGenerieren(prompt, optionen);
   }
 
-  // -----------------------------------------------
+  // =====================================================
+  // NEUES WISSEN LERNEN UND SOFORT SPEICHERN
+  // =====================================================
+
+  lerneAntwort(frage, antwort, optionen = {}) {
+    if (
+      typeof frage !== "string" ||
+      !frage.trim() ||
+      typeof antwort !== "string" ||
+      !antwort.trim()
+    ) {
+      throw new TypeError(
+        "Frage und Antwort müssen nicht-leere Texte sein."
+      );
+    }
+
+    return this.trainiereTexte(
+      [{
+        frage: frage.trim(),
+        antwort: antwort.trim()
+      }],
+      null,
+      {
+        ...optionen,
+        epochen: optionen.epochen ?? 3
+      }
+    );
+  }
+
+  // =====================================================
+  // TOKENIZER DAUERHAFT SPEICHERN
+  // =====================================================
+
+  speichereTokenizer() {
+    if (
+      !this.tokenizer ||
+      typeof this.tokenizer.speichern !== "function"
+    ) {
+      return false;
+    }
+
+    try {
+      fs.mkdirSync(
+        path.dirname(this.tokenizerDatei),
+        { recursive: true }
+      );
+
+      this.tokenizer.speichern(
+        this.tokenizerDatei
+      );
+
+      return true;
+    } catch (fehler) {
+      this.letzterFehler =
+        `Tokenizer speichern fehlgeschlagen: ${fehler.message}`;
+
+      console.warn(this.letzterFehler);
+      return false;
+    }
+  }
+
+  // =====================================================
+  // MODELL UND GELERNTES WISSEN SPEICHERN
+  // =====================================================
+
+  speichernModell() {
+    if (
+      !this.bereit ||
+      !this.embeddings ||
+      !this.vokabular.length
+    ) {
+      return false;
+    }
+
+    try {
+      fs.mkdirSync(
+        path.dirname(this.modellDatei),
+        { recursive: true }
+      );
+
+      const daten = {
+        schemaVersion: 2,
+        gespeichertAm: new Date().toISOString(),
+
+        kontextLaenge: this.kontextLaenge,
+        embeddingGroesse: this.embeddingGroesse,
+        versteckteNeuronen: this.versteckteNeuronen,
+        maxVokabular: this.maxVokabular,
+
+        vokabular: this.vokabular,
+
+        padId: this.padId,
+        unkId: this.unkId,
+        bosId: this.bosId,
+        eosId: this.eosId,
+
+        konversationsModus: this.konversationsModus,
+
+        trainingsBeispiele: this.trainingsBeispiele,
+        trainierteEpochen: this.trainierteEpochen,
+
+        trainingsTexte: this.trainingsTexte,
+        trainingsPaare: this.trainingsPaare,
+
+        embeddings: this.embeddings,
+        gewichte1: this.gewichte1,
+        bias1: this.bias1,
+        gewichte2: this.gewichte2,
+        bias2: this.bias2
+      };
+
+      const tempDatei =
+        `${this.modellDatei}.tmp`;
+
+      fs.writeFileSync(
+        tempDatei,
+        JSON.stringify(daten),
+        "utf8"
+      );
+
+      try {
+        fs.renameSync(
+          tempDatei,
+          this.modellDatei
+        );
+      } catch {
+        fs.copyFileSync(
+          tempDatei,
+          this.modellDatei
+        );
+
+        fs.unlinkSync(tempDatei);
+      }
+
+      this.zuletztGespeichert = daten.gespeichertAm;
+
+      return true;
+    } catch (fehler) {
+      this.letzterFehler =
+        `Modell speichern fehlgeschlagen: ${fehler.message}`;
+
+      console.error(this.letzterFehler);
+      return false;
+    }
+  }
+
+  // =====================================================
+  // GESPEICHERTES MODELL AUTOMATISCH LADEN
+  // =====================================================
+
+  ladeModell(optionen = {}) {
+    if (!fs.existsSync(this.modellDatei)) {
+      return false;
+    }
+
+    try {
+      const daten = JSON.parse(
+        fs.readFileSync(
+          this.modellDatei,
+          "utf8"
+        )
+      );
+
+      if (
+        !Array.isArray(daten.vokabular) ||
+        !Array.isArray(daten.embeddings) ||
+        !Array.isArray(daten.gewichte1) ||
+        !Array.isArray(daten.gewichte2)
+      ) {
+        throw new Error(
+          "Die Modelldatei enthält keine gültigen Gewichte."
+        );
+      }
+
+      this.kontextLaenge =
+        Number.isInteger(daten.kontextLaenge)
+          ? daten.kontextLaenge
+          : this.kontextLaenge;
+
+      this.embeddingGroesse =
+        Number.isInteger(daten.embeddingGroesse)
+          ? daten.embeddingGroesse
+          : this.embeddingGroesse;
+
+      this.versteckteNeuronen =
+        Number.isInteger(daten.versteckteNeuronen)
+          ? daten.versteckteNeuronen
+          : this.versteckteNeuronen;
+
+      this.maxVokabular =
+        Number.isInteger(daten.maxVokabular)
+          ? daten.maxVokabular
+          : this.maxVokabular;
+
+      this.tokenizer =
+        this.tokenizer || this.ladeTokenizer();
+
+      this.vokabular = daten.vokabular.slice();
+
+      this.synchronisiereTokenizerMitVokabular();
+
+      this.embeddings = daten.embeddings;
+      this.gewichte1 = daten.gewichte1;
+      this.bias1 = daten.bias1;
+      this.gewichte2 = daten.gewichte2;
+      this.bias2 = daten.bias2;
+
+      this.padId = Number.isInteger(daten.padId)
+        ? daten.padId
+        : 0;
+
+      this.unkId = Number.isInteger(daten.unkId)
+        ? daten.unkId
+        : 1;
+
+      this.bosId = Number.isInteger(daten.bosId)
+        ? daten.bosId
+        : 2;
+
+      this.eosId = Number.isInteger(daten.eosId)
+        ? daten.eosId
+        : 3;
+
+      this.konversationsModus =
+        Boolean(daten.konversationsModus);
+
+      this.trainingsBeispiele =
+        Number(daten.trainingsBeispiele) || 0;
+
+      this.trainierteEpochen =
+        Number(daten.trainierteEpochen) || 0;
+
+      this.trainingsTexte =
+        Array.isArray(daten.trainingsTexte)
+          ? daten.trainingsTexte
+          : [];
+
+      this.trainingsPaare = this.eindeutigePaare(
+        Array.isArray(daten.trainingsPaare)
+          ? daten.trainingsPaare
+          : []
+      );
+
+      this.zuletztGespeichert =
+        daten.gespeichertAm || null;
+
+      const vocab = this.vokabular.length;
+
+      const gueltig =
+        this.embeddings.length === vocab &&
+        this.embeddings.every(
+          x =>
+            Array.isArray(x) &&
+            x.length === this.embeddingGroesse
+        ) &&
+        this.gewichte1.length ===
+          this.kontextLaenge * this.embeddingGroesse &&
+        this.gewichte1.every(
+          x =>
+            Array.isArray(x) &&
+            x.length === this.versteckteNeuronen
+        ) &&
+        Array.isArray(this.bias1) &&
+        this.bias1.length === this.versteckteNeuronen &&
+        this.gewichte2.length === this.versteckteNeuronen &&
+        this.gewichte2.every(
+          x =>
+            Array.isArray(x) &&
+            x.length === vocab
+        ) &&
+        Array.isArray(this.bias2) &&
+        this.bias2.length === vocab;
+
+      if (!gueltig) {
+        throw new Error(
+          "Die gespeicherten Gewichtsgrößen passen nicht zusammen."
+        );
+      }
+
+      this.bereit = true;
+
+      if (!optionen.still) {
+        console.log(
+          `[KI] Gespeichertes Modell geladen: ${this.modellDatei}`
+        );
+      }
+
+      return true;
+    } catch (fehler) {
+      this.bereit = false;
+
+      this.letzterFehler =
+        `Modell laden fehlgeschlagen: ${fehler.message}`;
+
+      if (!optionen.still) {
+        console.warn(this.letzterFehler);
+      }
+
+      return false;
+    }
+  }
+
+  // =====================================================
   // STATUS
-  // -----------------------------------------------
+  // =====================================================
 
   status() {
     return {
       bereit: this.bereit,
-      modell: "Neuronales Sprachmodell mit Antwortplanung",
+      modell: "Kleines neuronales Sprachmodell mit dauerhaftem Speicher",
+
       versteckteNeuronen: this.versteckteNeuronen,
       vokabularGroesse: this.vokabular.length,
+
       trainingsBeispiele: this.trainingsBeispiele,
       trainierteEpochen: this.trainierteEpochen,
       kontextLaenge: this.kontextLaenge,
+
       konversationsModus: this.konversationsModus,
       trainingsPaare: this.trainingsPaare.length,
+      trainingsTexte: this.trainingsTexte.length,
+
+      gespeichert: Boolean(this.zuletztGespeichert),
+      zuletztGespeichert: this.zuletztGespeichert,
+      modellDatei: this.modellDatei,
+
       letzterFehler: this.letzterFehler
     };
   }
 
-  // -----------------------------------------------
+  // =====================================================
   // TRAININGSORDNER LADEN
-  // -----------------------------------------------
+  // =====================================================
 
-  lerneOrdner(ordner, tokenizer = null, optionen = {}) {
+  lerneOrdner(
+    ordner,
+    tokenizer = null,
+    optionen = {}
+  ) {
+    if (
+      tokenizer &&
+      typeof tokenizer.zerlege !== "function"
+    ) {
+      optionen = tokenizer;
+      tokenizer = null;
+    }
+
     if (!fs.existsSync(ordner)) {
       throw new Error(
         `Trainingsordner nicht gefunden: ${ordner}`
@@ -1235,34 +1931,62 @@ class NeuronalesNetz {
 
     const daten = [];
 
-    const dateien = fs.readdirSync(ordner, {
-      withFileTypes: true
-    });
+    const dateien = fs.readdirSync(
+      ordner,
+      { withFileTypes: true }
+    );
 
     for (const datei of dateien) {
       if (
         !datei.isFile() ||
-        !datei.name.toLowerCase().endsWith(".json") ||
-        datei.name.toLowerCase() === "tokenizer.json"
+        !/\.(json|jsonl)$/i.test(datei.name)
       ) {
         continue;
       }
 
+      if ([
+        "tokenizer.json",
+        "netz.json",
+        "model.json"
+      ].includes(datei.name.toLowerCase())) {
+        continue;
+      }
+
+      const dateipfad = path.join(
+        ordner,
+        datei.name
+      );
+
       try {
-        daten.push(
-          JSON.parse(
-            fs.readFileSync(
-              path.join(ordner, datei.name),
-              "utf8"
-            )
-          )
+        const raw = fs.readFileSync(
+          dateipfad,
+          "utf8"
         );
+
+        if (datei.name.toLowerCase().endsWith(".jsonl")) {
+          for (const zeile of raw.split(/\r?\n/).filter(Boolean)) {
+            try {
+              daten.push(JSON.parse(zeile));
+            } catch (fehler) {
+              console.warn(
+                `Zeile in ${datei.name} übersprungen: ${fehler.message}`
+              );
+            }
+          }
+        } else {
+          daten.push(JSON.parse(raw));
+        }
       } catch (fehler) {
-        console.error(
-          `Trainingsdatei ${datei.name} übersprungen:`,
-          fehler.message
+        console.warn(
+          `Trainingsdatei ${datei.name} übersprungen: ${fehler.message}`
         );
       }
+    }
+
+    if (!daten.length) {
+      throw new Error(
+        `Keine passenden JSON-Trainingsdateien in ${ordner} gefunden.`
+      );
     }
 
     return this.trainiereTexte(

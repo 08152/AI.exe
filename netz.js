@@ -5,11 +5,11 @@ const path = require("node:path");
 
 const STOPWOERTER = new Set([
   "der", "die", "das", "den", "dem", "des", "ein", "eine",
-  "einer", "eines", "einem", "und", "oder", "aber", "ist",
-  "sind", "war", "waren", "ich", "du", "er", "sie", "es",
-  "wir", "ihr", "was", "wie", "wer", "wo", "wann", "warum",
-  "wieso", "mit", "von", "für", "auf", "in", "im", "am", "an",
-  "zu", "zum", "zur", "auch", "nicht", "kein", "keine", "bitte",
+  "einer", "eines", "und", "oder", "aber", "ist", "sind",
+  "war", "waren", "ich", "du", "er", "sie", "es", "wir",
+  "ihr", "was", "wie", "wer", "wo", "wann", "warum", "wieso",
+  "mit", "von", "für", "auf", "in", "im", "am", "an", "zu",
+  "zum", "zur", "auch", "nicht", "kein", "keine", "bitte",
   "noch", "schon", "sehr", "hat", "haben", "kann", "können",
   "sich", "mir", "mich", "mein", "meine", "dein", "deine"
 ]);
@@ -25,7 +25,10 @@ const SPEZIAL_AUSGABE_VERBOTEN = new Set([
 
 class NeuronalesNetz {
   constructor(tokenizer = null, optionen = {}) {
-    if (tokenizer && typeof tokenizer.zerlege !== "function") {
+    if (
+      tokenizer &&
+      typeof tokenizer.zerlege !== "function"
+    ) {
       optionen = tokenizer;
       tokenizer = null;
     }
@@ -696,8 +699,6 @@ class NeuronalesNetz {
     );
   }
 
-  // Zerlegt normale Wörter, ohne sie vorher in Token-Teile zu zerlegen.
-  // Hilft bei Tippfehlern wie "Javaskript".
   woerterZumVergleichen(text) {
     const normalisiert = this.normalisiereText(
       String(text || "")
@@ -711,15 +712,17 @@ class NeuronalesNetz {
     );
   }
 
-  // Levenshtein-Ähnlichkeit zwischen zwei Wörtern: Ergebnis 0 bis 1.
   wortAehnlichkeit(wortA, wortB) {
     if (wortA === wortB) return 1;
     if (!wortA || !wortB) return 0;
 
-    // Sehr kurze Wörter sind zu leicht zufällig ähnlich.
-    if (Math.min(wortA.length, wortB.length) < 4) return 0;
+    if (Math.min(wortA.length, wortB.length) < 4) {
+      return 0;
+    }
 
-    if (Math.abs(wortA.length - wortB.length) > 4) return 0;
+    if (Math.abs(wortA.length - wortB.length) > 4) {
+      return 0;
+    }
 
     let vorherigeZeile = Array.from(
       { length: wortB.length + 1 },
@@ -730,7 +733,8 @@ class NeuronalesNetz {
       const aktuelleZeile = [i];
 
       for (let j = 1; j <= wortB.length; j++) {
-        const kosten = wortA[i - 1] === wortB[j - 1] ? 0 : 1;
+        const kosten =
+          wortA[i - 1] === wortB[j - 1] ? 0 : 1;
 
         aktuelleZeile[j] = Math.min(
           aktuelleZeile[j - 1] + 1,
@@ -743,15 +747,12 @@ class NeuronalesNetz {
     }
 
     const distanz = vorherigeZeile[wortB.length];
+    const wert = 1 -
+      distanz / Math.max(wortA.length, wortB.length);
 
-    const wert =
-      1 - distanz / Math.max(wortA.length, wortB.length);
-
-    // Einzelne gemeinsame Buchstaben reichen nicht als Ähnlichkeit.
     return wert >= 0.55 ? wert : 0;
   }
 
-  // Vergleicht Wörter und Schreibweisen zwischen zwei Texten.
   aehnlichkeit(textA, textB) {
     const a = this.woerterZumVergleichen(textA)
       .filter(wort =>
@@ -764,22 +765,25 @@ class NeuronalesNetz {
       );
 
     if (a.length === 0 || b.length === 0) {
-      // Bei kurzen Sätzen bleiben exakte Wörter nützlich.
       const alleA = this.woerterZumVergleichen(textA);
       const alleB = new Set(
         this.woerterZumVergleichen(textB)
       );
 
-      if (!alleA.length || !alleB.size) return 0;
+      if (!alleA.length || !alleB.size) {
+        return 0;
+      }
 
       const gemeinsam = alleA.filter(
         wort => alleB.has(wort)
       ).length;
 
-      return gemeinsam / Math.max(alleA.length, alleB.size);
+      return gemeinsam / Math.max(
+        alleA.length,
+        alleB.size
+      );
     }
 
-    // Jedes Wort darf nur einem Wort der Vergleichsfrage zugeordnet werden.
     const moeglicheTreffer = [];
 
     for (let i = 0; i < a.length; i++) {
@@ -847,7 +851,6 @@ class NeuronalesNetz {
     );
   }
 
-  // Sucht das passendste gelernte Frage-Antwort-Beispiel.
   findePassendesBeispiel(frage) {
     let bestesPaar = null;
     let bestePunktzahl = 0;
@@ -871,18 +874,18 @@ class NeuronalesNetz {
     };
   }
 
-  // Erstellt einen Plan für die Antwort.
   planeAntwort(prompt) {
     const treffer = this.findePassendesBeispiel(prompt);
-
     const kernbegriffe = new Set(
       this.wichtigeWoerter(prompt)
     );
 
+    // Nur die ähnliche gelernte FRAGE ist ein Themenhinweis.
+    // Die gespeicherte Antwort wird hier nicht übernommen.
     if (treffer.paar && treffer.punktzahl >= 0.3) {
       for (
         const wort of this.wichtigeWoerter(
-          treffer.paar.antwort
+          treffer.paar.frage
         )
       ) {
         kernbegriffe.add(wort);
@@ -891,19 +894,12 @@ class NeuronalesNetz {
 
     return {
       eingabe: prompt,
-      ziel: "Eine zusammenhängende Antwort erzeugen.",
+      ziel: "Eine neue Antwort Token für Token aus dem trainierten Modell erzeugen.",
       kernbegriffe: [...kernbegriffe],
-
-      beispielAntwort:
-        treffer.paar && treffer.punktzahl >= 0.3
-          ? treffer.paar.antwort
-          : null,
-
       beispielFrage:
         treffer.paar && treffer.punktzahl >= 0.3
           ? treffer.paar.frage
           : null,
-
       relevanz: treffer.punktzahl
     };
   }
@@ -987,7 +983,7 @@ class NeuronalesNetz {
   }
 
   // -----------------------------------------------
-  // MEHRERE ANTWORTKANDIDATEN GENERIEREN
+  // ANTWORTEN TOKEN FÜR TOKEN GENERIEREN
   // -----------------------------------------------
 
   generiereKandidaten(prompt, plan, optionen = {}) {
@@ -1015,9 +1011,17 @@ class NeuronalesNetz {
       ? optionen.topK
       : 5;
 
+    // Die ähnlichste gelernte FRAGE kann als Kontext helfen.
+    // Die dazugehörige gespeicherte Antwort wird nicht zurückgegeben.
+    const kontextFrage =
+      typeof optionen.kontextFrage === "string" &&
+      optionen.kontextFrage.trim()
+        ? optionen.kontextFrage
+        : prompt;
+
     const eingabetext = this.konversationsModus
-      ? `<benutzer> ${this.normalisiereText(prompt)} <ki>`
-      : this.normalisiereText(prompt);
+      ? `<benutzer> ${this.normalisiereText(kontextFrage)} <ki>`
+      : this.normalisiereText(kontextFrage);
 
     const tokenStrings = this.tokenizer.zerlege(
       eingabetext
@@ -1081,7 +1085,7 @@ class NeuronalesNetz {
   }
 
   // -----------------------------------------------
-  // ANTWORTEN BEWERTEN
+  // GENERIERTE ANTWORTEN BEWERTEN
   // -----------------------------------------------
 
   bewerteAntwort(text, plan) {
@@ -1112,7 +1116,6 @@ class NeuronalesNetz {
       score -= 1.5;
     }
 
-    // Wiederholungen bestrafen.
     const zaehler = new Map();
 
     for (const wort of woerter) {
@@ -1128,7 +1131,6 @@ class NeuronalesNetz {
       }
     }
 
-    // Wiederholte Wortpaare bestrafen.
     const paare = new Set();
 
     for (let i = 1; i < woerter.length; i++) {
@@ -1141,25 +1143,19 @@ class NeuronalesNetz {
       paare.add(paar);
     }
 
-    // Bezug zum geplanten Thema bewerten.
+    // Relevanz zur Frage bewerten, nicht zur Musterantwort.
     const antwortWoerter = this.wichtigeWoerter(text);
     const planWoerter = new Set(plan.kernbegriffe);
 
     let gemeinsam = 0;
 
     for (const wort of antwortWoerter) {
-      if (planWoerter.has(wort)) gemeinsam++;
+      if (planWoerter.has(wort)) {
+        gemeinsam++;
+      }
     }
 
     score += Math.min(2, gemeinsam * 0.35);
-
-    // Ähnlichkeit zur passenden Trainingsantwort bewerten.
-    if (plan.beispielAntwort) {
-      score += 2.5 * this.aehnlichkeit(
-        text,
-        plan.beispielAntwort
-      );
-    }
 
     if (
       text.includes("<benutzer>") ||
@@ -1172,296 +1168,174 @@ class NeuronalesNetz {
   }
 
   // -----------------------------------------------
-  // ÄLTERE ANTWORTGENERIERUNG
+  // ANTWORT GENERIEREN
+  // Diese Methode ruft keine gespeicherte Antwort ab.
   // -----------------------------------------------
 
-  antwortGenerierenAlt(prompt, optionen = {}) {
+  antwortGenerieren(prompt, optionen = {}) {
     if (!this.bereit) {
-      return (
-        "Mein neuronales Sprachmodell ist noch nicht trainiert. " +
-        "Bitte überprüfe deine Trainingsdaten."
-      );
+      return "";
     }
 
     if (
       typeof prompt !== "string" ||
       !prompt.trim()
     ) {
-      return "Bitte gib eine Nachricht ein.";
-    }
-
-    const plan = this.planeAntwort(prompt);
-
-    if (
-      plan.beispielAntwort &&
-      plan.relevanz >= 0.999
-    ) {
-      return plan.beispielAntwort;
-    }
-
-    const kandidaten = this.generiereKandidaten(
-      prompt,
-      plan,
-      optionen
-    );
-
-    kandidaten.sort(
-      (a, b) => b.bewertung - a.bewertung
-    );
-
-    const beste = kandidaten[0];
-
-    if (
-      plan.beispielAntwort &&
-      plan.relevanz >= 0.55 &&
-      (!beste || beste.bewertung < 1)
-    ) {
-      return plan.beispielAntwort;
-    }
-
-    return beste && beste.text
-      ? beste.text
-      : "Ich konnte noch keine zusammenhängende Antwort erzeugen.";
-  }
-
-  // -----------------------------------------------
-  // ANTWORT ERZEUGEN
-  // Sucht zuerst die ähnlichste gelernte Frage.
-  // -----------------------------------------------
-
-  antwortGenerieren(prompt, optionen = {}) {
-    if (!this.bereit) {
-      return (
-        "Mein neuronales Sprachmodell ist noch nicht trainiert. " +
-        "Bitte überprüfe deine Trainingsdaten."
-      );
-    }
-
-    if (typeof prompt !== "string" || !prompt.trim()) {
-      return "Bitte gib eine Nachricht ein.";
+      return "";
     }
 
     if (!Array.isArray(this.letzteAntworten)) {
       this.letzteAntworten = [];
     }
 
-    // Zuerst nach der ähnlichsten gelernten Frage suchen.
-    const besterTreffer = this.findePassendesBeispiel(prompt);
+    // Ähnliche Frage nur als Kontext verwenden.
+    const treffer = this.findePassendesBeispiel(prompt);
 
     const mindestAehnlichkeit = Number.isFinite(
       optionen.minAehnlichkeit
     )
       ? Math.max(0, Math.min(1, optionen.minAehnlichkeit))
-      : 0.42;
+      : 0.28;
 
-    if (
-      besterTreffer.paar &&
-      besterTreffer.punktzahl >= mindestAehnlichkeit
-    ) {
-      const bekannteAntwort = besterTreffer.paar.antwort;
-
-      this.letzteAntwortAnalyse = {
-        modus: "aehnlichste_gelernte_frage",
-        eingabe: prompt,
-        gefundeneFrage: besterTreffer.paar.frage,
-        aehnlichkeit: besterTreffer.punktzahl,
-        antwort: bekannteAntwort
-      };
-
-      this.letzteAntworten.unshift(
-        this.normalisiereText(bekannteAntwort)
-      );
-
-      this.letzteAntworten = this.letzteAntworten.slice(0, 12);
-
-      return bekannteAntwort;
-    }
-
-    // Bei keinem ausreichend ähnlichen Treffer erzeugt das Netz
-    // mehrere Antworten und bewertet sie.
     const plan = this.planeAntwort(prompt);
+
+    const kontextFrage =
+      treffer.paar &&
+      treffer.punktzahl >= mindestAehnlichkeit
+        ? treffer.paar.frage
+        : prompt;
 
     const generationOptionen = {
       ...optionen,
+      kontextFrage,
       anzahlKandidaten: optionen.anzahlKandidaten ?? 6,
-      temperatur: optionen.temperatur ?? 0.95,
+      temperatur: optionen.temperatur ?? 0.85,
       topK: optionen.topK ?? 8,
-      maxTokens: optionen.maxTokens ?? 35
+      maxTokens: optionen.maxTokens ?? 45
     };
 
-    let kandidaten = [];
+    let alleKandidaten = [];
 
+    // Mehrere Versuche, wenn das Modell leere Ausgaben produziert.
     for (let runde = 0; runde < 4; runde++) {
-      kandidaten = this.generiereKandidaten(
+      const neu = this.generiereKandidaten(
         prompt,
         plan,
         generationOptionen
       );
 
-      const hatNeueAntwort = kandidaten.some(kandidat => {
-        const text = this.normalisiereText(
-          kandidat.text || ""
-        );
+      alleKandidaten.push(...neu);
 
-        return (
-          text.length > 0 &&
-          !this.letzteAntworten.includes(text)
-        );
-      });
-
-      if (hatNeueAntwort) {
+      if (alleKandidaten.some(k =>
+        typeof k.text === "string" &&
+        k.text.trim().length >= 3
+      )) {
         break;
       }
     }
 
-    // Bereits verwendete Antworten abwerten.
+    const kandidaten = alleKandidaten
+      .filter(k =>
+        typeof k.text === "string" &&
+        k.text.trim().length > 0
+      )
+      .map(k => ({ ...k }));
+
+    if (kandidaten.length === 0) {
+      this.letzterFehler =
+        "Das Netz hat bei dieser Eingabe keine Tokens erzeugt.";
+
+      this.letzteAntwortAnalyse = {
+        modus: "neuronale_generierung",
+        eingabe: prompt,
+        kontextFrage,
+        antwort: ""
+      };
+
+      return "";
+    }
+
+    // Kürzlich erzeugte Antworten leicht abwerten.
     for (const kandidat of kandidaten) {
-      const text = this.normalisiereText(
-        kandidat.text || ""
+      const normalisiert = this.normalisiereText(
+        kandidat.text
       );
 
-      if (!text) {
-        kandidat.bewertung = -1000;
-        continue;
+      if (this.letzteAntworten.includes(normalisiert)) {
+        kandidat.bewertung -= 3;
       }
 
-      if (this.letzteAntworten.includes(text)) {
-        kandidat.bewertung -= 1000;
-      }
+      let maximaleAehnlichkeit = 0;
 
-      let aehnlichkeitsStrafe = 0;
-
-      for (const alteAntwort of this.letzteAntworten) {
-        aehnlichkeitsStrafe = Math.max(
-          aehnlichkeitsStrafe,
-          this.aehnlichkeit(text, alteAntwort)
+      for (const alt of this.letzteAntworten) {
+        maximaleAehnlichkeit = Math.max(
+          maximaleAehnlichkeit,
+          this.aehnlichkeit(kandidat.text, alt)
         );
       }
 
-      kandidat.bewertung -= aehnlichkeitsStrafe * 2.5;
-
-      kandidat.bewertung += Math.random() * 0.8;
+      kandidat.bewertung -= maximaleAehnlichkeit * 1.5;
+      kandidat.bewertung += Math.random() * 0.25;
     }
 
-    const nichtLeereKandidaten = kandidaten.filter(kandidat =>
-      typeof kandidat.text === "string" &&
-      kandidat.text.trim().length > 0
-    );
-
-    if (nichtLeereKandidaten.length === 0) {
-      // Wenn die Generierung leer bleibt, die beste bekannte
-      // Frage-Antwort-Zuordnung als Vermutung verwenden.
-      const fallbackTreffer = this.findePassendesBeispiel(prompt);
-
-      if (fallbackTreffer.paar) {
-        this.letzteAntwortAnalyse = {
-          modus: "fallback_aehnlichste_gelernte_frage",
-          eingabe: prompt,
-          gefundeneFrage: fallbackTreffer.paar.frage,
-          aehnlichkeit: fallbackTreffer.punktzahl,
-          antwort: fallbackTreffer.paar.antwort
-        };
-
-        return fallbackTreffer.paar.antwort;
-      }
-
-      return (
-        "Ich habe noch keine Trainingsdaten, " +
-        "aus denen ich eine Vermutung ableiten kann."
-      );
-    }
-
-    // Wenn möglich, bereits verwendete Antworten ausschließen.
-    const neueKandidaten = nichtLeereKandidaten.filter(kandidat =>
-      !this.letzteAntworten.includes(
-        this.normalisiereText(kandidat.text)
-      )
-    );
-
-    const auswahlPool = neueKandidaten.length > 0
-      ? neueKandidaten
-      : nichtLeereKandidaten;
-
-    auswahlPool.sort(
+    kandidaten.sort(
       (a, b) => b.bewertung - a.bewertung
     );
 
-    // Aus den besten drei Kandidaten auswählen.
-    const topKandidaten = auswahlPool.slice(
+    // Abwechslung durch leicht zufällige Auswahl unter den besten Kandidaten.
+    const top = kandidaten.slice(
       0,
-      Math.min(3, auswahlPool.length)
+      Math.min(3, kandidaten.length)
     );
 
-    const zufallsGewichte = topKandidaten.map(
-      (kandidat, index) => {
-        const qualitaet = Math.max(
-          0.1,
-          1 / (index + 1)
-        );
+    const gewichte = top.map((k, i) => {
+      const abstand = Math.max(
+        -5,
+        Math.min(0, k.bewertung - top[0].bewertung)
+      );
 
-        const bewertungsFaktor = Math.exp(
-          Math.max(
-            -4,
-            Math.min(
-              4,
-              (
-                kandidat.bewertung -
-                topKandidaten[0].bewertung
-              ) * 0.25
-            )
-          )
-        );
+      return (1 / (i + 1)) * Math.exp(abstand * 0.25);
+    });
 
-        return qualitaet * bewertungsFaktor;
-      }
-    );
+    let zufall = Math.random() *
+      gewichte.reduce((a, b) => a + b, 0);
 
-    const gewichtSumme = zufallsGewichte.reduce(
-      (summe, gewicht) => summe + gewicht,
-      0
-    );
+    let ausgewaehlt = top[0];
 
-    let zufall = Math.random() * gewichtSumme;
-    let gewaehlt = topKandidaten[0];
-
-    for (let i = 0; i < topKandidaten.length; i++) {
-      zufall -= zufallsGewichte[i];
+    for (let i = 0; i < top.length; i++) {
+      zufall -= gewichte[i];
 
       if (zufall <= 0) {
-        gewaehlt = topKandidaten[i];
+        ausgewaehlt = top[i];
         break;
       }
     }
 
-    let antwort = gewaehlt.text.trim();
-    let normalisierteAntwort = this.normalisiereText(antwort);
-
-    // Falls eine kürzlich verwendete Antwort erneut entsteht,
-    // eine andere Einleitung versuchen.
-    if (this.letzteAntworten.includes(normalisierteAntwort)) {
-      const einleitungen = [
-        "Anders gesagt: ",
-        "Ein weiterer Gedanke dazu: ",
-        "Man kann es auch so ausdrücken: ",
-        "Noch eine Formulierung: "
-      ];
-
-      const freieEinleitung = einleitungen.find(einleitung =>
-        !this.letzteAntworten.includes(
-          this.normalisiereText(einleitung + antwort)
-        )
-      );
-
-      if (freieEinleitung) {
-        antwort = freieEinleitung + antwort;
-        normalisierteAntwort = this.normalisiereText(antwort);
-      }
-    }
+    const antwort = ausgewaehlt.text.trim();
+    const normalisierteAntwort = this.normalisiereText(
+      antwort
+    );
 
     this.letzteAntworten.unshift(normalisierteAntwort);
     this.letzteAntworten = this.letzteAntworten.slice(0, 12);
 
+    this.letzterFehler = null;
+
+    this.letzteAntwortAnalyse = {
+      modus: "neuronale_generierung",
+      eingabe: prompt,
+      kontextFrage,
+      aehnlichkeitDerKontextFrage: treffer.punktzahl,
+      antwort,
+      kandidaten: kandidaten.length
+    };
+
     return antwort;
+  }
+
+  // Ältere Aufrufer verwenden ebenfalls die Generierung.
+  antwortGenerierenAlt(prompt, optionen = {}) {
+    return this.antwortGenerieren(prompt, optionen);
   }
 
   generiere(prompt, optionen = {}) {
@@ -1475,7 +1349,7 @@ class NeuronalesNetz {
   status() {
     return {
       bereit: this.bereit,
-      modell: "Neuronales Sprachmodell mit Antwortplanung",
+      modell: "Neuronales Sprachmodell mit Antwortgenerierung",
       versteckteNeuronen: this.versteckteNeuronen,
       vokabularGroesse: this.vokabular.length,
       trainingsBeispiele: this.trainingsBeispiele,

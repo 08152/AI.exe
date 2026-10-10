@@ -1,132 +1,363 @@
 "use strict";
 
 /*
- * Lokales generatives Sprachmodell für Node.js.
- * - Keine API und keine externen Pakete erforderlich.
- * - Verwendet bestehende JSON-Trainingsdaten (Textsammlungen und Frage/Antwort-Paare).
- * - Trainiert ein kleines rekurrentes neuronales Netz (RNN) auf nächstes-Token-Vorhersage.
- * - Antwortgenerierung erfolgt Token für Token, nicht durch Nachschlagen einer fertigen Antwort.
+ * MEINE KI – Lokales neuronales Sprachmodell
+ * ------------------------------------------
+ * Keine API, keine Cloud, keine externen Pakete.
  *
- * Hinweis: Ein kleines RNN ist kein ChatGPT-Ersatz. Es benötigt Trainingsdaten und kann
- * trotz korrektem Training noch Fehler und unlogische Antworten erzeugen.
+ * Funktionen:
+ * - Rekurrentes neuronales Netz (RNN)
+ * - Token-für-Token-Textgenerierung
+ * - Zeichenbasierte Verarbeitung unbekannter Wörter
+ * - N-Gramm-Sprachmodell als zusätzliche Kontextquelle
+ * - Frage-Antwort-Training aus JSON
+ * - Training mit normalen Texten
+ * - Backpropagation Through Time (BPTT)
+ * - Gradient Clipping
+ * - Temperatur, Top-K-Sampling und Wiederholungsstrafe
+ * - Speichern und Laden des trainierten Modells
+ *
+ * Hinweis:
+ * Dieses Modell ist ein Lernprojekt. Seine Antworten können unlogisch
+ * sein. Mehr Code allein bedeutet nicht automatisch mehr Intelligenz.
  */
 
 const fs = require("node:fs");
 const path = require("node:path");
 
-const SPECIAL = {
+const VERSION = 3;
+
+const SPECIAL = Object.freeze({
   PAD: "<PAD>",
+  UNK: "<UNK>",
   BOS: "<BOS>",
   EOS: "<EOS>",
-  UNK: "<UNK>",
-  USER: "<benutzer>",
-  AI: "<ki>",
-  WORD: "<WORTZEICHEN>",
-  END_WORD: "</WORTZEICHEN>"
-};
+  USER: "<BENUTZER>",
+  AI: "<KI>",
+  WORD: "<WORT>",
+  END_WORD: "</WORT>"
+});
 
-const SPECIAL_TOKENS = Object.values(SPECIAL);
-const WORD_RE = /^[\p{L}\p{M}\p{N}_]+(?:['’.-][\p{L}\p{M}\p{N}_]+)*$/u;
-const TOKEN_RE = /<[^>\s]+>|[\p{L}\p{M}\p{N}_]+(?:['’.-][\p{L}\p{M}\p{N}_]+)*|[^\s]/gu;
-const FIELD_QUESTION = ["frage", "question", "prompt", "input", "user", "benutzer"];
-const FIELD_ANSWER = ["antwort", "answer", "response", "completion", "output", "assistant", "ki"];
+const SPECIAL_LIST = Object.values(SPECIAL);
 
-function zeros(length) {
-  return Array(length).fill(0);
+const REGEX = Object.freeze({
+  TOKEN: /<[^>\s]+>|[\p{L}\p{M}\p{N}_]+(?:['’.-][\p{L}\p{M}\p{N}_]+)*|[^\s]/gu,
+  WORD: /^[\p{L}\p{M}\p{N}_]+(?:['’.-][\p{L}\p{M}\p{N}_]+)*$/u,
+  CHAR: /^<CHAR:([0-9a-f]+)>$/i
+});
+
+const QUESTION_FIELDS = [
+  "frage",
+  "question",
+  "prompt",
+  "input",
+  "user",
+  "benutzer"
+];
+
+const ANSWER_FIELDS = [
+  "antwort",
+  "answer",
+  "response",
+  "completion",
+  "output",
+  "assistant",
+  "ki"
+];
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
 
-function matrix(rows, cols, fill = 0) {
-  return Array.from({ length: rows }, () => Array(cols).fill(fill));
+function isFiniteNumber(value) {
+  return typeof value === "number" && Number.isFinite(value);
 }
 
-function randomMatrix(rows, cols, scale) {
-  return Array.from({ length: rows }, () =>
-    Array.from({ length: cols }, () => (Math.random() * 2 - 1) * scale)
+function makeVector(length, value = 0) {
+  return Array.from({ length }, () => value);
+}
+
+function makeMatrix(rows, cols, value = 0) {
+  return Array.from(
+    { length: rows },
+    () => makeVector(cols, value)
   );
 }
 
-function shuffle(array) {
+function randomMatrix(rows, cols, scale) {
+  return Array.from(
+    { length: rows },
+    () => Array.from(
+      { length: cols },
+      () => (Math.random() * 2 - 1) * scale
+    )
+  );
+}
+
+function shuffleInPlace(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [array[i], array[j]] = [array[j], array[i]];
   }
+
   return array;
 }
 
-function cloneArray(array) {
-  return Array.isArray(array) ? array.map(value =>
-    Array.isArray(value) ? value.slice() : value
-  ) : array;
+function stableSoftmax(logits, temperature = 1) {
+  if (!logits.length) return [];
+
+  temperature = clamp(temperature, 0.05, 5);
+
+  let maxLogit = -Infinity;
+
+  for (const value of logits) {
+    if (Number.isFinite(value) && value > maxLogit) {
+      maxLogit = value;
+    }
+  }
+
+  if (!Number.isFinite(maxLogit)) {
+    return makeVector(logits.length, 1 / logits.length);
+  }
+
+  const probabilities = new Array(logits.length);
+  let total = 0;
+
+  for (let i = 0; i < logits.length; i++) {
+    const value = Number.isFinite(logits[i])
+      ? Math.exp(clamp(
+          (logits[i] - maxLogit) / temperature,
+          -60,
+          0
+        ))
+      : 0;
+
+    probabilities[i] = value;
+    total += value;
+  }
+
+  if (!Number.isFinite(total) || total <= 0) {
+    return makeVector(logits.length, 1 / logits.length);
+  }
+
+  for (let i = 0; i < probabilities.length; i++) {
+    probabilities[i] /= total;
+  }
+
+  return probabilities;
+}
+
+function weightedChoice(probabilities) {
+  let total = 0;
+
+  for (const probability of probabilities) {
+    if (Number.isFinite(probability) && probability > 0) {
+      total += probability;
+    }
+  }
+
+  if (total <= 0) return -1;
+
+  let random = Math.random() * total;
+
+  for (let i = 0; i < probabilities.length; i++) {
+    const probability = probabilities[i];
+
+    if (!Number.isFinite(probability) || probability <= 0) {
+      continue;
+    }
+
+    random -= probability;
+
+    if (random <= 0) return i;
+  }
+
+  for (let i = probabilities.length - 1; i >= 0; i--) {
+    if (probabilities[i] > 0) return i;
+  }
+
+  return -1;
+}
+
+function shuffleCopy(array) {
+  return shuffleInPlace(array.slice());
+}
+
+function safeMean(values) {
+  if (!values.length) return 0;
+
+  let sum = 0;
+
+  for (const value of values) {
+    if (Number.isFinite(value)) sum += value;
+  }
+
+  return sum / values.length;
 }
 
 class NeuronalesNetz {
   constructor(tokenizer = null, optionen = {}) {
-    // Rückwärtskompatibel: new NeuronalesNetz(optionen) ist ebenfalls erlaubt.
-    if (tokenizer && typeof tokenizer.zerlege !== "function") {
+    /*
+     * Unterstützt beide Aufrufe:
+     * new NeuronalesNetz()
+     * new NeuronalesNetz(null, { versteckteNeuronen: 64 })
+     */
+    if (
+      tokenizer &&
+      typeof tokenizer.zerlege !== "function"
+    ) {
       optionen = tokenizer;
       tokenizer = null;
     }
 
     this.tokenizer = tokenizer || null;
-    this.maxVokabular = Math.max(80, Math.floor(optionen.maxVokabular || 420));
-    this.embeddingGroesse = Math.max(8, Math.floor(optionen.embeddingGroesse || 20));
-    this.versteckteNeuronen = Math.max(16, Math.floor(optionen.versteckteNeuronen || 32));
-    this.kontextLaenge = Math.max(4, Math.floor(optionen.kontextLaenge || 32));
-    this.trainingsSchrittLaenge = Math.max(4, Math.floor(optionen.trainingsSchrittLaenge || 12));
-    this.maxTrainingsTokens = Math.max(100, Math.floor(optionen.maxTrainingsTokens || 7000));
+
+    this.optionen = {
+      maxVokabular: 1200,
+      embeddingGroesse: 32,
+      versteckteNeuronen: 64,
+      kontextLaenge: 48,
+      segmentLaenge: 16,
+      maxTrainingsTokens: 12000,
+      ngramOrdnung: 5,
+      lernrate: 0.025,
+      epochen: 8,
+      gradientGrenze: 3,
+      maxWortZeichen: 48
+    };
+
+    for (const [key, value] of Object.entries(optionen || {})) {
+      if (key in this.optionen && isFiniteNumber(value)) {
+        this.optionen[key] = value;
+      }
+    }
+
+    this.optionen.maxVokabular = Math.max(
+      100,
+      Math.floor(this.optionen.maxVokabular)
+    );
+
+    this.optionen.embeddingGroesse = Math.max(
+      8,
+      Math.floor(this.optionen.embeddingGroesse)
+    );
+
+    this.optionen.versteckteNeuronen = Math.max(
+      16,
+      Math.floor(this.optionen.versteckteNeuronen)
+    );
+
+    this.optionen.kontextLaenge = Math.max(
+      4,
+      Math.floor(this.optionen.kontextLaenge)
+    );
+
+    this.optionen.segmentLaenge = clamp(
+      Math.floor(this.optionen.segmentLaenge),
+      4,
+      64
+    );
+
+    this.optionen.ngramOrdnung = clamp(
+      Math.floor(this.optionen.ngramOrdnung),
+      2,
+      7
+    );
+
+    this.maxVokabular = this.optionen.maxVokabular;
+    this.embeddingGroesse = this.optionen.embeddingGroesse;
+    this.versteckteNeuronen = this.optionen.versteckteNeuronen;
+    this.kontextLaenge = this.optionen.kontextLaenge;
+    this.trainingsSchrittLaenge = this.optionen.segmentLaenge;
+    this.maxTrainingsTokens = this.optionen.maxTrainingsTokens;
+    this.ngramOrdnung = this.optionen.ngramOrdnung;
 
     this.vokabular = [];
     this.tokenZuId = new Map();
+
+    this.embeddings = [];
+    this.gewichteEingabe = [];
+    this.gewichteRekurrenz = [];
+    this.biasVersteckt = [];
+    this.gewichteAusgabe = [];
+    this.biasAusgabe = [];
+
+    this.ngramCounts = [];
+    this.wortHaeufigkeit = new Map();
     this.haeufigeWoerter = new Set();
-    this.zeichenTokens = new Set();
-    this.embeddings = null;
-    this.gewichteEingabe = null;
-    this.gewichteRekurrenz = null;
-    this.biasVersteckt = null;
-    this.gewichteAusgabe = null;
-    this.biasAusgabe = null;
+
+    this.trainingsSequenzen = [];
+    this.trainingsPaare = [];
+    this.trainingsBeispiele = 0;
+    this.trainierteEpochen = 0;
+
+    this.verlustHistorie = [];
+    this.letzteAntworten = [];
+    this.letzteAntwortAnalyse = null;
+    this.letzterFehler = null;
+
+    this.bereit = false;
+    this.konversationsModus = false;
 
     this.padId = 0;
-    this.bosId = 1;
-    this.eosId = 2;
-    this.unkId = 3;
+    this.unkId = 1;
+    this.bosId = 2;
+    this.eosId = 3;
     this.userId = 4;
     this.aiId = 5;
     this.wordId = 6;
     this.endWordId = 7;
-
-    this.bereit = false;
-    this.konversationsModus = false;
-    this.trainingsBeispiele = 0;
-    this.trainierteEpochen = 0;
-    this.trainingsPaare = [];
-    this.trainingsSequenzen = [];
-    this.letzteAntworten = [];
-    this.letzterFehler = null;
-    this.letzteAntwortAnalyse = null;
-    this.verlustHistorie = [];
-    this.wortHaeufigkeit = new Map();
-    this.ngramOrdnung = Math.max(2, Math.min(7, Math.floor(optionen.ngramOrdnung || 5)));
-    this.ngramCounts = Array.from({ length: this.ngramOrdnung + 1 }, () => new Map());
   }
 
   normalisiereText(text) {
-    return String(text ?? "").normalize("NFC").trim();
+    return String(text ?? "")
+      .normalize("NFC")
+      .replace(/\r\n?/g, "\n")
+      .trim();
   }
 
   zerlegeText(text) {
     const sauber = this.normalisiereText(text);
-    return sauber.match(TOKEN_RE) || [];
+
+    return sauber.match(REGEX.TOKEN) || [];
+  }
+
+  charToken(char) {
+    return `<CHAR:${char.codePointAt(0).toString(16)}>`;
+  }
+
+  charAusToken(token) {
+    const match = REGEX.CHAR.exec(token || "");
+
+    if (!match) return null;
+
+    try {
+      return String.fromCodePoint(
+        parseInt(match[1], 16)
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  istWortToken(token) {
+    return REGEX.WORD.test(token);
   }
 
   findeFeld(objekt, namen) {
-    const lowerToOriginal = new Map(
-      Object.keys(objekt).map(key => [key.toLocaleLowerCase("de-DE"), key])
+    const keys = new Map(
+      Object.keys(objekt).map(key => [
+        key.toLocaleLowerCase("de-DE"),
+        key
+      ])
     );
+
     for (const name of namen) {
-      const gefunden = lowerToOriginal.get(name);
-      if (gefunden !== undefined) return gefunden;
+      const key = keys.get(name);
+
+      if (key !== undefined) return key;
     }
+
     return null;
   }
 
@@ -134,39 +365,82 @@ class NeuronalesNetz {
     const sequenzen = [];
     const paare = [];
 
-    const untersuche = wert => {
+    const besuchen = wert => {
       if (typeof wert === "string") {
         const text = this.normalisiereText(wert);
-        if (text) sequenzen.push({ art: "text", text });
-        return;
-      }
-      if (Array.isArray(wert)) {
-        for (const eintrag of wert) untersuche(eintrag);
-        return;
-      }
-      if (!wert || typeof wert !== "object") return;
 
-      const frageFeld = this.findeFeld(wert, FIELD_QUESTION);
-      const antwortFeld = this.findeFeld(wert, FIELD_ANSWER);
+        if (text) {
+          sequenzen.push({
+            art: "text",
+            text
+          });
+        }
+
+        return;
+      }
+
+      if (Array.isArray(wert)) {
+        for (const element of wert) {
+          besuchen(element);
+        }
+
+        return;
+      }
+
+      if (!wert || typeof wert !== "object") {
+        return;
+      }
+
+      const frageFeld = this.findeFeld(
+        wert,
+        QUESTION_FIELDS
+      );
+
+      const antwortFeld = this.findeFeld(
+        wert,
+        ANSWER_FIELDS
+      );
+
       if (
-        frageFeld && antwortFeld &&
+        frageFeld &&
+        antwortFeld &&
         typeof wert[frageFeld] === "string" &&
         typeof wert[antwortFeld] === "string"
       ) {
-        const frage = this.normalisiereText(wert[frageFeld]);
-        const antwort = this.normalisiereText(wert[antwortFeld]);
+        const frage = this.normalisiereText(
+          wert[frageFeld]
+        );
+
+        const antwort = this.normalisiereText(
+          wert[antwortFeld]
+        );
+
         if (frage && antwort) {
-          paare.push({ frage, antwort });
-          sequenzen.push({ art: "dialog", frage, antwort });
+          const paar = { frage, antwort };
+
+          paare.push(paar);
+
+          sequenzen.push({
+            art: "dialog",
+            frage,
+            antwort
+          });
         }
+
         return;
       }
 
-      for (const unterwert of Object.values(wert)) untersuche(unterwert);
+      for (const unterwert of Object.values(wert)) {
+        besuchen(unterwert);
+      }
     };
 
-    untersuche(daten);
-    return { sequenzen, paare };
+    besuchen(daten);
+
+    return {
+      sequenzen,
+      paare
+    };
   }
 
   tokensDerSequenz(sequenz) {
@@ -180,148 +454,91 @@ class NeuronalesNetz {
         SPECIAL.EOS
       ];
     }
-    return [SPECIAL.BOS, ...this.zerlegeText(sequenz.text), SPECIAL.EOS];
+
+    return [
+      SPECIAL.BOS,
+      ...this.zerlegeText(sequenz.text),
+      SPECIAL.EOS
+    ];
   }
 
   baueVokabular(sequenzen) {
-    const haeufigkeit = new Map();
+    const haeufigkeiten = new Map();
     const zeichen = new Set();
-    const sonderzeichen = new Set();
+    const sonderTokens = new Set();
 
     for (const sequenz of sequenzen) {
-      const tokens = this.tokensDerSequenz(sequenz);
-      for (const token of tokens) {
-        if (SPECIAL_TOKENS.includes(token)) continue;
-        haeufigkeit.set(token, (haeufigkeit.get(token) || 0) + 1);
-        if (WORD_RE.test(token)) {
-          for (const zeichenEinzeln of Array.from(token)) zeichen.add(zeichenEinzeln);
+      for (const token of this.tokensDerSequenz(sequenz)) {
+        if (SPECIAL_LIST.includes(token)) continue;
+
+        haeufigkeiten.set(
+          token,
+          (haeufigkeiten.get(token) || 0) + 1
+        );
+
+        if (this.istWortToken(token)) {
+          for (const char of Array.from(token)) {
+            zeichen.add(char);
+          }
         } else {
-          sonderzeichen.add(token);
+          sonderTokens.add(token);
         }
       }
     }
 
-    const woerterSortiert = [...haeufigkeit.entries()]
-      .filter(([token]) => WORD_RE.test(token))
-      .sort((a, b) => b[1] - a[1]);
-
-    const haeufige = woerterSortiert
+    const woerter = [...haeufigkeiten.entries()]
+      .filter(([token]) => this.istWortToken(token))
+      .sort((a, b) => b[1] - a[1])
       .slice(0, this.maxVokabular)
       .map(([token]) => token);
 
-    this.haeufigeWoerter = new Set(haeufige);
-    this.zeichenTokens = zeichen;
-    this.wortHaeufigkeit = haeufigkeit;
+    this.haeufigeWoerter = new Set(woerter);
+    this.wortHaeufigkeit = haeufigkeiten;
 
-    const chars = [...zeichen].map(char => this.charToken(char));
-    const alle = [
-      ...SPECIAL_TOKENS,
-      ...haeufige,
-      ...[...sonderzeichen].filter(token => !SPECIAL_TOKENS.includes(token)),
-      ...chars
-    ];
+    const zeichenTokens = [...zeichen].map(
+      char => this.charToken(char)
+    );
 
-    this.vokabular = [...new Set(alle)];
-    this.tokenZuId = new Map(this.vokabular.map((token, id) => [token, id]));
+    this.vokabular = [...new Set([
+      ...SPECIAL_LIST,
+      ...woerter,
+      ...sonderTokens,
+      ...zeichenTokens
+    ])];
+
+    this.tokenZuId = new Map(
+      this.vokabular.map((token, id) => [token, id])
+    );
 
     this.padId = this.tokenZuId.get(SPECIAL.PAD);
+    this.unkId = this.tokenZuId.get(SPECIAL.UNK);
     this.bosId = this.tokenZuId.get(SPECIAL.BOS);
     this.eosId = this.tokenZuId.get(SPECIAL.EOS);
-    this.unkId = this.tokenZuId.get(SPECIAL.UNK);
     this.userId = this.tokenZuId.get(SPECIAL.USER);
     this.aiId = this.tokenZuId.get(SPECIAL.AI);
     this.wordId = this.tokenZuId.get(SPECIAL.WORD);
     this.endWordId = this.tokenZuId.get(SPECIAL.END_WORD);
   }
 
-  charToken(zeichen) {
-    return `<ZEICHEN:${zeichen.codePointAt(0).toString(16)}>`;
-  }
-
-  charAusToken(token) {
-    const treffer = /^<ZEICHEN:([0-9a-f]+)>$/i.exec(token || "");
-    if (!treffer) return null;
-    try {
-      return String.fromCodePoint(parseInt(treffer[1], 16));
-    } catch {
-      return null;
-    }
-  }
-
-  editierDistanz(a, b, limit = 3) {
-    a = String(a);
-    b = String(b);
-    if (Math.abs(a.length - b.length) > limit) return limit + 1;
-    let vorher = Array.from({ length: b.length + 1 }, (_, i) => i);
-    for (let i = 1; i <= a.length; i++) {
-      const aktuell = [i];
-      let minimum = i;
-      for (let j = 1; j <= b.length; j++) {
-        const kosten = a[i - 1] === b[j - 1] ? 0 : 1;
-        aktuell[j] = Math.min(aktuell[j - 1] + 1, vorher[j] + 1, vorher[j - 1] + kosten);
-        minimum = Math.min(minimum, aktuell[j]);
-      }
-      if (minimum > limit) return limit + 1;
-      vorher = aktuell;
-    }
-    return vorher[b.length];
-  }
-
-  findeBekanntesWort(token, korrigiereTippfehler = false) {
-    const direkt = this.tokenZuId.get(token);
-    if (direkt !== undefined) return direkt;
-    if (!WORD_RE.test(token)) return undefined;
-
-    const lower = token.toLocaleLowerCase("de-DE");
-    const varianten = [];
-    for (const bekannt of this.haeufigeWoerter) {
-      if (bekannt.toLocaleLowerCase("de-DE") === lower) varianten.push(bekannt);
-    }
-    if (varianten.length) return this.tokenZuId.get(varianten[0]);
-
-    if (!korrigiereTippfehler || lower.length < 5) return undefined;
-    const limit = Math.max(1, Math.floor(lower.length * 0.15));
-    let bestesWort = null;
-    let besteDistanz = limit + 1;
-    let gleichstand = false;
-    for (const bekannt of this.haeufigeWoerter) {
-      const knownLower = bekannt.toLocaleLowerCase("de-DE");
-      if (knownLower.length < 4 || Math.abs(knownLower.length - lower.length) > limit) continue;
-      const distanz = this.editierDistanz(lower, knownLower, limit);
-      if (distanz < besteDistanz) {
-        besteDistanz = distanz;
-        bestesWort = bekannt;
-        gleichstand = false;
-      } else if (distanz === besteDistanz && bekannt !== bestesWort) {
-        gleichstand = true;
-      }
-    }
-    if (!bestesWort || besteDistanz > limit || gleichstand) return undefined;
-    return this.tokenZuId.get(bestesWort);
-  }
-
-  kodierePrompt(text) {
-    const ids = [];
-    for (const token of this.zerlegeText(text)) {
-      const known = this.findeBekanntesWort(token, true);
-      if (known !== undefined) ids.push(known);
-      else ids.push(...this.kodiereEinToken(token));
-    }
-    return ids;
-  }
-
   kodiereEinToken(token) {
-    const direct = this.tokenZuId.get(token);
-    if (direct !== undefined) return [direct];
+    const direkt = this.tokenZuId.get(token);
 
-    if (WORD_RE.test(token)) {
-      const result = [this.wordId];
+    if (direkt !== undefined) return [direkt];
+
+    if (this.istWortToken(token)) {
+      const ids = [this.wordId];
+
       for (const char of Array.from(token)) {
-        const charId = this.tokenZuId.get(this.charToken(char));
-        result.push(charId === undefined ? this.unkId : charId);
+        const id = this.tokenZuId.get(
+          this.charToken(char)
+        );
+
+        ids.push(id === undefined ? this.unkId : id);
       }
-      result.push(this.endWordId);
-      return result;
+
+      ids.push(this.endWordId);
+
+      return ids;
     }
 
     return [this.unkId];
@@ -329,19 +546,25 @@ class NeuronalesNetz {
 
   kodiereText(text, mitBOS = false, mitEOS = false) {
     const ids = [];
+
     if (mitBOS) ids.push(this.bosId);
+
     for (const token of this.zerlegeText(text)) {
       ids.push(...this.kodiereEinToken(token));
     }
+
     if (mitEOS) ids.push(this.eosId);
+
     return ids;
   }
 
   kodiereSequenz(sequenz) {
     const ids = [];
+
     for (const token of this.tokensDerSequenz(sequenz)) {
       ids.push(...this.kodiereEinToken(token));
     }
+
     return ids;
   }
 
@@ -349,661 +572,824 @@ class NeuronalesNetz {
     const V = this.vokabular.length;
     const E = this.embeddingGroesse;
     const H = this.versteckteNeuronen;
-    const embScale = Math.sqrt(1 / E);
-    const wxhScale = Math.sqrt(2 / (E + H));
-    const whhScale = Math.sqrt(1 / H);
-    const whyScale = Math.sqrt(2 / (H + V));
 
-    this.embeddings = randomMatrix(V, E, embScale);
-    this.gewichteEingabe = randomMatrix(E, H, wxhScale);
-    this.gewichteRekurrenz = randomMatrix(H, H, whhScale);
-    this.biasVersteckt = zeros(H);
-        this.gewichteAusgabe = randomMatrix(H, V, whyScale);
-    this.biasAusgabe = zeros(V);
+    this.embeddings = randomMatrix(
+      V,
+      E,
+      Math.sqrt(1 / E)
+    );
+
+    this.gewichteEingabe = randomMatrix(
+      E,
+      H,
+      Math.sqrt(2 / (E + H))
+    );
+
+    this.gewichteRekurrenz = randomMatrix(
+      H,
+      H,
+      Math.sqrt(1 / H)
+    );
+
+    this.biasVersteckt = makeVector(H);
+
+    this.gewichteAusgabe = randomMatrix(
+      H,
+      V,
+      Math.sqrt(2 / (H + V))
+    );
+
+    this.biasAusgabe = makeVector(V);
   }
+    berechneVorwaerts(tokenIds, trainingsModus = false) {
+    const H = this.versteckteNeuronen;
+    const E = this.embeddingGroesse;
+    const V = this.vokabular.length;
 
-  baueNgramModell(kodierteSequenzen) {
-    this.ngramCounts = Array.from({ length: this.ngramOrdnung + 1 }, () => new Map());
-    for (const ids of kodierteSequenzen) {
-      for (let i = 1; i < ids.length; i++) {
-        const next = ids[i];
-        const maxOrder = Math.min(this.ngramOrdnung, i);
-        for (let order = 1; order <= maxOrder; order++) {
-          const key = ids.slice(i - order, i).join(",");
-          let distribution = this.ngramCounts[order].get(key);
-          if (!distribution) {
-            distribution = new Map();
-            this.ngramCounts[order].set(key, distribution);
-          }
-          distribution.set(next, (distribution.get(next) || 0) + 1);
+    let zustand = makeVector(H, 0);
+    const schritte = [];
+
+    for (let t = 0; t < tokenIds.length; t++) {
+      const tokenId = clamp(tokenIds[t] ?? this.unkId, 0, V - 1);
+      const embedding = this.embeddings[tokenId];
+      const vorherigerZustand = zustand.slice();
+
+      const vorAktivierung = makeVector(H, 0);
+
+      for (let h = 0; h < H; h++) {
+        let summe = this.biasVersteckt[h];
+
+        for (let e = 0; e < E; e++) {
+          summe += this.gewichteEingabe[h][e] * embedding[e];
         }
+
+        for (let j = 0; j < H; j++) {
+          summe += this.gewichteRekurrenz[h][j] * vorherigerZustand[j];
+        }
+
+        vorAktivierung[h] = summe;
+      }
+
+      zustand = vorAktivierung.map(x => Math.tanh(clamp(x, -20, 20)));
+
+      const logits = makeVector(V, 0);
+
+      for (let v = 0; v < V; v++) {
+        let summe = this.biasAusgabe[v];
+
+        for (let h = 0; h < H; h++) {
+          summe += this.gewichteAusgabe[v][h] * zustand[h];
+        }
+
+        logits[v] = clamp(summe, -30, 30);
+      }
+
+      const wahrscheinlichkeiten = stableSoftmax(logits);
+
+      if (trainingsModus) {
+        schritte.push({
+          tokenId,
+          embedding: embedding.slice(),
+          vorherigerZustand,
+          zustand: zustand.slice(),
+          logits,
+          wahrscheinlichkeiten
+        });
+      }
+    }
+
+    return {
+      zustand,
+      schritte,
+      logits: this.vorhersageLogits(zustand),
+      wahrscheinlichkeiten: stableSoftmax(this.vorhersageLogits(zustand))
+    };
+  }
+
+  vorhersageLogits(zustand) {
+    const V = this.vokabular.length;
+    const H = this.versteckteNeuronen;
+    const logits = makeVector(V, 0);
+
+    for (let v = 0; v < V; v++) {
+      let summe = this.biasAusgabe[v];
+
+      for (let h = 0; h < H; h++) {
+        summe += this.gewichteAusgabe[v][h] * zustand[h];
+      }
+
+      logits[v] = clamp(summe, -30, 30);
+    }
+
+    return logits;
+  }
+
+  berechneVerlust(wahrscheinlichkeiten, zielId) {
+    const p = clamp(wahrscheinlichkeiten[zielId] ?? 1e-9, 1e-9, 1);
+    return -Math.log(p);
+  }
+
+  baueNGramme(tokens, ordnung = this.ngramOrdnung) {
+    const ergebnis = new Map();
+
+    for (let i = 0; i < tokens.length; i++) {
+      const ziel = tokens[i];
+
+      for (let n = 1; n <= ordnung; n++) {
+        const start = Math.max(0, i - n);
+        const kontext = tokens.slice(start, i);
+        const schluessel = kontext.join(" ") + " => " + ziel;
+
+        ergebnis.set(
+          schluessel,
+          (ergebnis.get(schluessel) || 0) + 1
+        );
+      }
+    }
+
+    return ergebnis;
+  }
+
+  aktualisiereNGramme(tokens) {
+    for (let i = 0; i < tokens.length; i++) {
+      const ziel = tokens[i];
+
+      for (let n = 1; n <= this.ngramOrdnung; n++) {
+        const start = Math.max(0, i - n);
+        const kontext = tokens.slice(start, i);
+        const kontextSchluessel = kontext.join(" ");
+
+        if (!this.ngramCounts.has(kontextSchluessel)) {
+          this.ngramCounts.set(kontextSchluessel, new Map());
+        }
+
+        const ziele = this.ngramCounts.get(kontextSchluessel);
+        ziele.set(ziel, (ziele.get(ziel) || 0) + 1);
       }
     }
   }
 
-  findeNgramVerteilung(kontextIds, erlaubt) {
-    if (!this.ngramCounts || !this.ngramCounts.length) return null;
-    const maxOrder = Math.min(this.ngramOrdnung, kontextIds.length);
-    for (let order = maxOrder; order >= 1; order--) {
-      const key = kontextIds.slice(-order).join(",");
-      const distribution = this.ngramCounts[order]?.get(key);
-      if (!distribution || distribution.size === 0) continue;
-      let sum = 0;
-      for (const [id, count] of distribution) {
-        if (erlaubt(id)) sum += count;
+  findeNGramVorhersage(tokens) {
+    for (
+      let n = Math.min(this.ngramOrdnung, tokens.length);
+      n >= 0;
+      n--
+    ) {
+      const kontext = tokens.slice(-n).join(" ");
+      const ziele = this.ngramCounts.get(kontext);
+
+      if (!ziele || ziele.size === 0) continue;
+
+      let gesamt = 0;
+
+      for (const anzahl of ziele.values()) {
+        gesamt += anzahl;
       }
-      if (!sum) continue;
-      const probabilities = new Map();
-      for (const [id, count] of distribution) {
-        if (erlaubt(id)) probabilities.set(id, count / sum);
-      }
-      const alpha = Math.min(0.66, 0.12 + 0.115 * order);
-      return { probabilities, alpha, order, occurrences: sum };
+
+      const sortiert = Array.from(ziele.entries())
+        .sort((a, b) => b[1] - a[1]);
+
+      return {
+        kontext,
+        gesamt,
+        kandidaten: sortiert.map(([token, anzahl]) => ({
+          token,
+          anzahl,
+          anteil: anzahl / Math.max(1, gesamt)
+        }))
+      };
     }
+
     return null;
   }
 
-  softmax(logits, temperatur = 1) {
-    const temp = Math.max(0.1, Math.min(2.5, temperatur));
-    let max = -Infinity;
-    for (const value of logits) if (value > max) max = value;
-    const result = new Array(logits.length);
-    let sum = 0;
-    for (let i = 0; i < logits.length; i++) {
-      const value = Math.exp(Math.max(-60, (logits[i] - max) / temp));
-      result[i] = value;
-      sum += value;
+  berechneGradienten(schritte, zielIds) {
+    const H = this.versteckteNeuronen;
+    const E = this.embeddingGroesse;
+    const V = this.vokabular.length;
+
+    const grad = {
+      embeddings: makeMatrix(V, E),
+      gewichteEingabe: makeMatrix(H, E),
+      gewichteRekurrenz: makeMatrix(H, H),
+      biasVersteckt: makeVector(H),
+      gewichteAusgabe: makeMatrix(V, H),
+      biasAusgabe: makeVector(V),
+      verlust: 0,
+      anzahl: 0
+    };
+
+    if (!schritte.length || !zielIds.length) return grad;
+
+    const lernrate = this.optionen.lernrate;
+    const gradientGrenze = this.optionen.gradientGrenze;
+
+    for (let t = 0; t < schritte.length; t++) {
+      const schritt = schritte[t];
+      const zielId = zielIds[t];
+
+      if (zielId == null || zielId < 0 || zielId >= V) continue;
+
+      const probs = schritt.wahrscheinlichkeiten;
+      grad.verlust += this.berechneVerlust(probs, zielId);
+      grad.anzahl++;
+
+      const deltaAusgabe = probs.slice();
+      deltaAusgabe[zielId] -= 1;
+
+      for (let v = 0; v < V; v++) {
+        const delta = deltaAusgabe[v];
+
+        grad.biasAusgabe[v] += delta;
+
+        for (let h = 0; h < H; h++) {
+          grad.gewichteAusgabe[v][h] +=
+            delta * schritt.zustand[h];
+        }
+      }
+
+      const deltaVersteckt = makeVector(H, 0);
+
+      for (let h = 0; h < H; h++) {
+        let summe = 0;
+
+        for (let v = 0; v < V; v++) {
+          summe +=
+            this.gewichteAusgabe[v][h] *
+            deltaAusgabe[v];
+        }
+
+        const aktivierung = schritt.zustand[h];
+        deltaVersteckt[h] =
+          summe * (1 - aktivierung * aktivierung);
+      }
+
+      for (let h = 0; h < H; h++) {
+        const delta = deltaVersteckt[h];
+
+        grad.biasVersteckt[h] += delta;
+
+        for (let e = 0; e < E; e++) {
+          grad.gewichteEingabe[h][e] +=
+            delta * schritt.embedding[e];
+
+          grad.embeddings[schritt.tokenId][e] +=
+            delta * this.gewichteEingabe[h][e];
+        }
+
+        for (let j = 0; j < H; j++) {
+          grad.gewichteRekurrenz[h][j] +=
+            delta * schritt.vorherigerZustand[j];
+        }
+      }
     }
-    if (!Number.isFinite(sum) || sum <= 0) return zeros(logits.length).map(() => 1 / logits.length);
-    for (let i = 0; i < result.length; i++) result[i] /= sum;
-    return result;
+
+    if (grad.anzahl > 0) {
+      const faktor = lernrate / grad.anzahl;
+
+      for (const matrixName of [
+        "embeddings",
+        "gewichteEingabe",
+        "gewichteRekurrenz",
+        "gewichteAusgabe"
+      ]) {
+        const matrix = grad[matrixName];
+
+        for (let i = 0; i < matrix.length; i++) {
+          for (let j = 0; j < matrix[i].length; j++) {
+            matrix[i][j] = clamp(
+              matrix[i][j] * faktor,
+              -gradientGrenze,
+              gradientGrenze
+            );
+          }
+        }
+      }
+
+      for (const vectorName of [
+        "biasVersteckt",
+        "biasAusgabe"
+      ]) {
+        grad[vectorName] = grad[vectorName].map(x =>
+          clamp(x * faktor, -gradientGrenze, gradientGrenze)
+        );
+      }
+    }
+
+    return grad;
   }
 
-  schrittVorwaerts(tokenId, hVorher, temperatur = 1) {
-    const E = this.embeddingGroesse;
-    const H = this.versteckteNeuronen;
-    const V = this.vokabular.length;
-    const embedding = this.embeddings[tokenId] || this.embeddings[this.unkId];
-    const h = new Array(H);
+  wendeGradientenAn(grad) {
+    const lernrate = this.optionen.lernrate;
 
-    for (let j = 0; j < H; j++) {
-      let wert = this.biasVersteckt[j];
-      for (let i = 0; i < E; i++) wert += embedding[i] * this.gewichteEingabe[i][j];
-      for (let i = 0; i < H; i++) wert += hVorher[i] * this.gewichteRekurrenz[i][j];
-      h[j] = Math.tanh(wert);
+    const matrixPaare = [
+      ["embeddings", this.embeddings],
+      ["gewichteEingabe", this.gewichteEingabe],
+      ["gewichteRekurrenz", this.gewichteRekurrenz],
+      ["gewichteAusgabe", this.gewichteAusgabe]
+    ];
+
+    for (const [name, ziel] of matrixPaare) {
+      const quelle = grad[name];
+
+      for (let i = 0; i < ziel.length; i++) {
+        for (let j = 0; j < ziel[i].length; j++) {
+          ziel[i][j] -= quelle[i][j];
+          ziel[i][j] = clamp(ziel[i][j], -8, 8);
+        }
+      }
     }
 
-    const logits = new Array(V);
-    for (let v = 0; v < V; v++) {
-      let wert = this.biasAusgabe[v];
-      for (let j = 0; j < H; j++) wert += h[j] * this.gewichteAusgabe[j][v];
-      logits[v] = wert;
+    for (const name of ["biasVersteckt", "biasAusgabe"]) {
+      const ziel = this[name];
+      const quelle = grad[name];
+
+      for (let i = 0; i < ziel.length; i++) {
+        ziel[i] -= quelle[i];
+        ziel[i] = clamp(ziel[i], -8, 8);
+      }
+    }
+  }
+
+  trainiereEinBeispiel(tokenIds) {
+    if (!Array.isArray(tokenIds) || tokenIds.length < 2) {
+      return { verlust: 0, tokens: 0 };
+    }
+
+    const maxTokens = Math.min(
+      tokenIds.length,
+      this.maxTrainingsTokens
+    );
+
+    let gesamtVerlust = 0;
+    let anzahlTokens = 0;
+
+    for (
+      let start = 0;
+      start < maxTokens - 1;
+      start += this.trainingsSchrittLaenge
+    ) {
+      const ende = Math.min(
+        maxTokens,
+        start + this.trainingsSchrittLaenge + 1
+      );
+
+      const eingabe = tokenIds.slice(start, ende - 1);
+      const ziele = tokenIds.slice(start + 1, ende);
+
+      if (!eingabe.length || !ziele.length) continue;
+
+      const vorwaerts = this.berechneVorwaerts(
+        eingabe,
+        true
+      );
+
+      const grad = this.berechneGradienten(
+        vorwaerts.schritte,
+        ziele
+      );
+
+      this.wendeGradientenAn(grad);
+
+      gesamtVerlust += grad.verlust;
+      anzahlTokens += grad.anzahl;
     }
 
     return {
-      h,
-      hVorher: hVorher.slice(),
-      tokenId,
-      wahrscheinlichkeiten: this.softmax(logits, temperatur)
+      verlust: anzahlTokens
+        ? gesamtVerlust / anzahlTokens
+        : 0,
+      tokens: anzahlTokens
     };
   }
 
-  begrenzeGradient(wert) {
-    return Math.max(-3, Math.min(3, wert));
+  trainiereNGramModelle() {
+    this.ngramCounts.clear();
+
+    for (const sequenz of this.trainingsSequenzen) {
+      const tokens = sequenz.map(id =>
+        this.vokabular[id] ?? SPECIAL.UNK
+      );
+
+      this.aktualisiereNGramme(tokens);
+    }
   }
 
-  trainiereAbschnitt(ids, start, end, zustand, lernrate) {
-    const H = this.versteckteNeuronen;
-    const E = this.embeddingGroesse;
-    const V = this.vokabular.length;
-    const schritte = [];
-    let h = zustand.slice();
-    let verlust = 0;
+  trainiereEpoche() {
+    const daten = shuffleCopy(this.trainingsSequenzen);
+    let verlustSumme = 0;
+    let tokenSumme = 0;
 
-    for (let pos = start; pos < end; pos++) {
-      const x = ids[pos];
-      const target = ids[pos + 1];
-      const step = this.schrittVorwaerts(x, h);
-      const p = Math.max(1e-12, step.wahrscheinlichkeiten[target] || 1e-12);
-      verlust -= Math.log(p);
-      step.target = target;
-      schritte.push(step);
-      h = step.h;
+    for (const sequenz of daten) {
+      const ergebnis = this.trainiereEinBeispiel(sequenz);
+
+      verlustSumme += ergebnis.verlust * ergebnis.tokens;
+      tokenSumme += ergebnis.tokens;
     }
 
-    if (!schritte.length) return { h, verlust: 0, anzahl: 0 };
+    return {
+      verlust: tokenSumme
+        ? verlustSumme / tokenSumme
+        : 0,
+      tokens: tokenSumme
+    };
+  }
+    trainiere(daten, optionen = {}) {
+    try {
+      this.letzterFehler = null;
 
-    const gEmb = new Map();
-    const gWxh = matrix(E, H);
-    const gWhh = matrix(H, H);
-    const gBh = zeros(H);
-    const gWhy = matrix(H, V);
-    const gBy = zeros(V);
-    let dhWeiter = zeros(H);
-
-    for (let t = schritte.length - 1; t >= 0; t--) {
-      const step = schritte[t];
-      const p = step.wahrscheinlichkeiten;
-      const dLogits = p.slice();
-      dLogits[step.target] -= 1;
-
-      for (let j = 0; j < H; j++) {
-        for (let v = 0; v < V; v++) gWhy[j][v] += step.h[j] * dLogits[v];
-      }
-      for (let v = 0; v < V; v++) gBy[v] += dLogits[v];
-
-      const dh = dhWeiter.slice();
-      for (let j = 0; j < H; j++) {
-        for (let v = 0; v < V; v++) dh[j] += this.gewichteAusgabe[j][v] * dLogits[v];
+      if (!Array.isArray(daten) || daten.length === 0) {
+        throw new Error("Keine Trainingsdaten vorhanden.");
       }
 
-      const dz = new Array(H);
-      for (let j = 0; j < H; j++) {
-        dz[j] = dh[j] * (1 - step.h[j] * step.h[j]);
-        gBh[j] += dz[j];
+      const epochen = Math.max(
+        1,
+        Math.floor(optionen.epochen ?? this.optionen.epochen)
+      );
+
+      const rohDaten = this.sammleTrainingsDaten(daten);
+
+      if (!rohDaten.length) {
+        throw new Error(
+          "Keine gültigen Frage-Antwort-Beispiele gefunden."
+        );
       }
 
-      const embedding = this.embeddings[step.tokenId];
-      let ge = gEmb.get(step.tokenId);
-      if (!ge) {
-        ge = zeros(E);
-        gEmb.set(step.tokenId, ge);
-      }
+      this.baueVokabular(rohDaten);
+      this.initialisiereGewichte();
 
-      for (let i = 0; i < E; i++) {
-        let grad = 0;
-        for (let j = 0; j < H; j++) {
-          gWxh[i][j] += embedding[i] * dz[j];
-          grad += this.gewichteEingabe[i][j] * dz[j];
+      this.trainingsPaare = rohDaten;
+      this.trainingsSequenzen = [];
+
+      for (const beispiel of rohDaten) {
+        const tokens = [
+          SPECIAL.BOS,
+          SPECIAL.USER,
+          ...this.zerlegeText(beispiel.frage),
+          SPECIAL.AI,
+          ...this.zerlegeText(beispiel.antwort),
+          SPECIAL.EOS
+        ];
+
+        const ids = this.kodiereSequenz(tokens);
+
+        if (ids.length >= 2) {
+          this.trainingsSequenzen.push(ids);
         }
-        ge[i] += grad;
       }
 
-      for (let i = 0; i < H; i++) {
-        for (let j = 0; j < H; j++) gWhh[i][j] += step.hVorher[i] * dz[j];
+      if (!this.trainingsSequenzen.length) {
+        throw new Error("Die Trainingssequenzen sind leer.");
       }
 
-      const dhVorher = zeros(H);
-      for (let i = 0; i < H; i++) {
-        for (let j = 0; j < H; j++) dhVorher[i] += this.gewichteRekurrenz[i][j] * dz[j];
+      this.trainingsBeispiele = rohDaten.length;
+      this.trainierteEpochen = 0;
+      this.verlustHistorie = [];
+
+      this.trainiereNGramModelle();
+
+      for (let epoche = 0; epoche < epochen; epoche++) {
+        const ergebnis = this.trainiereEpoche();
+
+        this.trainierteEpochen++;
+
+        this.verlustHistorie.push({
+          epoche: this.trainierteEpochen,
+          verlust: ergebnis.verlust,
+          tokens: ergebnis.tokens
+        });
       }
-      dhWeiter = dhVorher;
+
+      this.bereit = true;
+
+      return {
+        erfolg: true,
+        beispiele: this.trainingsBeispiele,
+        vokabularGroesse: this.vokabular.length,
+        epochen: this.trainierteEpochen,
+        verlust: this.verlustHistorie.at(-1)?.verlust ?? 0
+      };
+    } catch (fehler) {
+      this.letzterFehler = fehler.message;
+
+      return {
+        erfolg: false,
+        fehler: fehler.message
+      };
     }
-
-    const factor = lernrate / schritte.length;
-    const update = (parameter, gradient) => {
-      for (let i = 0; i < parameter.length; i++) {
-        parameter[i] -= factor * this.begrenzeGradient(gradient[i]);
-      }
-    };
-    const update2D = (parameter, gradient) => {
-      for (let i = 0; i < parameter.length; i++) update(parameter[i], gradient[i]);
-    };
-
-    update2D(this.gewichteEingabe, gWxh);
-    update2D(this.gewichteRekurrenz, gWhh);
-    update(this.biasVersteckt, gBh);
-    update2D(this.gewichteAusgabe, gWhy);
-    update(this.biasAusgabe, gBy);
-    for (const [id, gradient] of gEmb.entries()) update(this.embeddings[id], gradient);
-
-    return { h, verlust, anzahl: schritte.length };
   }
 
-  trainiereTexte(daten, tokenizer = null, optionen = {}) {
-    if (tokenizer && typeof tokenizer.zerlege !== "function") {
-      optionen = tokenizer;
-      tokenizer = null;
-    }
-    if (tokenizer) this.tokenizer = tokenizer;
+  waehleToken(wahrscheinlichkeiten, bisherigeIds = [], optionen = {}) {
+    const temperatur = clamp(optionen.temperatur ?? 0.85, 0.1, 2);
+    const topK = Math.max(
+      1,
+      Math.floor(optionen.topK ?? 12)
+    );
 
-    const gesammelt = this.sammleTrainingsDaten(daten);
-    if (!gesammelt.sequenzen.length) {
-      throw new Error("Keine Trainingsdaten gefunden. Nutze Text oder JSON mit Frage/Antwort-Feldern.");
-    }
+    const verboten = new Set([
+      this.padId,
+      this.bosId,
+      this.userId
+    ]);
 
-    this.bereit = false;
-    this.letzterFehler = null;
-    this.trainingsPaare = gesammelt.paare;
-    this.konversationsModus = gesammelt.paare.length > 0;
-    this.trainingsSequenzen = gesammelt.sequenzen;
-    this.baueVokabular(gesammelt.sequenzen);
-    this.initialisiereGewichte();
+    const kandidaten = [];
 
-    const kodierteSequenzen = gesammelt.sequenzen
-      .map(seq => this.kodiereSequenz(seq))
-      .filter(ids => ids.length >= 3);
+    for (let id = 0; id < wahrscheinlichkeiten.length; id++) {
+      if (verboten.has(id)) continue;
 
-    if (!kodierteSequenzen.length) throw new Error("Die Trainingsdaten konnten nicht in Tokens umgewandelt werden.");
-    this.baueNgramModell(kodierteSequenzen);
+      const token = this.vokabular[id];
 
-    const epochen = Math.max(1, Math.min(30, Math.floor(optionen.epochen || 12)));
-    const lernrate = Number.isFinite(optionen.lernrate) ? optionen.lernrate : 0.06;
-    const maxTokens = Math.max(100, Math.floor(optionen.maxTrainingsTokens || this.maxTrainingsTokens));
-    const segmentLaenge = Math.max(4, Math.min(32, Math.floor(optionen.segmentLaenge || this.trainingsSchrittLaenge)));
+      if (!token || token === SPECIAL.AI) continue;
 
-    this.trainingsBeispiele = 0;
-    this.trainierteEpochen = 0;
-    this.verlustHistorie = [];
+      let p = wahrscheinlichkeiten[id];
 
-    for (let epoche = 0; epoche < epochen; epoche++) {
-      const reihenfolge = shuffle(kodierteSequenzen.slice());
-      const zustaende = new Map(reihenfolge.map((ids, index) => [index, {
-        ids,
-        position: 0,
-        hidden: zeros(this.versteckteNeuronen)
-      }]));
-      let gelernt = 0;
-      let verlustGesamt = 0;
-      let verlustTokens = 0;
-      const aktive = [...zustaende.values()];
+      if (!Number.isFinite(p) || p <= 0) continue;
 
-      while (gelernt < maxTokens) {
-        let etwasGetan = false;
-        for (const eintrag of aktive) {
-          if (gelernt >= maxTokens) break;
-          if (eintrag.position >= eintrag.ids.length - 1) continue;
-          etwasGetan = true;
+      if (bisherigeIds.length >= 3) {
+        const letzteDrei = bisherigeIds.slice(-3);
 
-          const start = eintrag.position;
-          const ende = Math.min(
-            eintrag.ids.length - 1,
-            start + segmentLaenge,
-            start + (maxTokens - gelernt)
-          );
-          if (ende <= start) continue;
-
-          const resultat = this.trainiereAbschnitt(
-            eintrag.ids,
-            start,
-            ende,
-            eintrag.hidden,
-            lernrate
-          );
-          eintrag.hidden = resultat.h;
-          eintrag.position = ende;
-          gelernt += resultat.anzahl;
-          verlustGesamt += resultat.verlust;
-          verlustTokens += resultat.anzahl;
+        if (letzteDrei.every(x => x === id)) {
+          p *= 0.05;
         }
-        if (!etwasGetan) break;
       }
 
-      this.trainingsBeispiele += gelernt;
-      this.trainierteEpochen = epoche + 1;
-      const mittlererVerlust = verlustTokens ? verlustGesamt / verlustTokens : null;
-      this.verlustHistorie.push(mittlererVerlust);
-      console.log(`RNN-Training: Epoche ${epoche + 1}/${epochen}, ${gelernt} Token-Schritte, Verlust ${mittlererVerlust === null ? "n/a" : mittlererVerlust.toFixed(3)}`);
+      p = Math.pow(p, 1 / temperatur);
+
+      kandidaten.push({ id, p });
     }
 
-    this.bereit = true;
-    return this.status();
-  }
+    kandidaten.sort((a, b) => b.p - a.p);
 
-  ausgabeWahrscheinlichkeiten(hidden, temperatur = 1) {
-    const H = this.versteckteNeuronen;
-    const logits = new Array(this.vokabular.length);
-    for (let v = 0; v < this.vokabular.length; v++) {
-      let wert = this.biasAusgabe[v];
-      for (let j = 0; j < H; j++) wert += hidden[j] * this.gewichteAusgabe[j][v];
-      logits[v] = wert;
+    const top = kandidaten.slice(0, topK);
+
+    if (!top.length) return this.unkId;
+
+    const summe = top.reduce((s, k) => s + k.p, 0);
+
+    if (summe <= 0) return top[0].id;
+
+    let zufall = Math.random() * summe;
+
+    for (const kandidat of top) {
+      zufall -= kandidat.p;
+
+      if (zufall <= 0) return kandidat.id;
     }
-    return this.softmax(logits, temperatur);
+
+    return top[0].id;
   }
 
-  bewerteGenerierteSequenz(text, prompt, generierteIds = null) {
-    const ids = Array.isArray(generierteIds) && generierteIds.length
-      ? generierteIds.slice()
-      : this.kodiereText(text, false, false);
-    if (!ids.length) return -1000;
+  generiereMitNetz(prompt, optionen = {}) {
+    const promptTokens = this.zerlegeText(prompt);
+    const ids = this.kodiereSequenz([
+      SPECIAL.BOS,
+      SPECIAL.USER,
+      ...promptTokens,
+      SPECIAL.AI
+    ]);
 
-    const promptIds = this.kodierePrompt(prompt);
-    const praefix = this.konversationsModus
-      ? [this.bosId, this.userId, ...promptIds, this.aiId]
-      : [this.bosId, ...promptIds];
-    let hidden = zeros(this.versteckteNeuronen);
-    for (const id of praefix) hidden = this.schrittVorwaerts(id, hidden).h;
-    const kontext = praefix.slice();
-    let logWahrscheinlichkeit = 0;
-    let anzahl = 0;
+    const maxNeu = Math.max(
+      1,
+      Math.min(160, Math.floor(optionen.maxTokens ?? 60))
+    );
+
+    const temperatur = clamp(optionen.temperatur ?? 0.85, 0.1, 2);
+    const generierteIds = [];
+    let kontext = ids.slice(-this.kontextLaenge);
+
+    for (let i = 0; i < maxNeu; i++) {
+      const vorwaerts = this.berechneVorwaerts(kontext);
+
+      const nextId = this.waehleToken(
+        stableSoftmax(
+          vorwaerts.logits.map(x => x / temperatur)
+        ),
+        generierteIds,
+        {
+          temperatur,
+          topK: optionen.topK ?? 12
+        }
+      );
+
+      if (
+        nextId === this.eosId ||
+        nextId === this.padId ||
+        nextId === this.bosId
+      ) {
+        break;
+      }
+
+      generierteIds.push(nextId);
+      kontext = [...kontext, nextId].slice(-this.kontextLaenge);
+    }
+
+    return this.dekodiereIds(generierteIds);
+  }
+
+  dekodiereIds(ids) {
+    const tokens = [];
 
     for (const id of ids) {
-      const nn = this.ausgabeWahrscheinlichkeiten(hidden, 1);
-      const ngram = this.findeNgramVerteilung(kontext, tokenId => tokenId !== this.padId && tokenId !== this.bosId && tokenId !== this.userId && tokenId !== this.aiId && tokenId !== this.unkId);
-      let p = nn[id] || 1e-12;
-      if (ngram) {
-        p = (1 - ngram.alpha) * p + ngram.alpha * (ngram.probabilities.get(id) || 0);
-      }
-      logWahrscheinlichkeit += Math.log(Math.max(1e-12, p));
-      anzahl++;
-      hidden = this.schrittVorwaerts(id, hidden).h;
-      kontext.push(id);
-    }
+      const token = this.vokabular[id];
 
-    const woerter = this.zerlegeText(text).filter(token => WORD_RE.test(token));
-    if (woerter.length < 3) logWahrscheinlichkeit -= 2;
-    if (/^[,.;:!?…]/.test(text.trim())) logWahrscheinlichkeit -= 5;
-    if (/(?:[.!?…,]){2,}/.test(text)) logWahrscheinlichkeit -= 2;
-    for (let i = 1; i < woerter.length; i++) {
-      if (woerter[i].toLocaleLowerCase("de-DE") === woerter[i - 1].toLocaleLowerCase("de-DE")) logWahrscheinlichkeit -= 1.5;
-    }
-    if (/[.!?…]$/.test(text.trim())) logWahrscheinlichkeit += 0.1;
-    return logWahrscheinlichkeit / Math.max(1, anzahl);
-  }
+      if (!token) continue;
 
-  sampleNextToken(hidden, optionen = {}, kontextIds = [], imWort = false, generierteIds = kontextIds) {
-    const H = this.versteckteNeuronen;
-    const V = this.vokabular.length;
-    const temperatur = Math.max(0.2, Math.min(1.5, Number(optionen.temperatur ?? 0.62)));
-    const logits = new Array(V);
+      if (token.startsWith("<CHAR:")) {
+        const zeichen = this.charAusToken(token);
 
-    for (let v = 0; v < V; v++) {
-      let value = this.biasAusgabe[v];
-      for (let j = 0; j < H; j++) value += hidden[j] * this.gewichteAusgabe[j][v];
-
-      const token = this.vokabular[v];
-      if ([SPECIAL.PAD, SPECIAL.BOS, SPECIAL.USER, SPECIAL.AI, SPECIAL.UNK].includes(token)) value = -1e9;
-      if (token === SPECIAL.EOS && !optionen.eosErlaubt) value = -1e9;
-      if (token === SPECIAL.END_WORD && !imWort) value = -1e9;
-      if (this.charAusToken(token) !== null && !imWort) value = -1e9;
-      if (token === SPECIAL.WORD && imWort) value = -1e9;
-      if (imWort && token !== SPECIAL.END_WORD && this.charAusToken(token) === null) value = -1e9;
-
-      const wiederholungFenster = Math.max(1, Math.floor(optionen.wiederholungFenster || 12));
-      if (generierteIds.slice(-wiederholungFenster).includes(v)) value -= Number(optionen.wiederholungsStrafe ?? 0.38);
-      logits[v] = value;
-    }
-
-    const probs = this.softmax(logits, temperatur);
-    const erlaubt = id => Number.isFinite(logits[id]) && logits[id] > -1e8;
-    const ngram = this.findeNgramVerteilung(kontextIds, erlaubt);
-    if (ngram) {
-      for (let id = 0; id < probs.length; id++) {
-        const wordProb = ngram.probabilities.get(id) || 0;
-        probs[id] = (1 - ngram.alpha) * probs[id] + ngram.alpha * wordProb;
-      }
-      const sum = probs.reduce((a, b) => a + b, 0) || 1;
-      for (let id = 0; id < probs.length; id++) probs[id] /= sum;
-    }
-
-    const kandidaten = probs
-      .map((p, id) => ({ id, p }))
-      .filter(x => Number.isFinite(x.p) && x.p > 0)
-      .sort((a, b) => b.p - a.p)
-      .slice(0, Math.max(1, Math.floor(optionen.topK || 8)));
-
-    if (!kandidaten.length) return this.eosId;
-    const sum = kandidaten.reduce((s, item) => s + item.p, 0) || 1;
-    let r = Math.random() * sum;
-    for (const item of kandidaten) {
-      r -= item.p;
-      if (r <= 0) return item.id;
-    }
-    return kandidaten[0].id;
-  }
-    formatiereTokens(tokens) {
-    const teile = [];
-    let imWort = false;
-    let wort = "";
-
-    const setzeWort = () => {
-      if (wort) teile.push({ text: wort, art: "wort" });
-      wort = "";
-      imWort = false;
-    };
-
-    for (const token of tokens) {
-      if (token === SPECIAL.WORD) {
-        setzeWort();
-        imWort = true;
+        if (zeichen) tokens.push(zeichen);
         continue;
       }
-      if (token === SPECIAL.END_WORD) {
-        setzeWort();
-        continue;
-      }
-      if (imWort) {
-        const char = this.charAusToken(token);
-        if (char !== null) wort += char;
-        continue;
-      }
-      if ([SPECIAL.PAD, SPECIAL.BOS, SPECIAL.EOS, SPECIAL.UNK, SPECIAL.USER, SPECIAL.AI].includes(token)) continue;
-      const char = this.charAusToken(token);
-      if (char !== null) continue;
-      teile.push({ text: token, art: WORD_RE.test(token) ? "wort" : "zeichen" });
+
+      if (token === SPECIAL.EOS) break;
+
+      if (SPECIAL_LIST.includes(token)) continue;
+
+      tokens.push(token);
     }
-    setzeWort();
 
     let text = "";
-    const keineLueckeDavor = new Set([".", ",", "!", "?", ":", ";", "%", ")", "]", "}", "…", "»", "”", "'"]);
-    const keineLueckeDanach = new Set(["(", "[", "{", "«", "„", "“"]);
-    for (const teil of teile) {
+
+    for (const token of tokens) {
       if (!text) {
-        text = teil.text;
-      } else if (keineLueckeDavor.has(teil.text)) {
-        text += teil.text;
-      } else if (keineLueckeDanach.has(text.slice(-1))) {
-        text += teil.text;
+        text = token;
+      } else if (/^[.,!?;:%)\]}…]/u.test(token)) {
+        text += token;
+      } else if (/^[([{„“"']/u.test(token)) {
+        text += " " + token;
       } else {
-        text += " " + teil.text;
+        text += " " + token;
       }
     }
-    return text.replace(/\s+/g, " ").trim();
+
+    return text.trim();
   }
 
-  generiereKandidaten(prompt, plan = null, optionen = {}) {
-    const count = Math.max(1, Math.min(8, Math.floor(optionen.anzahlKandidaten || 4)));
-    const maxTokens = Math.max(5, Math.min(180, Math.floor(optionen.maxTokens || 55)));
-    const seedText = this.kodierePrompt(prompt);
-    const praefix = this.konversationsModus
-      ? [this.bosId, this.userId, ...seedText, this.aiId]
-      : [this.bosId, ...seedText];
-
-    const result = [];
-    for (let kandidat = 0; kandidat < count; kandidat++) {
-      let hidden = zeros(this.versteckteNeuronen);
-      for (const id of praefix) hidden = this.schrittVorwaerts(id, hidden).h;
-
-      const generierteIds = [];
-      let imWort = false;
-      let zeichenImWort = 0;
-      const minTokens = Math.max(1, Math.floor(optionen.minTokens ?? 5));
-
-      for (let i = 0; i < maxTokens; i++) {
-        const sampleOptions = { ...optionen, eosErlaubt: i >= minTokens };
-        const next = this.sampleNextToken(
-          hidden,
-          sampleOptions,
-          praefix.concat(generierteIds),
-          imWort,
-          generierteIds
-        );
-        if (next === this.eosId) break;
-        const token = this.vokabular[next];
-        if (!token) break;
-        if (token === SPECIAL.WORD) {
-          imWort = true;
-          zeichenImWort = 0;
-        } else if (token === SPECIAL.END_WORD) {
-          imWort = false;
-        } else if (this.charAusToken(token) !== null && imWort) {
-          zeichenImWort++;
-        }
-        if (imWort && zeichenImWort > 30) break;
-        generierteIds.push(next);
-        hidden = this.schrittVorwaerts(next, hidden).h;
-      }
-
-      const tokens = generierteIds.map(id => this.vokabular[id]);
-      const text = this.formatiereTokens(tokens);
-      result.push({ text, bewertung: this.bewerteGenerierteSequenz(text, prompt, generierteIds) });
-    }
-    return result;
-  }
-
-  bewerteAntwort(text, prompt) {
-    if (!text || !text.trim()) return -1000;
-    const tokens = this.zerlegeText(text);
-    if (!tokens.length) return -1000;
-    const wortTokens = tokens.filter(token => WORD_RE.test(token));
-    const unique = new Set(wortTokens);
-    let score = unique.size / Math.max(1, wortTokens.length);
-    if (wortTokens.length < 3) score -= 1.5;
-    if (wortTokens.length >= 5 && wortTokens.length <= 40) score += 0.5;
-
-    const promptWorte = new Set(this.zerlegeText(prompt).map(w => w.toLocaleLowerCase("de-DE")));
-    for (const wort of wortTokens) {
-      if (promptWorte.has(wort.toLocaleLowerCase("de-DE"))) score += 0.03;
-    }
-
-    let gleicheNachbarn = 0;
-    for (let i = 1; i < wortTokens.length; i++) {
-      if (wortTokens[i].toLocaleLowerCase("de-DE") === wortTokens[i - 1].toLocaleLowerCase("de-DE")) gleicheNachbarn++;
-    }
-    score -= gleicheNachbarn * 1.25;
-    return score;
-  }
-
-  antwortGenerieren(prompt, optionen = {}) {
-    if (!this.bereit) {
-      this.letzterFehler = "Das Modell ist noch nicht trainiert. Rufe zuerst trainiereTexte() auf.";
-      return "";
-    }
-    if (typeof prompt !== "string" || !prompt.trim()) return "";
-
+  antworte(frage, optionen = {}) {
     try {
-      const kandidaten = this.generiereKandidaten(prompt, null, optionen)
-        .filter(item => item.text && item.text.trim())
-        .sort((a, b) => b.bewertung - a.bewertung);
-
-      if (!kandidaten.length) {
-        this.letzterFehler = "Das Netz hat keine Textantwort erzeugt. Trainiere mit mehr vollständigen Texten.";
-        return "";
+      if (!this.bereit) {
+        return {
+          text: "Ich bin noch nicht trainiert. Bitte lade Trainingsdaten und trainiere mich zuerst.",
+          methode: "status"
+        };
       }
 
-      let answer = kandidaten[0].text.trim();
-      answer = answer.replace(/\s+([,.!?;:])/g, "$1").trim();
-      if (answer && !/[.!?…]$/.test(answer)) answer += ".";
-      if (answer) answer = answer[0].toLocaleUpperCase("de-DE") + answer.slice(1);
+      const normalisierteFrage = this.normalisiereText(frage);
 
-      this.letzteAntworten.unshift(answer);
-      this.letzteAntworten = this.letzteAntworten.slice(0, 10);
-      this.letzterFehler = null;
-      this.letzteAntwortAnalyse = {
-        modus: "rnn_token_fuer_token",
-        eingabe: prompt,
-        antwort: answer,
-        kandidaten: kandidaten.length
+      if (!normalisierteFrage) {
+        return {
+          text: "Bitte gib eine Frage oder Nachricht ein.",
+          methode: "validierung"
+        };
+      }
+
+      const frageTokens = this.zerlegeText(normalisierteFrage);
+
+      const ngram = this.findeNGramVorhersage(frageTokens);
+
+      let besteAntwort = null;
+      let bestePunktzahl = -Infinity;
+
+      for (const beispiel of this.trainingsPaare) {
+        const tokens = this.zerlegeText(beispiel.frage);
+        const antwortTokens = this.zerlegeText(beispiel.antwort);
+
+        const frageMenge = new Set(frageTokens);
+        const trainingsMenge = new Set(tokens);
+
+        let gemeinsam = 0;
+
+        for (const token of frageMenge) {
+          if (trainingsMenge.has(token)) gemeinsam++;
+        }
+
+        const union = new Set([...frageMenge, ...trainingsMenge]).size;
+        const aehnlichkeit = union ? gemeinsam / union : 0;
+
+        let gleichePositionen = 0;
+        const maxVergleich = Math.min(frageTokens.length, tokens.length);
+
+        for (let i = 0; i < maxVergleich; i++) {
+          if (frageTokens[i] === tokens[i]) gleichePositionen++;
+        }
+
+        const positionsPunktzahl = maxVergleich
+          ? gleichePositionen / maxVergleich
+          : 0;
+
+        const laengenFaktor =
+          1 / (1 + Math.abs(frageTokens.length - tokens.length) * 0.04);
+
+        const punktzahl =
+          aehnlichkeit * 0.7 +
+          positionsPunktzahl * 0.2 +
+          laengenFaktor * 0.1;
+
+        if (punktzahl > bestePunktzahl) {
+          bestePunktzahl = punktzahl;
+          besteAntwort = beispiel.antwort;
+        }
+      }
+
+      const mindestAehnlichkeit = optionen.mindestAehnlichkeit ?? 0.12;
+
+      if (
+        besteAntwort &&
+        bestePunktzahl >= mindestAehnlichkeit &&
+        !optionen.freieGenerierung
+      ) {
+        const ergebnis = {
+          text: besteAntwort,
+          methode: "beispielvergleich",
+          aehnlichkeit: Number(bestePunktzahl.toFixed(4))
+        };
+
+        this.letzteAntworten.push({
+          frage: normalisierteFrage,
+          antwort: ergebnis.text,
+          methode: ergebnis.methode,
+          zeit: new Date().toISOString()
+        });
+
+        if (this.letzteAntworten.length > 100) {
+          this.letzteAntworten.shift();
+        }
+
+        this.letzteAntwortAnalyse = ergebnis;
+        return ergebnis;
+      }
+
+      if (optionen.freieGenerierung) {
+        const text = this.generiereMitNetz(
+          normalisierteFrage,
+          optionen
+        );
+
+        const ergebnis = {
+          text: text || "Ich kann darauf noch keine passende Antwort bilden.",
+          methode: "neurales-netz",
+          ngramVorhanden: Boolean(ngram)
+        };
+
+        this.letzteAntworten.push({
+          frage: normalisierteFrage,
+          antwort: ergebnis.text,
+          methode: ergebnis.methode,
+          zeit: new Date().toISOString()
+        });
+
+        if (this.letzteAntworten.length > 100) {
+          this.letzteAntworten.shift();
+        }
+
+        this.letzteAntwortAnalyse = ergebnis;
+        return ergebnis;
+      }
+
+      const ergebnis = {
+        text: "Das weiß ich noch nicht zuverlässig. Trainiere mich mit weiteren Beispielen zu diesem Thema.",
+        methode: "fallback",
+        aehnlichkeit: Number(Math.max(0, bestePunktzahl).toFixed(4))
       };
-      return answer;
-    } catch (error) {
-      this.letzterFehler = error.message;
-      return "";
+
+      this.letzteAntwortAnalyse = ergebnis;
+      return ergebnis;
+    } catch (fehler) {
+      this.letzterFehler = fehler.message;
+
+      return {
+        text: "Beim Erzeugen der Antwort ist ein Fehler aufgetreten.",
+        methode: "fehler",
+        fehler: fehler.message
+      };
     }
   }
 
-  antwortGenerierenAlt(prompt, optionen = {}) {
-    return this.antwortGenerieren(prompt, optionen);
-  }
-
-  generiere(prompt, optionen = {}) {
-    return this.antwortGenerieren(prompt, optionen);
-  }
-
-  findePassendesBeispiel(frage) {
-    const normalisiere = value => this.zerlegeText(value).map(x => x.toLowerCase());
-    const a = new Set(normalisiere(frage).filter(x => WORD_RE.test(x)));
-    let best = null;
-    let bestScore = 0;
-    for (const pair of this.trainingsPaare) {
-      const b = normalisiere(pair.frage).filter(x => WORD_RE.test(x));
-      const matches = b.filter(w => a.has(w)).length;
-      const score = matches / Math.max(1, new Set(b).size + a.size - matches);
-      if (score > bestScore) {
-        bestScore = score;
-        best = pair;
-      }
-    }
-    return { paar: best, punktzahl: bestScore };
-  }
-
-  aehnlichkeit(textA, textB) {
-    const tokensA = new Set(this.zerlegeText(textA).map(x => x.toLocaleLowerCase("de-DE")));
-    const tokensB = new Set(this.zerlegeText(textB).map(x => x.toLocaleLowerCase("de-DE")));
-    const intersection = [...tokensA].filter(x => tokensB.has(x)).length;
-    const union = new Set([...tokensA, ...tokensB]).size;
-    return union ? intersection / union : 0;
-  }
-
-  wichtigeWoerter(text) {
-    const stop = new Set(["der", "die", "das", "und", "oder", "ein", "eine", "ist", "sind", "ich", "du", "was", "wie", "wo", "warum", "wieso", "mit", "von", "für", "auf", "in", "am", "an", "zu", "auch", "nicht"]);
-    return new Set(this.zerlegeText(text).filter(token => WORD_RE.test(token) && token.length > 2 && !stop.has(token.toLocaleLowerCase("de-DE"))));
-  }
-
-  planeAntwort(prompt) {
-    const treffer = this.findePassendesBeispiel(prompt);
+  statistik() {
     return {
-      eingabe: prompt,
-      kernbegriffe: [...this.wichtigeWoerter(prompt)],
-      aehnlicheFrage: treffer.punktzahl >= 0.3 ? treffer.paar?.frage || null : null,
-    };
-  }
-
-  status() {
-    return {
+      version: VERSION,
       bereit: this.bereit,
-      modell: "Kleines rekurrentes neuronales Sprachmodell (RNN), lokal in JavaScript",
-      api: false,
       vokabularGroesse: this.vokabular.length,
-      versteckteNeuronen: this.versteckteNeuronen,
-      embeddingGroesse: this.embeddingGroesse,
       trainingsBeispiele: this.trainingsBeispiele,
-      trainierteEpochen: this.trainierteEpochen,
-      konversationsModus: this.konversationsModus,
-      trainingsPaare: this.trainingsPaare.length,
       trainingsSequenzen: this.trainingsSequenzen.length,
-      letzterVerlust: this.verlustHistorie.length ? this.verlustHistorie[this.verlustHistorie.length - 1] : null,
+      trainierteEpochen: this.trainierteEpochen,
+      embeddingGroesse: this.embeddingGroesse,
+      versteckteNeuronen: this.versteckteNeuronen,
+      kontextLaenge: this.kontextLaenge,
+      ngramOrdnung: this.ngramOrdnung,
+      anzahlNGramKontexte: this.ngramCounts.size,
+      letzterVerlust: this.verlustHistorie.at(-1)?.verlust ?? null,
       letzterFehler: this.letzterFehler
     };
   }
 
-  lerneOrdner(ordner, tokenizer = null, optionen = {}) {
-    if (tokenizer && typeof tokenizer.zerlege !== "function") {
-      optionen = tokenizer;
-      tokenizer = null;
-    }
-    if (tokenizer) this.tokenizer = tokenizer;
-    if (!fs.existsSync(ordner)) throw new Error(`Trainingsordner nicht gefunden: ${ordner}`);
+  speichere(dateiPfad) {
+    const ziel = path.resolve(dateiPfad);
+    const temporaer = ziel + ".tmp";
 
-    const daten = [];
-    const dateien = fs.readdirSync(ordner, { withFileTypes: true });
-    for (const datei of dateien) {
-      if (!datei.isFile() || !datei.name.toLowerCase().endsWith(".json")) continue;
-      if (["tokenizer.json", "netz-modell.json", "model.json"].includes(datei.name.toLowerCase())) continue;
-      try {
-        daten.push(JSON.parse(fs.readFileSync(path.join(ordner, datei.name), "utf8")));
-      } catch (error) {
-        console.warn(`Datei ${datei.name} übersprungen: ${error.message}`);
-      }
-    }
-    if (!daten.length) throw new Error(`Keine gültigen JSON-Trainingsdateien in ${ordner} gefunden.`);
-    return this.trainiereTexte(daten, tokenizer, optionen);
-  }
-
-  speichern(datei = path.join(__dirname, "modelle", "netz-modell.json")) {
-    if (!this.bereit) throw new Error("Es gibt noch kein trainiertes Modell zum Speichern.");
-    fs.mkdirSync(path.dirname(datei), { recursive: true });
-    const serial = {
-      version: 2,
-      optionen: {
-        maxVokabular: this.maxVokabular,
-        embeddingGroesse: this.embeddingGroesse,
-        versteckteNeuronen: this.versteckteNeuronen,
-        kontextLaenge: this.kontextLaenge,
-        trainingsSchrittLaenge: this.trainingsSchrittLaenge,
-        maxTrainingsTokens: this.maxTrainingsTokens,
-        ngramOrdnung: this.ngramOrdnung
-      },
+    const daten = {
+      version: VERSION,
+      optionen: this.optionen,
       vokabular: this.vokabular,
       embeddings: this.embeddings,
       gewichteEingabe: this.gewichteEingabe,
@@ -1011,61 +1397,108 @@ class NeuronalesNetz {
       biasVersteckt: this.biasVersteckt,
       gewichteAusgabe: this.gewichteAusgabe,
       biasAusgabe: this.biasAusgabe,
-      trainingsBeispiele: this.trainingsBeispiele,
-      trainierteEpochen: this.trainierteEpochen,
-      konversationsModus: this.konversationsModus,
       trainingsPaare: this.trainingsPaare,
-      ngramCounts: this.ngramCounts.map(level => [...level.entries()].map(([key, values]) => [key, [...values.entries()]]))
+      trainierteEpochen: this.trainierteEpochen,
+      verlustHistorie: this.verlustHistorie,
+      bereit: this.bereit
     };
-    fs.writeFileSync(datei, JSON.stringify(serial), "utf8");
-    return datei;
+
+    fs.mkdirSync(path.dirname(ziel), { recursive: true });
+    fs.writeFileSync(
+      temporaer,
+      JSON.stringify(daten),
+      "utf8"
+    );
+    fs.renameSync(temporaer, ziel);
+
+    return { erfolg: true, datei: ziel };
   }
 
-  laden(datei = path.join(__dirname, "modelle", "netz-modell.json")) {
-    const serial = JSON.parse(fs.readFileSync(datei, "utf8"));
-    if (serial.version !== 2 || !Array.isArray(serial.vokabular)) {
-      throw new Error("Ungültige oder nicht unterstützte Modelldatei.");
+  lade(dateiPfad) {
+    try {
+      const quelle = path.resolve(dateiPfad);
+      const daten = JSON.parse(fs.readFileSync(quelle, "utf8"));
+
+      if (!daten || !Array.isArray(daten.vokabular)) {
+        throw new Error("Ungültige Modelldatei.");
+      }
+
+      if (daten.version !== VERSION) {
+        throw new Error(
+          "Die Modelldatei hat eine andere Version. Bitte trainiere das Modell neu."
+        );
+      }
+
+      this.optionen = {
+        ...this.optionen,
+        ...(daten.optionen || {})
+      };
+
+      this.maxVokabular = this.optionen.maxVokabular;
+      this.embeddingGroesse = this.optionen.embeddingGroesse;
+      this.versteckteNeuronen = this.optionen.versteckteNeuronen;
+      this.kontextLaenge = this.optionen.kontextLaenge;
+      this.trainingsSchrittLaenge = this.optionen.segmentLaenge;
+      this.maxTrainingsTokens = this.optionen.maxTrainingsTokens;
+      this.ngramOrdnung = this.optionen.ngramOrdnung;
+
+      this.vokabular = daten.vokabular;
+      this.tokenZuId = new Map(
+        this.vokabular.map((token, id) => [token, id])
+      );
+
+      this.padId = this.tokenZuId.get(SPECIAL.PAD) ?? 0;
+      this.unkId = this.tokenZuId.get(SPECIAL.UNK) ?? 1;
+      this.bosId = this.tokenZuId.get(SPECIAL.BOS) ?? 2;
+      this.eosId = this.tokenZuId.get(SPECIAL.EOS) ?? 3;
+      this.userId = this.tokenZuId.get(SPECIAL.USER) ?? 4;
+      this.aiId = this.tokenZuId.get(SPECIAL.AI) ?? 5;
+
+      this.embeddings = daten.embeddings;
+      this.gewichteEingabe = daten.gewichteEingabe;
+      this.gewichteRekurrenz = daten.gewichteRekurrenz;
+      this.biasVersteckt = daten.biasVersteckt;
+      this.gewichteAusgabe = daten.gewichteAusgabe;
+      this.biasAusgabe = daten.biasAusgabe;
+
+      this.trainingsPaare = daten.trainingsPaare || [];
+      this.trainingsBeispiele = this.trainingsPaare.length;
+      this.trainierteEpochen = daten.trainierteEpochen || 0;
+      this.verlustHistorie = daten.verlustHistorie || [];
+
+      this.trainingsSequenzen = this.trainingsPaare.map(beispiel => {
+        const tokens = [
+          SPECIAL.BOS,
+          SPECIAL.USER,
+          ...this.zerlegeText(beispiel.frage),
+          SPECIAL.AI,
+          ...this.zerlegeText(beispiel.antwort),
+          SPECIAL.EOS
+        ];
+
+        return this.kodiereSequenz(tokens);
+      });
+
+      this.ngramCounts.clear();
+      this.trainiereNGramModelle();
+
+      this.bereit = Boolean(daten.bereit);
+
+      return {
+        erfolg: true,
+        statistik: this.statistik()
+      };
+    } catch (fehler) {
+      this.letzterFehler = fehler.message;
+
+      return {
+        erfolg: false,
+        fehler: fehler.message
+      };
     }
-    const o = serial.optionen || {};
-    this.maxVokabular = o.maxVokabular || this.maxVokabular;
-    this.embeddingGroesse = o.embeddingGroesse || this.embeddingGroesse;
-    this.versteckteNeuronen = o.versteckteNeuronen || this.versteckteNeuronen;
-    this.kontextLaenge = o.kontextLaenge || this.kontextLaenge;
-    this.trainingsSchrittLaenge = o.trainingsSchrittLaenge || this.trainingsSchrittLaenge;
-    this.maxTrainingsTokens = o.maxTrainingsTokens || this.maxTrainingsTokens;
-    this.ngramOrdnung = o.ngramOrdnung || this.ngramOrdnung;
-
-    this.vokabular = serial.vokabular;
-    this.tokenZuId = new Map(this.vokabular.map((token, id) => [token, id]));
-    this.padId = this.tokenZuId.get(SPECIAL.PAD);
-    this.bosId = this.tokenZuId.get(SPECIAL.BOS);
-    this.eosId = this.tokenZuId.get(SPECIAL.EOS);
-    this.unkId = this.tokenZuId.get(SPECIAL.UNK);
-    this.userId = this.tokenZuId.get(SPECIAL.USER);
-    this.aiId = this.tokenZuId.get(SPECIAL.AI);
-    this.wordId = this.tokenZuId.get(SPECIAL.WORD);
-    this.endWordId = this.tokenZuId.get(SPECIAL.END_WORD);
-
-    this.embeddings = serial.embeddings;
-    this.gewichteEingabe = serial.gewichteEingabe;
-    this.gewichteRekurrenz = serial.gewichteRekurrenz;
-    this.biasVersteckt = serial.biasVersteckt;
-    this.gewichteAusgabe = serial.gewichteAusgabe;
-    this.biasAusgabe = serial.biasAusgabe;
-    this.trainingsBeispiele = serial.trainingsBeispiele || 0;
-    this.trainierteEpochen = serial.trainierteEpochen || 0;
-    this.konversationsModus = !!serial.konversationsModus;
-    this.trainingsPaare = Array.isArray(serial.trainingsPaare) ? serial.trainingsPaare : [];
-    this.ngramCounts = Array.from({ length: this.ngramOrdnung + 1 }, (_, level) => {
-      const entries = serial.ngramCounts?.[level] || [];
-      return new Map(entries.map(([key, values]) => [key, new Map(values)]));
-    });
-    this.bereit = true;
-    this.letzterFehler = null;
-    this.haeufigeWoerter = new Set(this.vokabular.filter(token => WORD_RE.test(token)));
-    this.zeichenTokens = new Set(this.vokabular.map(token => this.charAusToken(token)).filter(Boolean));
-    return this.status();
   }
 }
 
-module.exports = { NeuronalesNetz };
+module.exports = {
+  NeuronalesNetz
+};

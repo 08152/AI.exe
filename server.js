@@ -106,7 +106,7 @@ const tokenizer = new Tokenizer();
 const netz = new NeuronalesNetz(tokenizer, {
   maxVokabular: 256,
   embeddingGroesse: 8,
-  versteckteNeuronen: 120,
+  versteckteNeuronen: 250,
   kontextLaenge: 16
 });
 
